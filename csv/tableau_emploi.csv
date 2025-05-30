@@ -1,0 +1,83 @@
+entite;formation;experience;codeemploi;poidsemploi;nom_emploi
+DG;Bac+5;20;E1;0;DG / DGA
+DAT;Bac+5;15;E2;0;Directeur des Affaires Techniques
+DGPDD;Bac+5;15;E3;0;Directeur Gestion du Patrimoine et Développement Durable
+DPCT;Bac+5;15;E4;0;Directeur Panification et Coordination Territoriale
+DAP;Bac+5;15;E5;0;Direction des Aménagements Provisoires
+DAFCG;Bac+5;15;E6;0;Direction des Affaires Financières et CG
+DAAG;Bac+5;15;E7;0;Directeur des Affaires Administratives Générales
+DR;Bac+5;15;E8;0;Directeur Régional
+AP;Bac+5;10;E9;0;Chef Aménagements Provisoires
+DG;Bac + 5;10;E10;0;Chef de Département Communication et Marketing Public
+DG;Bac + 5;10;E11;0;Chef de Département Audit et Qualité
+DAAG;Bac + 5;10;E12;0;Chef de Département Logistique et Affaires Générales
+DAAG;Bac + 5;10;E13;0;Chef de Département des Ressources Humaines
+DAFCG;Bac + 5;10;E14;0;Chef de Département Budget et Comptabilité
+DAFCG;Bac + 5;10;E15;0;Chef de Département Contrôle de Gestion
+DAT;Bac + 6;10;E16;0;Chef de Département program. Archi et Technique
+DAT;Bac+5;10;E17;0;Chef de Département des Etudes Archirecturales
+DAT;Bac+5;10;E18;0;"Chef de Département Structures et Lots Architecturaux
+"
+DAT;Bac+5;10;E19;0;Chef de Département des Lots Techniques
+DPCT;Bac+5;10;E20;0;Chef de Département Planification
+DPCT;Bac+5;10;E21;0;Chef de Département Coordination Territoriale
+DPCT;Bac + 5;10;E22;0;Chef de Département Système d'Informaion
+DGPDD;Bac + 5;10;E23;0;Chef de Département Gestion du Patrimoine
+DGPDD;Bac + 5;10;E24;0;Chef de Département Développement Durable
+DGPDD;Bac + 5;10;E25;0;Chef de Département Développement Technique
+DR;Bac + 5;10;E26;0;Chefs de division/Département suivi des travaux
+AP;Bac + 5;10;E27;0;Responsable genie civil AP
+AP;Bac + 5;10;E28;0;Responsable lots techniques AP
+AP;Bac + 5;10;E29;0;Responsable des facades et lots architecturaux
+DR/AP;Bac+5;10;E30;0;Chef de Division Marchés et Affaires Générales
+DG;Bac+5;10;E31;0;Chargé de mission/ Conseiller
+DAFCG;Bac+5;5;E32;0;Responsable du Contrôle de gestion
+DG;Bac + 5;6;E33;0;Responsable de la Communication
+DG;Bac+5;6;E34;0;Responsable SMQ
+DG;Bac+5;6;E35;0;Responsable Gestion des Risques (Risk manager)
+DG;Bac+5;6;E36;0;Responsable de la sécurité des Systèmes d’Informations
+DG;Bac +5;6;E37;0;Responsable de l'Audit interne
+DG;Bac +5;6;E38;0;Auditeurs internes
+DG;Bac +5;6;E39;0;Resp de la Gestion du Marketing
+DG;Bac + 2 et plus;3;E40;0;Membre d'équipe prospection Marketing
+DPCT;Bac+5;6;E41;0;Responsable Appui technique
+DPCT;Bac +5;6;E42;0;Responsable de la Planification, Suivi des projets
+DAT;Bac + 6;6;E43;0;Programiste
+DAT;Bac +5;1;E44;0;Responsable des Etudes Architecturales
+DAT;Bac +5;6;E45;0;Responsable de l'Approbation des structures et Lots architecturaux
+DAT;Bac +5;6;E46;0;Responsable de l’examen et de l’approbation des études des lots techniques et spécialisés
+DAT/AP;Bac +5;3;E47;0;Responsable BIM
+DAT;Bac +2;1;E48;0;Chargé de surfaçage
+DAT;Bac +2;1;E49;0;Métreur
+DAT;Bac +2;1;E50;0;Métreur et examinateur de projet courant
+DAFCG;Bac+5;5;E51;0;Responsable d’examen et approbation des Achats et Marchés MOD
+DR;Bac+5;6;E52;0;Responsable de la gestion des Marchés MOD Régional
+DR/AP/DAP;Bac 2 à 5;6;E53;0;Responsable de suivi des travaux et de la maintenance des Equipements Publics
+DR;Bac +5;2;E54;0;Responsable de la Coordination et Reporting Pd 3
+AP;Bac +5;2;E55;0;Responsable de suivi et de Gestion de la Qualité des travaux
+DGPDD;Bac +5;6;E56;0;Responsable de la Gestion Technique du Patrimoine et de la Maintenance d’Equipements Publics
+DGPDD;Bac +5;6;E57;0;Responsable de Veille technique
+DGPDD;Bac +5;6;E58;0;Responsable bâtiment durable
+DGPDD;Bac +5;6;E59;0;Responsable Efficacité énergetique
+DGPDD;Bac +5;6;E60;0;Représentatnt de l'ANEP au niveau de la DATRP
+DAAG;Bac+ 5;6;E61;0;Responsable de la gestion des affaires administratives du personnel
+DAAG;Bac+ 5;6;E62;0;Reponsable Développement Humain
+DGPDD;Bac+ 5;6;E63;0;Responsable Formation Continue
+DAAG;Bac+ 5;6;E64;0;Responsable Service Moyens Généraux
+DAAG;Bac+ 5;1;E65;0;Chargé de la Documentation
+DAAG;Bac+ 5;1;E66;0;Chargé Archives
+DG/DAAG;Bac+2;4;E67;0;Secrétariare
+DAAG;Bac+2;6;E68;0;Chargé du Bureau d'Ordre
+DAAG;Bac+2;2;E69;0;Magasinier
+DAAG;Bac+ 2;4;E70;0;Chargé du Parc Auto
+DAAG;Bac+ 2;1;E71;0;Chargé du Centre Copie
+DAAG;CQP;1;E72;0;Chauffeur
+DAAG;Bac+ 5;6;E73;0;Responsable de la gestion des Achats et des Marchés ANEP
+DR;Bac+ 5;6;E74;0;Responsable des achats et affaires générales (régionales)
+DAFCG;Bac+ 5;5;E75;0;Responsable des affaires juridiques et contentieux
+DAFCG;Bac+ 3;6;E76;0;Reponsable Budget & Comptabilité
+DAFCG;Bac+ 2;3;E77;0;Comptable
+DAFCG;Bac+ 2;1;E78;0;Régisseur
+DAFCG;Bac+ 3;6;E79;0;Responsable du Recouvrement
+DPCT;Bac+ 5;6;E80;0;Responsable Système d'Information
+DPCT;Bac+ 5;6;E81;0;Responsable des infrastructures informatiques
