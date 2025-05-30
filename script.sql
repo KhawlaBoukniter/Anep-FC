@@ -54,6 +54,12 @@ CREATE TABLE employe_competencea (
 );
 
 
+ALTER TABLE employe ADD COLUMN role varchar(50) not null check (role in ('user', 'admin')) DEFAULT 'user';
+ALTER TABLE employe ADD COLUMN date_naissance DATE ;
+ALTER TABLE employe ADD COLUMN date_recrutement DATE;
+ALTER TABLE employe ADD COLUMN cin varchar(50);
+
+
 \copy emploi(entite, formation, experience, codeemploi, poidsemploi, nom_emploi) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_emploi.csv' DELIMITER ';' CSV HEADER;
 \copy employe(nom_complet, email, adresse, telephone1, telephone2, categorie, specialite, experience_employe) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_employe.csv' DELIMITER ';' CSV HEADER;
 \copy emploi_employe(id_emploi, id_employe) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_emploi_employe.csv' DELIMITER ';' CSV HEADER;
