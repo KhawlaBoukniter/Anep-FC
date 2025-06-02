@@ -1,0 +1,67 @@
+"use client"
+
+import { Users, Briefcase, Building, BarChart3 } from "lucide-react"
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarHeader,
+} from "./ui/sidebar"
+
+interface AppSidebarProps {
+  activeSection: string
+  setActiveSection: (section: string) => void
+}
+
+export function AppSidebar({ activeSection, setActiveSection }: AppSidebarProps) {
+  const menuItems = [
+    {
+      title: "Employés",
+      icon: Users,
+      id: "employees",
+    },
+    {
+      title: "Emplois",
+      icon: Briefcase,
+      id: "jobs",
+    },
+    {
+      title: "Analyse Compétences",
+      icon: BarChart3,
+      id: "skills-analysis",
+    },
+  ]
+
+  return (
+    <Sidebar>
+      <SidebarHeader className="p-4">
+        <div className="flex items-center gap-2">
+          <Building className="h-6 w-6" />
+          <span className="font-semibold">Admin RH</span>
+        </div>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Gestion</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {menuItems.map((item) => (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton isActive={activeSection === item.id} onClick={() => setActiveSection(item.id)}>
+                    <item.icon />
+                    <span>{item.title}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+    </Sidebar>
+  )
+}
