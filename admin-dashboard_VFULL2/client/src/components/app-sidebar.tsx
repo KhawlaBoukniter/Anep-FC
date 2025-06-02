@@ -11,7 +11,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
-} from "./ui/sidebar"
+} from "./ui/sidebar.tsx"
 
 interface AppSidebarProps {
   activeSection: string

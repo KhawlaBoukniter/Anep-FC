@@ -1,12 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { SidebarProvider } from "../components/ui/sidebar"
-import { AppSidebar } from "../components/app-sidebar"
-import { SidebarInset, SidebarTrigger } from "../components/ui/sidebar"
-import { EmployeesList } from "../components/employees-list"
-import { JobsList } from "../components/jobs-list"
-import { SkillsAnalysis } from "../components/skills-analysis"
+import { SidebarProvider } from "../components/ui/sidebar.tsx"
+import { AppSidebar } from "../components/app-sidebar.tsx"
+import { SidebarInset, SidebarTrigger } from "../components/ui/sidebar.tsx"
+import { EmployeesList } from "../components/employees-list.tsx"
+import { JobsList } from "../components/jobs-list.tsx"
+import { SkillsAnalysis } from "../components/skills-analysis.tsx"
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState("employees")

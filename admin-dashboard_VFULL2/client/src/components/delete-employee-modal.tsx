@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "./ui/button"
+import { Button } from "./ui/button.tsx"
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "./ui/dialog"
+} from "./ui/dialog.tsx"
 import { Trash2, AlertTriangle } from "lucide-react"
 
 interface DeleteEmployeeModalProps {

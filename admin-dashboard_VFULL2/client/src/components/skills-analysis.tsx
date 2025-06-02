@@ -1,16 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "./ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
-import { Badge } from "./ui/badge"
-import { Label } from "./ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"
+import { Button } from "./ui/button.tsx"
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.tsx"
+import { Badge } from "./ui/badge.tsx"
+import { Label } from "./ui/label.tsx"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.tsx"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table.tsx"
 import { BarChart3, Users, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command"
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
-import { Input } from "./ui/input"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command.tsx"
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover.tsx"
+import { Input } from "./ui/input.tsx"
 
 interface Employee {
   id: string
