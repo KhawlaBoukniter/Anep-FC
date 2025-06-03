@@ -8,8 +8,7 @@ import { Label } from "./ui/label.tsx"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.tsx"
 import { Badge } from "./ui/badge.tsx"
 import { ChevronLeft, ChevronRight, Edit, Briefcase, X } from "lucide-react"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command.tsx"
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover.tsx"
+import { Popover, PopoverTrigger } from "./ui/popover.tsx"
 
 interface Skill {
   id: string
@@ -20,7 +19,7 @@ interface Skill {
 
 interface Job {
   id: string
-  nom_emploi:string
+  nom_emploi: string
   entite: string
   formation: string
   experience: number
@@ -54,7 +53,7 @@ export function EditJobModal({ job }: EditJobModalProps) {
   const [open, setOpen] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
-    nom_emploi:job.nom_emploi,
+    nom_emploi: job.nom_emploi,
     entite: job.entite,
     formation: job.formation,
     experience: job.experience,
@@ -82,12 +81,10 @@ export function EditJobModal({ job }: EditJobModalProps) {
   }
 
   const addSkill = (skillName: string) => {
-    // Vérifier si la compétence existe déjà
     if (requiredSkills.some((skill) => skill.name.toLowerCase() === skillName.toLowerCase())) {
       return
     }
 
-    // Trouver l'icône correspondante ou utiliser une icône par défaut
     const matchedSkill = availableSkills.find((skill) => skill.name.toLowerCase() === skillName.toLowerCase())
     const icon = matchedSkill?.icon || "⭐"
 
@@ -121,17 +118,14 @@ export function EditJobModal({ job }: EditJobModalProps) {
     console.log("Données emploi modifiées:", formData)
     console.log("Compétences requises modifiées:", requiredSkills)
     alert("Emploi modifié avec succès!")
-
-    // Close modal
     setCurrentStep(1)
     setOpen(false)
   }
 
   const handleClose = () => {
-    // Reset to original values
     setCurrentStep(1)
     setFormData({
-      nom_emploi:job.nom_emploi,
+      nom_emploi: job.nom_emploi,
       entite: job.entite,
       formation: job.formation,
       experience: job.experience,
@@ -185,7 +179,7 @@ export function EditJobModal({ job }: EditJobModalProps) {
         <div className="space-y-6 mt-6">
           {currentStep === 1 && (
             <div className="space-y-4">
-               <div className="space-y-2">
+              <div className="space-y-2">
                 <Label htmlFor="nom_emploi">Nom Emploi</Label>
                 <Input
                   id="nom_emploi"
@@ -237,8 +231,6 @@ export function EditJobModal({ job }: EditJobModalProps) {
                   onChange={(e) => handleInputChange("codeEmploi", e.target.value)}
                 />
               </div>
-
-             
             </div>
           )}
 
@@ -256,7 +248,7 @@ export function EditJobModal({ job }: EditJobModalProps) {
                 <div className="flex items-center gap-2">
                   <Popover open={openSkillPopover} onOpenChange={setOpenSkillPopover}>
                     <PopoverTrigger asChild>
-                      <div className="flex-1">
+                      <div className="flex-1 relative">
                         <Input
                           ref={inputRef}
                           placeholder="Saisissez une compétence..."
@@ -265,31 +257,30 @@ export function EditJobModal({ job }: EditJobModalProps) {
                           onKeyDown={handleKeyDown}
                           onFocus={() => setOpenSkillPopover(true)}
                         />
+                        {openSkillPopover && newSkill && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg">
+                            <div className="p-1 max-h-60 overflow-auto">
+                              {availableSkills
+                                .filter((skill) =>
+                                  skill.name.toLowerCase().includes(newSkill.toLowerCase())
+                                )
+                                .map((skill) => (
+                                  <div
+                                    key={skill.name}
+                                    className="px-4 py-2 text-sm cursor-pointer hover:bg-gray-100 flex items-center"
+                                    onClick={() => {
+                                      addSkill(skill.name)
+                                    }}
+                                  >
+                                    <span className="mr-2">{skill.icon}</span>
+                                    <span>{skill.name}</span>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0" align="start" side="bottom" sideOffset={5}>
-                      <Command>
-                        <CommandInput placeholder="Rechercher une compétence..." />
-                        <CommandList>
-                          <CommandEmpty>Aucune compétence trouvée.</CommandEmpty>
-                          <CommandGroup>
-                            {availableSkills
-                              .filter((skill) => skill.name.toLowerCase().includes(newSkill.toLowerCase()))
-                              .map((skill) => (
-                                <CommandItem
-                                  key={skill.name}
-                                  onSelect={() => {
-                                    addSkill(skill.name)
-                                  }}
-                                >
-                                  <span className="mr-2">{skill.icon}</span>
-                                  <span>{skill.name}</span>
-                                </CommandItem>
-                              ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
                   </Popover>
                   <Button
                     type="button"
@@ -368,7 +359,6 @@ export function EditJobModal({ job }: EditJobModalProps) {
                 Suivant
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
-              
             ) : (
               <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-600">
                 Enregistrer
