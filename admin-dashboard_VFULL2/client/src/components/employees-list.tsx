@@ -207,20 +207,6 @@ export function EmployeesList() {
     }
   }
 
-  const getLevelText = (level: number) => {
-    switch (level) {
-      case 1:
-        return "Débutant"
-      case 2:
-        return "Intermédiaire"
-      case 3:
-        return "Avancé"
-      case 4:
-        return "Expert"
-      default:
-        return "Non défini"
-    }
-  }
 
   const getRoleColor = (role: string) => {
     return role === "admin" ? "bg-purple-100 text-purple-800" : "bg-gray-100 text-gray-800"
@@ -248,7 +234,7 @@ export function EmployeesList() {
     <TooltipProvider>
       <div className="space-y-6">
         {/* En-tête avec statistiques */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -258,20 +244,6 @@ export function EmployeesList() {
                 <div>
                   <p className="text-sm text-gray-600">Total Employés</p>
                   <p className="text-2xl font-bold">{stats.total}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Shield className="h-5 w-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Administrateurs</p>
-                  <p className="text-2xl font-bold">{stats.admins}</p>
                 </div>
               </div>
             </CardContent>

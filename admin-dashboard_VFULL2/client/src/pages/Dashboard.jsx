@@ -9,33 +9,35 @@ import { JobsList } from "../components/jobs-list.tsx"
 import { SkillsAnalysis } from "../components/skills-analysis.tsx"
 
 export default function AdminDashboard() {
-  const [activeSection, setActiveSection] = useState("employees")
+  const [activeSection, setActiveSection] = useState("employees");
 
   const renderContent = () => {
     switch (activeSection) {
       case "employees":
-        return <EmployeesList />
+        return <EmployeesList />;
       case "jobs":
-        return <JobsList />
+        return <JobsList />;
       case "skills-analysis":
-        return <SkillsAnalysis />
+        return <SkillsAnalysis />;
       default:
-        return <EmployeesList />
+        return <EmployeesList />;
     }
-  }
+  };
 
   return (
     <SidebarProvider>
       <AppSidebar activeSection={activeSection} setActiveSection={setActiveSection} />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-indigo-50">
           <SidebarTrigger className="-ml-1" />
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold">Dashboard Admin</h1>
+            <h1 className="text-lg font-semibold text-indigo-700">Dashboard Admin</h1>
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4">{renderContent()}</div>
+        <div className="flex flex-1 flex-col gap-6 p-6 bg-gray-50">
+          {renderContent()}
+        </div>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }

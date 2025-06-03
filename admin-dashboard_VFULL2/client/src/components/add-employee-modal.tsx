@@ -123,36 +123,36 @@ export function AddEmployeeModal() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-blue-600 hover:bg-blue-700">
+        <Button className="bg-blue-600 hover:bg-blue-700 text-white">
           <UserPlus className="h-4 w-4 mr-2" />
           Ajouter Employé
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white">
         <DialogHeader className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <UserPlus className="h-6 w-6 text-blue-600" />
             <DialogTitle className="text-xl">Formulaire Employé</DialogTitle>
-            <Badge variant="secondary">2 étapes</Badge>
           </div>
 
           <div className="flex items-center justify-center gap-4">
-            <div
-              className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"}`}
-            >
-              1
+            <div className="justify-items-center">
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"}`}
+                >
+                1
+              </div>
+              <span className="text-sm text-gray-600">Données Employé</span>
             </div>
             <div className="w-16 h-0.5 bg-gray-200"></div>
-            <div
-              className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"}`}
-            >
-              2
+            <div className="justify-items-center">
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"}`}
+                >
+                2
+              </div>
+              <span className="text-sm text-gray-600">Compétences Acquises</span>
             </div>
-          </div>
-
-          <div className="flex justify-between text-sm text-gray-600 mt-2">
-            <span>Données Employé</span>
-            <span>Compétences Acquises</span>
           </div>
         </DialogHeader>
 
@@ -289,7 +289,7 @@ export function AddEmployeeModal() {
                   <Button
                     type="button"
                     onClick={() => newSkill.trim() && addSkill(newSkill.trim())}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     Ajouter
                   </Button>
@@ -359,12 +359,12 @@ export function AddEmployeeModal() {
             </div>
 
             {currentStep === 1 ? (
-              <Button onClick={() => setCurrentStep(2)}>
+              <Button variant="outline" onClick={() => setCurrentStep(2)}>
                 Suivant
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
-              <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700 text-white">
                 Enregistrer
               </Button>
             )}
