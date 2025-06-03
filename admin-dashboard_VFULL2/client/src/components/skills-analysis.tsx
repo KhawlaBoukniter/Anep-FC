@@ -285,7 +285,7 @@ export function SkillsAnalysis() {
             {/* Sélection de compétence */}
             <div className="space-y-2">
               <Label>Compétence à analyser</Label>
-              <Popover open={openSkillPopover} onOpenChange={setOpenSkillPopover}>
+              <Popover onOpenChange={setOpenSkillPopover}>
                 <PopoverTrigger asChild>
                   <div className="relative">
                     <Input
@@ -336,6 +336,26 @@ export function SkillsAnalysis() {
                   <SelectItem value="2">Niveau 2</SelectItem>
                   <SelectItem value="3">Niveau 3</SelectItem>
                   <SelectItem value="4">Niveau 4</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label>Formation</Label>
+              <Input placeholder="Entrer la formation à analyser"></Input>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="inscrit">Inscrit</SelectItem>
+                  <SelectItem value="non-inscrit">Non inscrit</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -119,7 +119,7 @@ export function AddJobModal() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-green-600 hover:bg-green-700">
+        <Button className="bg-green-600 hover:bg-green-700 text-white">
           <Plus className="h-4 w-4 mr-2" />
           Ajouter Emploi
         </Button>
@@ -133,23 +133,25 @@ export function AddJobModal() {
           </div>
 
           <div className="flex items-center justify-center gap-4">
-            <div
-              className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 1 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"}`}
-            >
-              1
+            <div className="justify-items-center">
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 1 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"}`}
+              >
+                1
+              </div>
+              <span className="text-sm text-gray-600">Données Emploi</span>
             </div>
             <div className="w-16 h-0.5 bg-gray-200"></div>
-            <div
-              className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 2 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"}`}
-            >
-              2
+            <div className="justify-items-center">
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 2 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"}`}
+              >
+                2
+              </div>
+              <span className="text-sm text-gray-600">Compétences Requises</span>
             </div>
           </div>
 
-          <div className="flex justify-between text-sm text-gray-600 mt-2">
-            <span>Données Emploi</span>
-            <span>Compétences Requises</span>
-          </div>
         </DialogHeader>
 
         <div className="space-y-6 mt-6">
@@ -195,15 +197,6 @@ export function AddJobModal() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="poidEmploi">Poid Emploi (conteur)</Label>
-                <Input
-                  id="poidEmploi"
-                  placeholder="Entrer le poids d'emploi"
-                  value={formData.poidEmploi}
-                  onChange={(e) => handleInputChange("poidEmploi", e.target.value)}
-                />
-              </div>
             </div>
           )}
 
@@ -259,7 +252,7 @@ export function AddJobModal() {
                   <Button
                     type="button"
                     onClick={() => newSkill.trim() && addSkill(newSkill.trim())}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-green-600 hover:bg-green-700 text-white"
                   >
                     Ajouter
                   </Button>
@@ -329,12 +322,12 @@ export function AddJobModal() {
             </div>
 
             {currentStep === 1 ? (
-              <Button onClick={() => setCurrentStep(2)} className="bg-green-600 hover:bg-green-700">
+              <Button variant="outline" onClick={() => setCurrentStep(2)}>
                 Suivant
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
-              <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-700">
+              <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-700 text-white">
                 Enregistrer
               </Button>
             )}

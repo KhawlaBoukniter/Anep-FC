@@ -139,21 +139,6 @@ export function JobsList() {
     }
   }
 
-  const getLevelText = (level: number) => {
-    switch (level) {
-      case 1:
-        return "Débutant"
-      case 2:
-        return "Intermédiaire"
-      case 3:
-        return "Avancé"
-      case 4:
-        return "Expert"
-      default:
-        return "Non défini"
-    }
-  }
-
   const getEntiteColor = (entite: string) => {
     const colors = {
       "Département IT": "bg-blue-100 text-blue-800",
@@ -175,7 +160,7 @@ export function JobsList() {
     <TooltipProvider>
       <div className="space-y-6">
         {/* En-tête avec statistiques */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">

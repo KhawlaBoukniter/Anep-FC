@@ -169,27 +169,30 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
           <div className="flex items-center justify-center gap-2 mb-4">
             <UserPlus className="h-6 w-6 text-blue-600" />
             <DialogTitle className="text-xl">Modifier l'Employé</DialogTitle>
-            <Badge variant="secondary">2 étapes</Badge>
           </div>
 
           <div className="flex items-center justify-center gap-4">
-            <div
-              className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"}`}
-            >
-              1
+            <div className="justify-items-center">
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"}`}
+                >
+                1
+              </div>
+              <span className="text-sm text-gray-600">Données Employé</span>
             </div>
+
             <div className="w-16 h-0.5 bg-gray-200"></div>
-            <div
-              className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"}`}
-            >
-              2
+            
+            <div className="justify-items-center">
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"}`}
+                >
+                2
+              </div>
+              <span className="text-sm text-gray-600">Compétences Acquises</span>
             </div>
           </div>
 
-          <div className="flex justify-between text-sm text-gray-600 mt-2">
-            <span>Données Employé</span>
-            <span>Compétences Acquises</span>
-          </div>
         </DialogHeader>
 
         <div className="space-y-6 mt-6">
