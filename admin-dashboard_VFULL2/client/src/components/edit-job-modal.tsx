@@ -158,20 +158,19 @@ export function EditJobModal({ job }: EditJobModalProps) {
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Briefcase className="h-6 w-6 text-blue-600" />
+            <Briefcase className="h-6 w-6 text-green-600" />
             <DialogTitle className="text-xl">Modifier l'Emploi</DialogTitle>
-            <Badge variant="secondary">2 étapes</Badge>
           </div>
 
           <div className="flex items-center justify-center gap-4">
             <div
-              className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"}`}
+              className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 1 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"}`}
             >
               1
             </div>
             <div className="w-16 h-0.5 bg-gray-200"></div>
             <div
-              className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"}`}
+              className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 2 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"}`}
             >
               2
             </div>
@@ -290,7 +289,7 @@ export function EditJobModal({ job }: EditJobModalProps) {
                   <Button
                     type="button"
                     onClick={() => newSkill.trim() && addSkill(newSkill.trim())}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-green-600 hover:bg-green-700"
                   >
                     Ajouter
                   </Button>
@@ -360,12 +359,13 @@ export function EditJobModal({ job }: EditJobModalProps) {
             </div>
 
             {currentStep === 1 ? (
-              <Button onClick={() => setCurrentStep(2)} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={() => setCurrentStep(2)} className="border-2 border-gray-100">
                 Suivant
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
+              
             ) : (
-              <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-600">
                 Enregistrer
               </Button>
             )}
