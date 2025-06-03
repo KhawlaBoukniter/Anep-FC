@@ -1,119 +1,69 @@
--- Base de données PostgreSQL pour le système RH
-
--- Table des départements
-CREATE TABLE departments (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE emploi (
+    id_emploi SERIAL PRIMARY KEY,
+    nom_emploi varchar(255) not null,
+    entite VARCHAR(100) NOT NULL,
+    formation VARCHAR(255) NOT NULL,
+    experience INT,
+    codeemploi VARCHAR(50) UNIQUE,
+    poidsemploi INTEGER DEFAULT 0      
 );
 
--- Table des emplois/postes
-CREATE TABLE jobs (
-    id SERIAL PRIMARY KEY,
-    code VARCHAR(20) NOT NULL UNIQUE,
-    title VARCHAR(100) NOT NULL,
-    entity VARCHAR(100) NOT NULL,
-    formation TEXT,
-    experience VARCHAR(50),
-    weight_percentage INTEGER CHECK (weight_percentage >= 0 AND weight_percentage <= 100),
-    department_id INTEGER REFERENCES departments(id),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE employe (
+    id_employe SERIAL PRIMARY KEY,
+    nom_complet VARCHAR(100) NOT NULL,
+    email VARCHAR(150) UNIQUE,
+    adresse VARCHAR(255),
+    telephone1 VARCHAR(20),
+    telephone2 VARCHAR(20),
+    categorie VARCHAR(50),
+    specialite VARCHAR(100),
+    experience_employe int
 );
 
--- Table des compétences
-CREATE TABLE skills (
+CREATE TABLE emploi_employe (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    icon VARCHAR(10) DEFAULT '⭐',
-    category VARCHAR(50),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id_emploi int not null,
+    id_employe int not null
+
 );
 
--- Table des employés
-CREATE TABLE employees (
-    id SERIAL PRIMARY KEY,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE,
-    phone VARCHAR(20),
-    job_id INTEGER REFERENCES jobs(id),
-    department_id INTEGER REFERENCES departments(id),
-    category VARCHAR(50),
-    specialty VARCHAR(100),
-    hire_date DATE,
-    role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin')),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE competencesR (
+    id_competencer serial primary key,
+    code_competencer varchar(50),
+    competencer varchar(255)
 );
 
--- Table de liaison employés-compétences (many-to-many)
-CREATE TABLE employee_skills (
-    id SERIAL PRIMARY KEY,
-    employee_id INTEGER REFERENCES employees(id) ON DELETE CASCADE,
-    skill_id INTEGER REFERENCES skills(id) ON DELETE CASCADE,
-    level INTEGER CHECK (level >= 1 AND level <= 4),
-    acquired_date DATE DEFAULT CURRENT_DATE,
-    UNIQUE(employee_id, skill_id)
+CREATE TABLE competencesa (
+    id_competencea serial primary key,
+    code_competencea varchar(50),
+    competencea varchar(255)
 );
 
--- Table de liaison emplois-compétences requises (many-to-many)
-CREATE TABLE job_required_skills (
-    id SERIAL PRIMARY KEY,
-    job_id INTEGER REFERENCES jobs(id) ON DELETE CASCADE,
-    skill_id INTEGER REFERENCES skills(id) ON DELETE CASCADE,
-    required_level INTEGER CHECK (required_level >= 1 AND required_level <= 4),
-    UNIQUE(job_id, skill_id)
+CREATE TABLE emploi_competencer (
+    id_emploi_competencer SERIAL primary key,
+    id_emploi int,
+    id_competencer int,
+    niveaur int CHECK (niveaur in (1, 2, 3, 4))
 );
 
--- Index pour améliorer les performances
-CREATE INDEX idx_employees_email ON employees(email);
-CREATE INDEX idx_employees_department ON employees(department_id);
-CREATE INDEX idx_employees_job ON employees(job_id);
-CREATE INDEX idx_employee_skills_employee ON employee_skills(employee_id);
-CREATE INDEX idx_employee_skills_skill ON employee_skills(skill_id);
-CREATE INDEX idx_job_skills_job ON job_required_skills(job_id);
+CREATE TABLE employe_competencea (
+    id_employe_competencea SERIAL primary key,
+    id_employe int,
+    id_competencea int,
+    niveaua int CHECK (niveaua in (1, 2, 3, 4))
+);
 
--- Trigger pour mettre à jour updated_at automatiquement
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
 
-CREATE TRIGGER update_employees_updated_at BEFORE UPDATE ON employees
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+ALTER TABLE employe ADD COLUMN role varchar(50) not null check (role in ('user', 'admin')) DEFAULT 'user';
+ALTER TABLE employe ADD COLUMN date_naissance DATE ;
+ALTER TABLE employe ADD COLUMN date_recrutement DATE;
+ALTER TABLE employe ADD COLUMN cin varchar(50);
 
-CREATE TRIGGER update_jobs_updated_at BEFORE UPDATE ON jobs
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Données de test
-INSERT INTO departments (name, description) VALUES
-('IT', 'Département Informatique'),
-('Design', 'Département Design'),
-('Management', 'Département Management'),
-('Marketing', 'Département Marketing'),
-('RH', 'Département Ressources Humaines');
-
-INSERT INTO skills (name, icon, category) VALUES
-('Programmation', '💻', 'Technique'),
-('Langues étrangères', '🌍', 'Communication'),
-('Gestion d''équipe', '👥', 'Management'),
-('Rédaction', '✏️', 'Communication'),
-('Design', '🎨', 'Créatif'),
-('Communication', '💬', 'Soft Skills'),
-('Marketing', '📊', 'Business'),
-('Comptabilité', '🧮', 'Finance'),
-('Vente', '🤝', 'Commercial'),
-('Analyse de données', '📈', 'Analytique');
-
-INSERT INTO jobs (code, title, entity, formation, experience, weight_percentage, department_id) VALUES
-('DEV-001', 'Développeur Full Stack', 'Département IT', 'Master en Informatique', '3-5 ans', 85, 1),
-('DES-002', 'Designer UX/UI', 'Département Design', 'Master en Design', '2-4 ans', 90, 2),
-('MAN-003', 'Chef de Projet', 'Département Management', 'MBA ou équivalent', '5+ ans', 100, 3),
-('MKT-004', 'Analyste Marketing', 'Département Marketing', 'Master Marketing Digital', '1-3 ans', 75, 4),
-('DEV-005', 'Développeur Frontend', 'Département IT', 'BTS Informatique', '1-2 ans', 60, 1),
-('RH-006', 'Responsable RH', 'Département RH', 'Master RH', '3-4 ans', 80, 5);
+\copy emploi(entite, formation, experience, codeemploi, poidsemploi, nom_emploi) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_emploi.csv' DELIMITER ';' CSV HEADER;
+\copy employe(nom_complet, email, adresse, telephone1, telephone2, categorie, specialite, experience_employe) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_employe.csv' DELIMITER ';' CSV HEADER;
+\copy emploi_employe(id_emploi, id_employe) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_emploi_employe.csv' DELIMITER ';' CSV HEADER;
+\copy competencesr(code_competencer, competencer) FROM 'C:\xampp\htdocs\Anep-FC\csv\competencer.csv' DELIMITER ';' CSV HEADER;
+\copy competencesa(code_competencea, competencea) FROM 'C:\xampp\htdocs\Anep-FC\csv\competencea.csv' DELIMITER ';' CSV HEADER;
+\copy emploi_competencer(id_emploi,id_competencer,niveaur) FROM 'C:\xampp\htdocs\Anep-FC\csv\emploi_competencer.csv' DELIMITER ';' CSV HEADER;
+\copy employe_competencea(id_employe,id_competencea, niveaua) FROM 'C:\xampp\htdocs\Anep-FC\csv\employe_competencea.csv' DELIMITER ';' CSV HEADER;
