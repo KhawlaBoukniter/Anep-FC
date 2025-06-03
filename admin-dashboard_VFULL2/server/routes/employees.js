@@ -5,51 +5,65 @@ const Joi = require("joi")
 
 // Schéma de validation pour un employé
 const employeeSchema = Joi.object({
-  first_name: Joi.string().min(2).max(50).required(),
-  last_name: Joi.string().min(2).max(50).required(),
+  nom_complet: Joi.string().min(2).max(100).required(),
   email: Joi.string().email().required(),
-  phone: Joi.string().max(20),
-  job_id: Joi.number().integer().positive(),
-  department_id: Joi.number().integer().positive(),
-  category: Joi.string().max(50),
-  specialty: Joi.string().max(100),
-  hire_date: Joi.date(),
+  adresse: Joi.string().max(255).allow(""),
+  telephone1: Joi.string().max(20).allow(""),
+  telephone2: Joi.string().max(20).allow(""),
+  categorie: Joi.string().max(50).allow(""),
+  specialite: Joi.string().max(100).allow(""),
+  experience_employe: Joi.number().integer().min(0).allow(null),
   role: Joi.string().valid("user", "admin").default("user"),
-  skills: Joi.array().items(
+  date_naissance: Joi.date().allow(null),
+  date_recrutement: Joi.date().required(),
+  cin: Joi.string().max(50).required(),
+  emplois: Joi.array().items(
     Joi.object({
-      skill_id: Joi.number().integer().positive().required(),
-      level: Joi.number().integer().min(1).max(4).required(),
-    }),
-  ),
+      id_emploi: Joi.number().integer().positive().required(),
+    })
+  ).required(),
+  competences: Joi.array().items(
+    Joi.object({
+      id_competencea: Joi.number().integer().positive().required(),
+      niveaua: Joi.number().integer().min(1).max(4).required(),
+    })
+  ).allow(null),
 })
 
 // GET /api/employees - Récupérer tous les employés
 router.get("/", async (req, res) => {
   try {
-    const { search, department_id, job_id, role } = req.query
+    const { search, role } = req.query
 
     let query = `
       SELECT 
         e.*,
-        d.name as department_name,
-        j.title as job_title,
-        j.code as job_code,
         COALESCE(
           json_agg(
             json_build_object(
-              'skill_id', s.id,
-              'name', s.name,
-              'icon', s.icon,
-              'level', es.level
+              'id_emploi', em.id_emploi,
+              'nom_emploi', emp.nom_emploi,
+              'codeemploi', emp.codeemploi
             )
-          ) FILTER (WHERE s.id IS NOT NULL), 
+          ) FILTER (WHERE em.id_emploi IS NOT NULL), 
           '[]'
-        ) as skills
-      FROM employees e
-      LEFT JOIN departments d ON e.department_id = d.id
-      LEFT JOIN jobs j ON e.job_id = j.id
-      LEFT JOIN employee_skills es ON e.id = es.employee_id
-      LEFT JOIN skills s ON es.skill_id = s.id
+        ) as emplois,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id_competencea', ec.id_competencea,
+              'code_competencea', c.code_competencea,
+              'competencea', c.competencea,
+              'niveaua', ec.niveaua
+            )
+          ) FILTER (WHERE ec.id_competencea IS NOT NULL), 
+          '[]'
+        ) as competences
+      FROM employe e
+      LEFT JOIN emploi_employe ee ON e.id_employe = ee.id_employe
+      LEFT JOIN emploi em ON ee.id_emploi = em.id_emploi
+      LEFT JOIN employe_competencea ec ON e.id_employe = ec.id_employe
+      LEFT JOIN competencesa c ON ec.id_competencea = c.id_competencea
     `
 
     const conditions = []
@@ -57,22 +71,12 @@ router.get("/", async (req, res) => {
 
     if (search) {
       conditions.push(
-        `(e.first_name ILIKE $${params.length + 1} OR e.last_name ILIKE $${params.length + 1} OR e.email ILIKE $${params.length + 1})`,
+        `(e.nom_complet ILIKE $${params.length + 1} OR e.email ILIKE $${params.length + 1})`
       )
       params.push(`%${search}%`)
     }
 
-    if (department_id) {
-      conditions.push(`e.department_id = $${params.length + 1}`)
-      params.push(department_id)
-    }
-
-    if (job_id) {
-      conditions.push(`e.job_id = $${params.length + 1}`)
-      params.push(job_id)
-    }
-
-    if (role) {
+    if (role && role !== "all") {
       conditions.push(`e.role = $${params.length + 1}`)
       params.push(role)
     }
@@ -81,10 +85,22 @@ router.get("/", async (req, res) => {
       query += ` WHERE ${conditions.join(" AND ")}`
     }
 
-    query += ` GROUP BY e.id, d.name, j.title, j.code ORDER BY e.last_name, e.first_name`
+    query += ` GROUP BY e.id_employe ORDER BY e.nom_complet`
 
     const result = await pool.query(query, params)
-    res.json(result.rows)
+    const employees = result.rows.map(row => ({
+      ...row,
+      id: row.id_employe.toString(),
+      emplois: row.emplois.map(job => ({
+        ...job,
+        id_emploi: job.id_emploi.toString()
+      })),
+      competences: row.competences.map(skill => ({
+        ...skill,
+        id_competencea: skill.id_competencea.toString()
+      }))
+    }))
+    res.json(employees)
   } catch (error) {
     console.error("Erreur lors de la récupération des employés:", error)
     res.status(500).json({ error: "Erreur lors de la récupération des employés" })
@@ -99,27 +115,34 @@ router.get("/:id", async (req, res) => {
     const query = `
       SELECT 
         e.*,
-        d.name as department_name,
-        j.title as job_title,
-        j.code as job_code,
         COALESCE(
           json_agg(
             json_build_object(
-              'skill_id', s.id,
-              'name', s.name,
-              'icon', s.icon,
-              'level', es.level
+              'id_emploi', em.id_emploi,
+              'nom_emploi', emp.nom_emploi,
+              'codeemploi', emp.codeemploi
             )
-          ) FILTER (WHERE s.id IS NOT NULL), 
+          ) FILTER (WHERE em.id_emploi IS NOT NULL), 
           '[]'
-        ) as skills
-      FROM employees e
-      LEFT JOIN departments d ON e.department_id = d.id
-      LEFT JOIN jobs j ON e.job_id = j.id
-      LEFT JOIN employee_skills es ON e.id = es.employee_id
-      LEFT JOIN skills s ON es.skill_id = s.id
-      WHERE e.id = $1
-      GROUP BY e.id, d.name, j.title, j.code
+        ) as emplois,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id_competencea', ec.id_competencea,
+              'code_competencea', c.code_competencea,
+              'competencea', c.competencea,
+              'niveaua', ec.niveaua
+            )
+          ) FILTER (WHERE ec.id_competencea IS NOT NULL), 
+          '[]'
+        ) as competences
+      FROM employe e
+      LEFT JOIN emploi_employe ee ON e.id_employe = ee.id_employe
+      LEFT JOIN emploi em ON ee.id_emploi = em.id_emploi
+      LEFT JOIN employe_competencea ec ON e.id_employe = ec.id_employe
+      LEFT JOIN competencesa c ON ec.id_competencea = c.id_competencea
+      WHERE e.id_employe = $1
+      GROUP BY e.id_employe
     `
 
     const result = await pool.query(query, [id])
@@ -128,7 +151,20 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ error: "Employé non trouvé" })
     }
 
-    res.json(result.rows[0])
+    const employee = {
+      ...result.rows[0],
+      id: result.rows[0].id_employe.toString(),
+      emplois: result.rows[0].emplois.map(job => ({
+        ...job,
+        id_emploi: job.id_emploi.toString()
+      })),
+      competences: result.rows[0].competences.map(skill => ({
+        ...skill,
+        id_competencea: skill.id_competencea.toString()
+      }))
+    }
+
+    res.json(employee)
   } catch (error) {
     console.error("Erreur lors de la récupération de l'employé:", error)
     res.status(500).json({ error: "Erreur lors de la récupération de l'employé" })
@@ -145,84 +181,113 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: error.details[0].message })
     }
 
-    const { skills, ...employeeData } = value
+    const { emplois, competences, ...employeeData } = value
 
     await client.query("BEGIN")
 
     // Insérer l'employé
     const insertEmployeeQuery = `
-      INSERT INTO employees (first_name, last_name, email, phone, job_id, department_id, category, specialty, hire_date, role)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      INSERT INTO employe (nom_complet, email, adresse, telephone1, telephone2, categorie, specialite, experience_employe, role, date_naissance, date_recrutement, cin)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING *
     `
 
     const employeeValues = [
-      employeeData.first_name,
-      employeeData.last_name,
+      employeeData.nom_complet,
       employeeData.email,
-      employeeData.phone,
-      employeeData.job_id,
-      employeeData.department_id,
-      employeeData.category,
-      employeeData.specialty,
-      employeeData.hire_date,
+      employeeData.adresse,
+      employeeData.telephone1,
+      employeeData.telephone2,
+      employeeData.categorie,
+      employeeData.specialite,
+      employeeData.experience_employe,
       employeeData.role,
+      employeeData.date_naissance,
+      employeeData.date_recrutement,
+      employeeData.cin,
     ]
 
     const employeeResult = await client.query(insertEmployeeQuery, employeeValues)
     const newEmployee = employeeResult.rows[0]
 
+    // Insérer les relations emploi_employe
+    if (emplois && emplois.length > 0) {
+      for (const job of emplois) {
+        await client.query("INSERT INTO emploi_employe (id_emploi, id_employe) VALUES ($1, $2)", [
+          job.id_emploi,
+          newEmployee.id_employe,
+        ])
+      }
+    }
+
     // Insérer les compétences si elles existent
-    if (skills && skills.length > 0) {
-      for (const skill of skills) {
-        await client.query("INSERT INTO employee_skills (employee_id, skill_id, level) VALUES ($1, $2, $3)", [
-          newEmployee.id,
-          skill.skill_id,
-          skill.level,
+    if (competences && competences.length > 0) {
+      for (const skill of competences) {
+        await client.query("INSERT INTO employe_competencea (id_employe, id_competencea, niveaua) VALUES ($1, $2, $3)", [
+          newEmployee.id_employe,
+          skill.id_competencea,
+          skill.niveaua,
         ])
       }
     }
 
     await client.query("COMMIT")
 
-    // Récupérer l'employé complet avec ses compétences
-    const completeEmployee = await pool.query(
-      `
+    // Récupérer l'employé complet
+    const completeEmployeeQuery = `
       SELECT 
         e.*,
-        d.name as department_name,
-        j.title as job_title,
-        j.code as job_code,
         COALESCE(
           json_agg(
             json_build_object(
-              'skill_id', s.id,
-              'name', s.name,
-              'icon', s.icon,
-              'level', es.level
+              'id_emploi', em.id_emploi,
+              'nom_emploi', emp.nom_emploi,
+              'codeemploi', emp.codeemploi
             )
-          ) FILTER (WHERE s.id IS NOT NULL), 
+          ) FILTER (WHERE em.id_emploi IS NOT NULL), 
           '[]'
-        ) as skills
-      FROM employees e
-      LEFT JOIN departments d ON e.department_id = d.id
-      LEFT JOIN jobs j ON e.job_id = j.id
-      LEFT JOIN employee_skills es ON e.id = es.employee_id
-      LEFT JOIN skills s ON es.skill_id = s.id
-      WHERE e.id = $1
-      GROUP BY e.id, d.name, j.title, j.code
-    `,
-      [newEmployee.id],
-    )
+        ) as emplois,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id_competencea', ec.id_competencea,
+              'code_competencea', c.code_competencea,
+              'competencea', c.competencea,
+              'niveaua', ec.niveaua
+            )
+          ) FILTER (WHERE ec.id_competencea IS NOT NULL), 
+          '[]'
+        ) as competences
+      FROM employe e
+      LEFT JOIN emploi_employe ee ON e.id_employe = ee.id_employe
+      LEFT JOIN emploi em ON ee.id_emploi = em.id_emploi
+      LEFT JOIN employe_competencea ec ON e.id_employe = ec.id_employe
+      LEFT JOIN competencesa c ON ec.id_competencea = c.id_competencea
+      WHERE e.id_employe = $1
+      GROUP BY e.id_employe
+    `
 
-    res.status(201).json(completeEmployee.rows[0])
+    const completeEmployeeResult = await pool.query(completeEmployeeQuery, [newEmployee.id_employe])
+    const completeEmployee = {
+      ...completeEmployeeResult.rows[0],
+      id: completeEmployeeResult.rows[0].id_employe.toString(),
+      emplois: completeEmployeeResult.rows[0].emplois.map(job => ({
+        ...job,
+        id_emploi: job.id_emploi.toString()
+      })),
+      competences: completeEmployeeResult.rows[0].competences.map(skill => ({
+        ...skill,
+        id_competencea: skill.id_competencea.toString()
+      }))
+    }
+
+    res.status(201).json(completeEmployee)
   } catch (error) {
     await client.query("ROLLBACK")
     console.error("Erreur lors de la création de l'employé:", error)
 
     if (error.code === "23505") {
-      // Violation de contrainte unique
-      res.status(409).json({ error: "Un employé avec cet email existe déjà" })
+      res.status(409).json({ error: "Un employé avec cet email ou CIN existe déjà" })
     } else {
       res.status(500).json({ error: "Erreur lors de la création de l'employé" })
     }
@@ -242,30 +307,33 @@ router.put("/:id", async (req, res) => {
       return res.status(400).json({ error: error.details[0].message })
     }
 
-    const { skills, ...employeeData } = value
+    const { emplois, competences, ...employeeData } = value
 
     await client.query("BEGIN")
 
     // Mettre à jour l'employé
     const updateEmployeeQuery = `
-      UPDATE employees 
-      SET first_name = $1, last_name = $2, email = $3, phone = $4, job_id = $5, 
-          department_id = $6, category = $7, specialty = $8, hire_date = $9, role = $10
-      WHERE id = $11
+      UPDATE employe 
+      SET nom_complet = $1, email = $2, adresse = $3, telephone1 = $4, telephone2 = $5, 
+          categorie = $6, specialite = $7, experience_employe = $8, role = $9, 
+          date_naissance = $10, date_recrutement = $11, cin = $12
+      WHERE id_employe = $13
       RETURNING *
     `
 
     const employeeValues = [
-      employeeData.first_name,
-      employeeData.last_name,
+      employeeData.nom_complet,
       employeeData.email,
-      employeeData.phone,
-      employeeData.job_id,
-      employeeData.department_id,
-      employeeData.category,
-      employeeData.specialty,
-      employeeData.hire_date,
+      employeeData.adresse,
+      employeeData.telephone1,
+      employeeData.telephone2,
+      employeeData.categorie,
+      employeeData.specialite,
+      employeeData.experience_employe,
       employeeData.role,
+      employeeData.date_naissance,
+      employeeData.date_recrutement,
+      employeeData.cin,
       id,
     ]
 
@@ -276,16 +344,29 @@ router.put("/:id", async (req, res) => {
       return res.status(404).json({ error: "Employé non trouvé" })
     }
 
+    // Supprimer les anciennes relations emploi_employe
+    await client.query("DELETE FROM emploi_employe WHERE id_employe = $1", [id])
+
+    // Insérer les nouvelles relations emploi_employe
+    if (emplois && emplois.length > 0) {
+      for (const job of emplois) {
+        await client.query("INSERT INTO emploi_employe (id_emploi, id_employe) VALUES ($1, $2)", [
+          job.id_emploi,
+          id,
+        ])
+      }
+    }
+
     // Supprimer les anciennes compétences
-    await client.query("DELETE FROM employee_skills WHERE employee_id = $1", [id])
+    await client.query("DELETE FROM employe_competencea WHERE id_employe = $1", [id])
 
     // Insérer les nouvelles compétences
-    if (skills && skills.length > 0) {
-      for (const skill of skills) {
-        await client.query("INSERT INTO employee_skills (employee_id, skill_id, level) VALUES ($1, $2, $3)", [
+    if (competences && competences.length > 0) {
+      for (const skill of competences) {
+        await client.query("INSERT INTO employe_competencea (id_employe, id_competencea, niveaua) VALUES ($1, $2, $3)", [
           id,
-          skill.skill_id,
-          skill.level,
+          skill.id_competencea,
+          skill.niveaua,
         ])
       }
     }
@@ -293,42 +374,60 @@ router.put("/:id", async (req, res) => {
     await client.query("COMMIT")
 
     // Récupérer l'employé complet mis à jour
-    const completeEmployee = await pool.query(
-      `
+    const completeEmployeeQuery = `
       SELECT 
         e.*,
-        d.name as department_name,
-        j.title as job_title,
-        j.code as job_code,
         COALESCE(
           json_agg(
             json_build_object(
-              'skill_id', s.id,
-              'name', s.name,
-              'icon', s.icon,
-              'level', es.level
+              'id_emploi', em.id_emploi,
+              'nom_emploi', emp.nom_emploi,
+              'codeemploi', emp.codeemploi
             )
-          ) FILTER (WHERE s.id IS NOT NULL), 
+          ) FILTER (WHERE em.id_emploi IS NOT NULL), 
           '[]'
-        ) as skills
-      FROM employees e
-      LEFT JOIN departments d ON e.department_id = d.id
-      LEFT JOIN jobs j ON e.job_id = j.id
-      LEFT JOIN employee_skills es ON e.id = es.employee_id
-      LEFT JOIN skills s ON es.skill_id = s.id
-      WHERE e.id = $1
-      GROUP BY e.id, d.name, j.title, j.code
-    `,
-      [id],
-    )
+        ) as emplois,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id_competencea', ec.id_competencea,
+              'code_competencea', c.code_competencea,
+              'competencea', c.competencea,
+              'niveaua', ec.niveaua
+            )
+          ) FILTER (WHERE ec.id_competencea IS NOT NULL), 
+          '[]'
+        ) as competences
+      FROM employe e
+      LEFT JOIN emploi_employe ee ON e.id_employe = ee.id_employe
+      LEFT JOIN emploi em ON ee.id_emploi = em.id_emploi
+      LEFT JOIN employe_competencea ec ON e.id_employe = ec.id_employe
+      LEFT JOIN competencesa c ON ec.id_competencea = c.id_competencea
+      WHERE e.id_employe = $1
+      GROUP BY e.id_employe
+    `
 
-    res.json(completeEmployee.rows[0])
+    const completeEmployeeResult = await pool.query(completeEmployeeQuery, [id])
+    const completeEmployee = {
+      ...completeEmployeeResult.rows[0],
+      id: completeEmployeeResult.rows[0].id_employe.toString(),
+      emplois: completeEmployeeResult.rows[0].emplois.map(job => ({
+        ...job,
+        id_emploi: job.id_emploi.toString()
+      })),
+      competences: completeEmployeeResult.rows[0].competences.map(skill => ({
+        ...skill,
+        id_competencea: skill.id_competencea.toString()
+      }))
+    }
+
+    res.json(completeEmployee)
   } catch (error) {
     await client.query("ROLLBACK")
     console.error("Erreur lors de la mise à jour de l'employé:", error)
 
     if (error.code === "23505") {
-      res.status(409).json({ error: "Un employé avec cet email existe déjà" })
+      res.status(409).json({ error: "Un employé avec cet email ou CIN existe déjà" })
     } else {
       res.status(500).json({ error: "Erreur lors de la mise à jour de l'employé" })
     }
@@ -342,13 +441,13 @@ router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params
 
-    const result = await pool.query("DELETE FROM employees WHERE id = $1 RETURNING *", [id])
+    const result = await pool.query("DELETE FROM employe WHERE id_employe = $1 RETURNING *", [id])
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Employé non trouvé" })
     }
 
-    res.json({ message: "Employé supprimé avec succès", employee: result.rows[0] })
+    res.json({ message: "Employé supprimé avec succès", employee: { ...result.rows[0], id: result.rows[0].id_employe.toString() } })
   } catch (error) {
     console.error("Erreur lors de la suppression de l'employé:", error)
     res.status(500).json({ error: "Erreur lors de la suppression de l'employé" })

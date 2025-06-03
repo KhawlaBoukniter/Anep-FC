@@ -5,38 +5,36 @@ const Joi = require("joi")
 
 // Schéma de validation pour une compétence
 const skillSchema = Joi.object({
-  name: Joi.string().min(2).max(100).required(),
-  icon: Joi.string().max(10).default("⭐"),
-  category: Joi.string().max(50).allow(""),
+  code_competencea: Joi.string().max(50).min(2).required(),
+  competencea: Joi.string().min(2).max(255).required(),
 })
 
 // GET /api/skills - Récupérer toutes les compétences
 router.get("/", async (req, res) => {
   try {
-    const { search, category } = req.query
+    const { searchQuery } = req.query
 
-    let query = "SELECT * FROM skills"
+    let query = "SELECT * FROM competencesa"
     const conditions = []
     const params = []
 
     if (search) {
-      conditions.push(`name ILIKE $${params.length + 1}`)
+      conditions.push(`competencea ILIKE $${params.length + 1}`)
       params.push(`%${search}%`)
-    }
-
-    if (category) {
-      conditions.push(`category = $${params.length + 1}`)
-      params.push(category)
     }
 
     if (conditions.length > 0) {
       query += ` WHERE ${conditions.join(" AND ")}`
     }
 
-    query += " ORDER BY name"
+    query += " ORDER BY competencea"
 
     const result = await pool.query(query, params)
-    res.json(result.rows)
+    const skills = result.rows.map(row => ({
+      ...row,
+      id: row.id_competencea.toString(),
+    }))
+    res.json(skills)
   } catch (error) {
     console.error("Erreur lors de la récupération des compétences:", error)
     res.status(500).json({ error: "Erreur lors de la récupération des compétences" })
@@ -47,13 +45,18 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params
-    const result = await pool.query("SELECT * FROM skills WHERE id = $1", [id])
+    const result = await pool.query("SELECT * FROM competencesa WHERE id_competencea = $1", [id])
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: "Compétence non trouvée" })
+      return res.status(404).json({ error: "Compétence non trouvé" })
     }
 
-    res.json(result.rows[0])
+    const skill = {
+      ...result.rows[0],
+      id: result.rows[0].id_competencea.toString(),
+    }
+
+    res.json(skill)
   } catch (error) {
     console.error("Erreur lors de la récupération de la compétence:", error)
     res.status(500).json({ error: "Erreur lors de la récupération de la compétence" })
@@ -68,20 +71,25 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: error.details[0].message })
     }
 
-    const { name, icon, category } = value
+    const { code_competencea, competencea } = value
 
-    const result = await pool.query("INSERT INTO skills (name, icon, category) VALUES ($1, $2, $3) RETURNING *", [
-      name,
-      icon,
-      category,
-    ])
+    const result = await pool.query(
+      "INSERT INTO competencesa (code_competencea, competencea) VALUES ($1, $2) RETURNING *",
+      [code_competencea, competencea],
+    )
 
-    res.status(201).json(result.rows[0])
+    const newSkill = {
+      ...result.rows[0],
+      id: result.rows[0].id_competencea.toString(),
+    }
+
+    res.status(201).json(newSkill)
+
   } catch (error) {
     console.error("Erreur lors de la création de la compétence:", error)
 
     if (error.code === "23505") {
-      res.status(409).json({ error: "Une compétence avec ce nom existe déjà" })
+      res.status(409).json({ error: "Une compétence avec ce code existe déjà" })
     } else {
       res.status(500).json({ error: "Erreur lors de la création de la compétence" })
     }
@@ -92,30 +100,33 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params
-    const { error, value } = skillSchema.validate(req.body)
+    const { error: value } = skillSchema.validate(req.body)
     if (error) {
       return res.status(400).json({ error: error.details[0].message })
     }
 
-    const { name, icon, category } = value
+    const { code_competencea, competencea } = value
 
-    const result = await pool.query("UPDATE skills SET name = $1, icon = $2, category = $3 WHERE id = $4 RETURNING *", [
-      name,
-      icon,
-      category,
-      id,
-    ])
+    const result = await pool.query(
+      "UPDATE competencesa SET code_competencea = $1, competencea = $2 WHERE id_competencea = $3 RETURNING *",
+      [code_competencea, competencea, id],
+    )
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Compétence non trouvée" })
     }
 
-    res.json(result.rows[0])
+    const updatedSkill = {
+      ...result.rows[0],
+      id: result.rows[0].id_competencea.toString(),
+    }
+
+    res.json(updatedSkill)
   } catch (error) {
     console.error("Erreur lors de la mise à jour de la compétence:", error)
 
     if (error.code === "23505") {
-      res.status(409).json({ error: "Une compétence avec ce nom existe déjà" })
+      res.status(409).json({ error: "Une compétence avec ce code existe déjà" })
     } else {
       res.status(500).json({ error: "Erreur lors de la mise à jour de la compétence" })
     }
@@ -127,30 +138,16 @@ router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params
 
-    const result = await pool.query("DELETE FROM skills WHERE id = $1 RETURNING *", [id])
+    const result = await pool.query("DELETE FROM competencesa WHERE id_competencea = $1 RETURNING *", [id])
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Compétence non trouvée" })
     }
 
-    res.json({ message: "Compétence supprimée avec succès", skill: result.rows[0] })
+    res.json({ message: "Compétence supprimée avec succès", skill: { id: result.rows[0].id_competencea.toString() } })
   } catch (error) {
     console.error("Erreur lors de la suppression de la compétence:", error)
     res.status(500).json({ error: "Erreur lors de la suppression de la compétence" })
-  }
-})
-
-// GET /api/skills/categories - Récupérer toutes les catégories de compétences
-router.get("/meta/categories", async (req, res) => {
-  try {
-    const result = await pool.query(
-      "SELECT DISTINCT category FROM skills WHERE category IS NOT NULL AND category != '' ORDER BY category",
-    )
-
-    res.json(result.rows.map((row) => row.category))
-  } catch (error) {
-    console.error("Erreur lors de la récupération des catégories:", error)
-    res.status(500).json({ error: "Erreur lors de la récupération des catégories" })
   }
 })
 
