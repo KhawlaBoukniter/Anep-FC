@@ -8,7 +8,6 @@ require("dotenv").config()
 const employeeRoutes = require("./routes/employees")
 const jobRoutes = require("./routes/jobs")
 const skillRoutes = require("./routes/skills")
-const departmentRoutes = require("./routes/departments")
 const analysisRoutes = require("./routes/analysis")
 
 const app = express()
@@ -40,7 +39,6 @@ app.use(express.urlencoded({ extended: true }))
 app.use("/api/employees", employeeRoutes)
 app.use("/api/jobs", jobRoutes)
 app.use("/api/skills", skillRoutes)
-app.use("/api/departments", departmentRoutes)
 app.use("/api/analysis", analysisRoutes)
 
 // Route de santé
