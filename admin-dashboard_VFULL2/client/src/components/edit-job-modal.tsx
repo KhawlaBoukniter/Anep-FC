@@ -219,6 +219,9 @@ export function EditJobModal({ job }: EditJobModalProps) {
                 <Label htmlFor="experience">Expérience</Label>
                 <Input
                   id="experience"
+                  type="number"
+                  min={0}
+                  max={60}
                   placeholder="Entrer les années d'expériences"
                   value={formData.experience}
                   onChange={(e) => handleInputChange("experience", e.target.value)}
