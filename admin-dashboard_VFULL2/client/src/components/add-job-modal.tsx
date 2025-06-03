@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Badge } from "./ui/badge.tsx"
 import { ChevronLeft, ChevronRight, Plus, Briefcase, X } from "lucide-react"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command.tsx"
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover.tsx"
 
 interface Skill {
   id: string
@@ -36,7 +35,7 @@ export function AddJobModal() {
   const [open, setOpen] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
-    nom_emploi:"",
+    nom_emploi: "",
     entite: "",
     formation: "",
     experience: "",
@@ -101,7 +100,7 @@ export function AddJobModal() {
     // Reset form and close modal
     setCurrentStep(1)
     setFormData({
-      nom_emploi:"",
+      nom_emploi: "",
       entite: "",
       formation: "",
       experience: "",
@@ -152,7 +151,6 @@ export function AddJobModal() {
               <span className="text-sm text-gray-600">Compétences Requises</span>
             </div>
           </div>
-
         </DialogHeader>
 
         <div className="space-y-6 mt-6">
@@ -166,7 +164,7 @@ export function AddJobModal() {
                   value={formData.nom_emploi}
                   onChange={(e) => handleInputChange("nom_emploi", e.target.value)}
                 />
-              </div> 
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="entite">Entité</Label>
@@ -201,23 +199,19 @@ export function AddJobModal() {
                 />
               </div>
 
-
               <div className="space-y-2">
                 <Label htmlFor="codeEmploi">Code Emploi</Label>
                 <Input
                   id="codeEmploi"
                   placeholder="Entrer le code d'emploi"
-                  value={formData.codeEmploi
-
-                  }
+                  value={formData.codeEmploi}
                   onChange={(e) => handleInputChange("codeEmploi", e.target.value)}
                 />
               </div>
-
             </div>
           )}
 
-          {currentStep === 2 && (
+         {currentStep === 2 && (
             <div className="space-y-6">
               <div className="text-center">
                 <h3 className="text-lg font-semibold mb-2">Compétences & Niveaux</h3>
@@ -229,33 +223,34 @@ export function AddJobModal() {
 
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <Popover open={openSkillPopover} onOpenChange={setOpenSkillPopover}>
-                    <PopoverTrigger asChild>
-                      <div className="flex-1">
-                        <Input
-                          ref={inputRef}
-                          placeholder="Saisissez une compétence..."
-                          value={newSkill}
-                          onChange={(e) => setNewSkill(e.target.value)}
-                          onKeyDown={handleKeyDown}
-                          onFocus={() => setOpenSkillPopover(true)}
-                        />
-                      </div>
-                    </PopoverTrigger>
-                    <PopoverContent className="p-0" align="start" side="bottom" sideOffset={5}>
-                      <Command>
-                        <CommandInput placeholder="Rechercher une compétence..." />
-                        <CommandList>
+                  <div className="flex-1 relative">
+                    <Command className="rounded-lg border">
+                      <CommandInput
+                        ref={inputRef}
+                        placeholder="Saisissez ou recherchez une compétence..."
+                        value={newSkill}
+                        onValueChange={(value) => {
+                          setNewSkill(value)
+                          setOpenSkillPopover(value.length > 0)
+                        }}
+                        onKeyDown={handleKeyDown}
+                      />
+                      {openSkillPopover && (
+                        <CommandList className="absolute top-10 w-full border shadow-md bg-white z-10">
                           <CommandEmpty>Aucune compétence trouvée.</CommandEmpty>
                           <CommandGroup>
                             {availableSkills
-                              .filter((skill) => skill.name.toLowerCase().includes(newSkill.toLowerCase()))
+                              .filter((skill) =>
+                                skill.name.toLowerCase().includes(newSkill.toLowerCase())
+                              )
                               .map((skill) => (
                                 <CommandItem
                                   key={skill.name}
                                   onSelect={() => {
+                                    setNewSkill(skill.name)
                                     addSkill(skill.name)
                                   }}
+                                  className="cursor-pointer"
                                 >
                                   <span className="mr-2">{skill.icon}</span>
                                   <span>{skill.name}</span>
@@ -263,9 +258,9 @@ export function AddJobModal() {
                               ))}
                           </CommandGroup>
                         </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                      )}
+                    </Command>
+                  </div>
                   <Button
                     type="button"
                     onClick={() => newSkill.trim() && addSkill(newSkill.trim())}
