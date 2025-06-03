@@ -129,7 +129,6 @@ export function AddJobModal() {
           <div className="flex items-center justify-center gap-2 mb-4">
             <Briefcase className="h-6 w-6 text-green-600" />
             <DialogTitle className="text-xl">Formulaire Emploi</DialogTitle>
-            <Badge variant="secondary">2 étapes</Badge>
           </div>
 
           <div className="flex items-center justify-center gap-4">
