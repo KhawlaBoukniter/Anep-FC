@@ -36,6 +36,7 @@ export function AddJobModal() {
   const [open, setOpen] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
+    nom_emploi:"",
     entite: "",
     formation: "",
     experience: "",
@@ -100,6 +101,7 @@ export function AddJobModal() {
     // Reset form and close modal
     setCurrentStep(1)
     setFormData({
+      nom_emploi:"",
       entite: "",
       formation: "",
       experience: "",
@@ -157,6 +159,16 @@ export function AddJobModal() {
           {currentStep === 1 && (
             <div className="space-y-4">
               <div className="space-y-2">
+                <Label htmlFor="nom_emploi">Nom Emploi</Label>
+                <Input
+                  id="nom_emploi"
+                  placeholder="Entrez le nom de l'emploi"
+                  value={formData.nom_emploi}
+                  onChange={(e) => handleInputChange("entite", e.target.value)}
+                />
+              </div> 
+
+              <div className="space-y-2">
                 <Label htmlFor="entite">Entité</Label>
                 <Input
                   id="entite"
@@ -180,18 +192,24 @@ export function AddJobModal() {
                 <Label htmlFor="experience">Expérience</Label>
                 <Input
                   id="experience"
-                  placeholder="Entrer les années d'expériences"
+                  type="number"
+                  min={0}
+                  max={60}
+                  placeholder="Entrer les années d'expérience"
                   value={formData.experience}
                   onChange={(e) => handleInputChange("experience", e.target.value)}
                 />
               </div>
+
 
               <div className="space-y-2">
                 <Label htmlFor="codeEmploi">Code Emploi</Label>
                 <Input
                   id="codeEmploi"
                   placeholder="Entrer le code d'emploi"
-                  value={formData.codeEmploi}
+                  value={formData.codeEmploi
+
+                  }
                   onChange={(e) => handleInputChange("codeEmploi", e.target.value)}
                 />
               </div>
