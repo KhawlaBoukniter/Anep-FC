@@ -20,11 +20,11 @@ interface Skill {
 
 interface Job {
   id: string
+  nom_emploi:string
   entite: string
   formation: string
-  experience: string
+  experience: number
   codeEmploi: string
-  poidEmploi: string
   requiredSkills: Array<{
     name: string
     level: number
@@ -54,11 +54,11 @@ export function EditJobModal({ job }: EditJobModalProps) {
   const [open, setOpen] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
+    nom_emploi:job.nom_emploi,
     entite: job.entite,
     formation: job.formation,
     experience: job.experience,
     codeEmploi: job.codeEmploi,
-    poidEmploi: job.poidEmploi,
   })
 
   const [requiredSkills, setRequiredSkills] = useState<Skill[]>(
@@ -131,11 +131,11 @@ export function EditJobModal({ job }: EditJobModalProps) {
     // Reset to original values
     setCurrentStep(1)
     setFormData({
+      nom_emploi:job.nom_emploi,
       entite: job.entite,
       formation: job.formation,
       experience: job.experience,
       codeEmploi: job.codeEmploi,
-      poidEmploi: job.poidEmploi,
     })
     setRequiredSkills(
       job.requiredSkills.map((skill, index) => ({
@@ -185,6 +185,16 @@ export function EditJobModal({ job }: EditJobModalProps) {
         <div className="space-y-6 mt-6">
           {currentStep === 1 && (
             <div className="space-y-4">
+               <div className="space-y-2">
+                <Label htmlFor="nom_emploi">Nom Emploi</Label>
+                <Input
+                  id="nom_emploi"
+                  placeholder="Entrez le nom de l'emploi"
+                  value={formData.nom_emploi}
+                  onChange={(e) => handleInputChange("nom_emploi", e.target.value)}
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="entite">Entité</Label>
                 <Input
@@ -225,15 +235,7 @@ export function EditJobModal({ job }: EditJobModalProps) {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="poidEmploi">Poid Emploi (conteur)</Label>
-                <Input
-                  id="poidEmploi"
-                  placeholder="Entrer le poids d'emploi"
-                  value={formData.poidEmploi}
-                  onChange={(e) => handleInputChange("poidEmploi", e.target.value)}
-                />
-              </div>
+             
             </div>
           )}
 

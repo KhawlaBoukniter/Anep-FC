@@ -164,7 +164,7 @@ export function AddJobModal() {
                   id="nom_emploi"
                   placeholder="Entrez le nom de l'emploi"
                   value={formData.nom_emploi}
-                  onChange={(e) => handleInputChange("entite", e.target.value)}
+                  onChange={(e) => handleInputChange("nom_emploi", e.target.value)}
                 />
               </div> 
 
