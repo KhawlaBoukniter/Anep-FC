@@ -38,32 +38,29 @@ router.get("/", async (req, res) => {
     let query = `
       SELECT 
         e.*,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'id_emploi', em.id_emploi,
-              'nom_emploi', em.nom_emploi,
-              'codeemploi', em.codeemploi
-            )
-          ) FILTER (WHERE em.id_emploi IS NOT NULL), 
-          '[]'
-        ) as emplois,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'id_competencea', ec.id_competencea,
-              'code_competencea', c.code_competencea,
-              'competencea', c.competencea,
-              'niveaua', ec.niveaua
-            )
-          ) FILTER (WHERE ec.id_competencea IS NOT NULL), 
-          '[]'
-        ) as competences
+        (
+          SELECT json_agg(DISTINCT jsonb_build_object(
+            'id_emploi', em.id_emploi,
+            'nom_emploi', em.nom_emploi,
+            'codeemploi', em.codeemploi
+          ))
+          FROM emploi_employe ee
+          LEFT JOIN emploi em ON ee.id_emploi = em.id_emploi
+          WHERE ee.id_employe = e.id_employe
+        ) AS emplois,
+        (
+          SELECT json_agg(DISTINCT jsonb_build_object(
+            'id_competencea', ec.id_competencea,
+            'code_competencea', c.code_competencea,
+            'competencea', c.competencea,
+            'niveaua', ec.niveaua
+          ))
+          FROM employe_competencea ec
+          LEFT JOIN competencesa c ON ec.id_competencea = c.id_competencea
+          WHERE ec.id_employe = e.id_employe
+        ) AS competences
       FROM employe e
-      LEFT JOIN emploi_employe ee ON e.id_employe = ee.id_employe
-      LEFT JOIN emploi em ON ee.id_emploi = em.id_emploi
-      LEFT JOIN employe_competencea ec ON e.id_employe = ec.id_employe
-      LEFT JOIN competencesa c ON ec.id_competencea = c.id_competencea
+      
     `
 
     const conditions = []
@@ -91,11 +88,11 @@ router.get("/", async (req, res) => {
     const employees = result.rows.map(row => ({
       ...row,
       id: row.id_employe.toString(),
-      emplois: row.emplois.map(job => ({
+      emplois: (row.emplois || []).map(job => ({
         ...job,
         id_emploi: job.id_emploi.toString()
       })),
-      competences: row.competences.map(skill => ({
+      competences: (row.competences || []).map(skill => ({
         ...skill,
         id_competencea: skill.id_competencea.toString()
       }))
@@ -154,7 +151,7 @@ router.get("/:id", async (req, res) => {
     const employee = {
       ...result.rows[0],
       id: result.rows[0].id_employe.toString(),
-      emplois: result.rows[0].emplois.map(job => ({
+      emplois: (result.rows[0].emplois || []).map(job => ({
         ...job,
         id_emploi: job.id_emploi.toString()
       })),
