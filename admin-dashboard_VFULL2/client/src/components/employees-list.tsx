@@ -20,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover.tsx";
 import { Employee, Emploi } from "../types/employee.ts";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import clsx from "clsx";
+import CompetencesByLevel from "./CompetencesByLevel.tsx";
 
 export function EmployeesList() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -94,6 +95,8 @@ export function EmployeesList() {
     emplois: new Set(employees.flatMap((e: Employee) => (e.emplois || []).map((j) => j.nom_emploi))).size,
     competencesTotal: employees.reduce((acc: number, emp: Employee) => acc + (emp.competences || []).length, 0),
   };
+  
+  const [open, setOpen] = useState(false);
 
   return (
     <TooltipProvider>
@@ -317,7 +320,7 @@ export function EmployeesList() {
                                       <Eye className="h-4 w-4" />
                                     </Button>
                                   </DialogTrigger>
-                                  <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                                  <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
                                     <DialogHeader>
                                       <DialogTitle>{employee.nom_complet}</DialogTitle>
                                     </DialogHeader>
@@ -333,7 +336,7 @@ export function EmployeesList() {
                                           </div>
                                           <div>
                                             <span className="font-medium text-gray-700">Email:</span>
-                                            <p className="text-gray-600">{employee.email}</p>
+                                            <p className="text-gray-600">{employee.email || "-"}</p>
                                           </div>
                                           <div>
                                             <span className="font-medium text-gray-700">Téléphone 1:</span>
@@ -383,30 +386,18 @@ export function EmployeesList() {
                                           </div>
                                           <div>
                                             <span className="font-medium text-gray-700">Expérience:</span>
-                                            <p className="text-gray-600">{employee.experience_employe || 0} ans</p>
+                                            <p className="text-gray-600">{employee.experience_employe || "-"} ans</p>
                                           </div>
                                         </div>
                                       </div>
                                       <div>
-                                        <h4 className="font-medium mb-3 text-gray-900">
-                                          Compétences ({(employee.competences || []).length})
-                                        </h4>
-                                        <div className="space-y-3">
-                                          {(employee.competences || []).map((skill, index) => (
-                                            <div
-                                              key={index}
-                                              className="flex items-center justify-between p-3 border rounded-lg"
-                                            >
-                                              <div className="flex items-center gap-3">
-                                                <span className="font-medium">{skill.competencea}</span>
-                                              </div>
-                                              <Badge className={getLevelColor(skill.niveaua)}>
-                                                Niveau {skill.niveaua}
-                                              </Badge>
-                                            </div>
-                                          ))}
-                                        </div>
+                                        {(employee.competences && employee.competences.length > 0) ? (
+                                          <CompetencesByLevel competences={employee.competences} />
+                                        ) : (
+                                          <span className="text-gray-400 italic">Aucune compétence</span>
+                                        )}
                                       </div>
+
                                     </div>
                                   </DialogContent>
                                 </Dialog>
