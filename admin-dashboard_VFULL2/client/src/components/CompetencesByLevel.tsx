@@ -29,7 +29,7 @@ export default function CompetencesByLevel({ competences }: { competences: Compe
         .sort((a, b) => Number(a[0]) - Number(b[0])) 
         .map(([levelStr, comps]) => {
           const level = parseInt(levelStr);
-          const isOpen = openLevels[level] ?? true;
+          const isOpen = openLevels[level] ?? false;
           const colors = levelColors[level] || levelColors[1];
 
           return (
