@@ -15,12 +15,6 @@ import { useSkills } from "../hooks/useSkills";
 import { Employee, Competence, Emploi } from "../types/employee";
 import { useToast } from "../hooks/use-toast.ts";
 
-interface Skill {
-  id: string;
-  code_competencea: string;
-  competencea: string;
-  niveaua: number;
-}
 
 export function AddEmployeeModal() {
   const [open, setOpen] = useState(false);
@@ -41,7 +35,7 @@ export function AddEmployeeModal() {
     emplois: [],
     competences: [],
   });
-  const [skills, setSkills] = useState<Skill[]>([]);
+  const [competences, setCompetences] = useState<Competence[]>([]);
   const [selectedJobs, setSelectedJobs] = useState<Emploi[]>([]);
   const [newSkill, setNewSkill] = useState("");
   const [openSkillPopover, setOpenSkillPopover] = useState(false);
@@ -51,7 +45,7 @@ export function AddEmployeeModal() {
 
   const { mutate: createEmployee, isLoading } = useCreateEmployee();
   const { data: jobs = [] } = useJobs();
-  const { data: availableSkills = [] } = useSkills();
+  const { data: availableCompetences = [] } = useSkills();
   const { toast } = useToast();
 
   const validateForm = () => {
@@ -116,22 +110,22 @@ export function AddEmployeeModal() {
     }, 100);
   };
 
-  const handleSkillLevelChange = (skillId: string, niveaua: number) => {
-    setSkills((prev) => prev.map((skill) => (skill.id === skillId ? { ...skill, niveaua } : skill)));
+  const handleSkillLevelChange = (id_competencea: number, niveaua: number) => {
+    setCompetences((prev) => prev.map((skill) => (skill.id_competencea === id_competencea ? { ...skill, niveaua } : skill)));
   };
 
-  const addSkill = (skillId: string) => {
-    const skill = availableSkills.find((s: Competence) => s.id_competencea === skillId);
-    if (!skill || skills.some((s) => s.id === skillId)) return;
+  const addSkill = (id_competencea: number) => {
+    const skill = availableCompetences.find((s: Competence) => s.id_competencea === id_competencea);
+    if (!skill || competences.some((s) => s.id_competencea === id_competencea)) return;
 
-    const newSkillItem: Skill = {
-      id: skillId,
+    const newSkillItem: Competence = {
+      id_competencea: id_competencea,
       code_competencea: skill.code_competencea,
       competencea: skill.competencea,
       niveaua: 1,
     };
 
-    setSkills((prev) => [...prev, newSkillItem]);
+    setCompetences((prev) => [...prev, newSkillItem]);
     setNewSkill("");
     setOpenSkillPopover(false);
     setTimeout(() => {
@@ -142,44 +136,27 @@ export function AddEmployeeModal() {
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && newSkill.trim()) {
       e.preventDefault();
-      const skill = availableSkills.find((s: Competence) =>
+      const skill = availableCompetences.find((s: Competence) =>
         s.competencea.toLowerCase().includes(newSkill.toLowerCase())
       );
       if (skill) addSkill(skill.id_competencea);
     }
   };
 
-  const removeSkill = (skillId: string) => {
-    setSkills((prev) => prev.filter((skill) => skill.id !== skillId));
+  const removeSkill = (skillId: number) => {
+    setCompetences((prev) => prev.filter((skill) => skill.id_competencea !== skillId));
   };
 
   const handleSubmit = () => {
     if (!validateForm()) return;
 
-    const data: Employee = {
-      id: Date.now().toString(),
-      nom_complet: formData.nom_complet || "",
-      email: formData.email || "",
-      adresse: formData.adresse,
-      telephone1: formData.telephone1,
-      telephone2: formData.telephone2,
-      categorie: formData.categorie,
-      specialite: formData.specialite,
-      experience_employe: formData.experience_employe,
-      role: formData.role || "user",
-      date_naissance: formData.date_naissance,
-      date_recrutement: formData.date_recrutement,
-      cin: formData.cin,
-      emplois: selectedJobs,
-      competences: skills.map((s) => ({
-        id_competencea: s.id,
-        code_competencea: s.code_competencea,
-        competencea: s.competencea,
-        niveaua: s.niveaua,
-      })) as Competence[],
-    };
+     const finalData = {
+    ...formData,
+    emplois: selectedJobs.map((job) => ({ id_emploi: job.id_emploi })),
+    competences: competences.map(({ id_competencea, niveaua }) => ({ id_competencea, niveaua })),
+  };
 
-    createEmployee(data, {
+    createEmployee(finalData, {
       onSuccess: () => {
         toast({ title: "Succès", description: "Employé créé avec succès." });
         setCurrentStep(1);
@@ -199,7 +176,7 @@ export function AddEmployeeModal() {
           emplois: [],
           competences: [],
         });
-        setSkills([]);
+        setCompetences([]);
         setSelectedJobs([]);
         setOpen(false);
       },
@@ -227,7 +204,7 @@ export function AddEmployeeModal() {
       emplois: [],
       competences: [],
     });
-    setSkills([]);
+    setCompetences([]);
     setSelectedJobs([]);
     setOpen(false);
   };
@@ -497,7 +474,7 @@ export function AddEmployeeModal() {
                         <CommandList>
                           <CommandEmpty>Aucune compétence trouvée.</CommandEmpty>
                           <CommandGroup>
-                            {availableSkills
+                            {availableCompetences
                               .filter((skill: Competence) =>
                                 skill.competencea.toLowerCase().includes(newSkill.toLowerCase())
                               )
@@ -517,7 +494,7 @@ export function AddEmployeeModal() {
                   <Button
                     type="button"
                     onClick={() => {
-                      const skill = availableSkills.find((s: Competence) =>
+                      const skill = availableCompetences.find((s: Competence) =>
                         s.competencea.toLowerCase().includes(newSkill.toLowerCase())
                       );
                       if (skill) addSkill(skill.id_competencea);
@@ -529,14 +506,14 @@ export function AddEmployeeModal() {
                   </Button>
                 </div>
                 <div className="space-y-3 max-h-60 overflow-y-auto">
-                  {skills.length === 0 ? (
+                  {competences.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                       Aucune compétence ajoutée. Utilisez le champ ci-dessus pour ajouter des compétences.
                     </div>
                   ) : (
-                    skills.map((skill) => (
+                    competences.map((skill) => (
                       <div
-                        key={skill.id}
+                        key={skill.id_competencea}
                         className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
                       >
                         <div className="flex items-center gap-3">
@@ -547,7 +524,7 @@ export function AddEmployeeModal() {
                             <span className="text-sm text-gray-600">Niveau:</span>
                             <Select
                               value={skill.niveaua.toString()}
-                              onValueChange={(value) => handleSkillLevelChange(skill.id, Number.parseInt(value))}
+                              onValueChange={(value) => handleSkillLevelChange(skill.id_competencea, Number.parseInt(value))}
                             >
                               <SelectTrigger className="w-16">
                                 <SelectValue />
@@ -563,7 +540,7 @@ export function AddEmployeeModal() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => removeSkill(skill.id)}
+                            onClick={() => removeSkill(skill.id_competencea)}
                             className="h-8 w-8 text-gray-500 hover:text-red-500"
                           >
                             <X className="h-4 w-4" />
