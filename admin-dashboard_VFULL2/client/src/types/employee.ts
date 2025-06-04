@@ -1,5 +1,5 @@
 interface Competence {
-  id_competencea: string;
+  id_competencea: number;
   code_competencea: string;
   competencea: string;
   niveaua: number;
