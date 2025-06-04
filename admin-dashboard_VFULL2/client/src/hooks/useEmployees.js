@@ -22,9 +22,12 @@ export const useEmployee = (id) => {
 export const useCreateEmployee = () => {
   const queryClient = useQueryClient()
 
-  return useMutation((data) => employeeService.create(data), {
+  return useMutation({
+    /**
+     * @param {{ [key: string]: any }} data
+     */
+    mutationFn: (data) => employeeService.create(data),
     onSuccess: () => {
-      // Invalider et refetch la liste des employés
       queryClient.invalidateQueries(["employees"])
     },
     onError: (error) => {
