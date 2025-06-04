@@ -12,7 +12,7 @@ const skillSchema = Joi.object({
 // GET /api/skills - Récupérer toutes les compétences
 router.get("/", async (req, res) => {
   try {
-    const { searchQuery } = req.query
+    const { search } = req.query
 
     let query = "SELECT * FROM competencesa"
     const conditions = []
@@ -100,7 +100,7 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params
-    const { error: value } = skillSchema.validate(req.body)
+    const { error, value } = skillSchema.validate(req.body)
     if (error) {
       return res.status(400).json({ error: error.details[0].message })
     }

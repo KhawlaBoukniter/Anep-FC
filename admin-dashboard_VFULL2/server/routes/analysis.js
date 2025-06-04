@@ -1,7 +1,6 @@
 const express = require("express")
 const router = express.Router()
-router = express.Router()
-const pool = require("./config/database")
+const pool = require("../config/database")
 
 // GET /api/analysis/skills-gap - Analyser les écarts de compétences
 router.get("/skills-gap", async (req, res) => {

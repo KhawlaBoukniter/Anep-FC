@@ -42,8 +42,8 @@ router.get("/", async (req, res) => {
           json_agg(
             json_build_object(
               'id_emploi', em.id_emploi,
-              'nom_emploi', emp.nom_emploi,
-              'codeemploi', emp.codeemploi
+              'nom_emploi', em.nom_emploi,
+              'codeemploi', em.codeemploi
             )
           ) FILTER (WHERE em.id_emploi IS NOT NULL), 
           '[]'
@@ -119,8 +119,8 @@ router.get("/:id", async (req, res) => {
           json_agg(
             json_build_object(
               'id_emploi', em.id_emploi,
-              'nom_emploi', emp.nom_emploi,
-              'codeemploi', emp.codeemploi
+              'nom_emploi', em.nom_emploi,
+              'codeemploi', em.codeemploi
             )
           ) FILTER (WHERE em.id_emploi IS NOT NULL), 
           '[]'
@@ -241,8 +241,8 @@ router.post("/", async (req, res) => {
           json_agg(
             json_build_object(
               'id_emploi', em.id_emploi,
-              'nom_emploi', emp.nom_emploi,
-              'codeemploi', emp.codeemploi
+              'nom_emploi', em.nom_emploi,
+              'codeemploi', em.codeemploi
             )
           ) FILTER (WHERE em.id_emploi IS NOT NULL), 
           '[]'
@@ -381,8 +381,8 @@ router.put("/:id", async (req, res) => {
           json_agg(
             json_build_object(
               'id_emploi', em.id_emploi,
-              'nom_emploi', emp.nom_emploi,
-              'codeemploi', emp.codeemploi
+              'nom_emploi', em.nom_emploi,
+              'codeemploi', em.codeemploi
             )
           ) FILTER (WHERE em.id_emploi IS NOT NULL), 
           '[]'
