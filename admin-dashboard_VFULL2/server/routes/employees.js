@@ -171,6 +171,8 @@ router.get("/:id", async (req, res) => {
 // POST /api/employees - Créer un nouvel employé
 router.post("/", async (req, res) => {
   const client = await pool.connect()
+  console.log("Contenu reçu :", req.body)
+
 
   try {
     const { error, value } = employeeSchema.validate(req.body)
