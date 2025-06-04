@@ -70,21 +70,6 @@ export function EmployeesList() {
     setCurrentPage(1);
   };
 
-  const getLevelColor = (level: number) => {
-    switch (level) {
-      case 1:
-        return "bg-red-100 text-red-800";
-      case 2:
-        return "bg-yellow-100 text-yellow-800";
-      case 3:
-        return "bg-blue-100 text-blue-800";
-      case 4:
-        return "bg-green-100 text-green-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
   const getRoleColor = (role: string) => {
     return role === "admin" ? "bg-purple-100 text-purple-800" : "bg-gray-100 text-gray-800";
   };
@@ -96,8 +81,6 @@ export function EmployeesList() {
     competencesTotal: employees.reduce((acc: number, emp: Employee) => acc + (emp.competences || []).length, 0),
   };
   
-  const [open, setOpen] = useState(false);
-
   return (
     <TooltipProvider>
       <div className="space-y-6">
@@ -164,30 +147,16 @@ export function EmployeesList() {
                 <div className="relative">
                   <Popover open={openEmploiPopover} onOpenChange={setOpenEmploiPopover}>
                     <PopoverTrigger asChild>
-                      <div className="relative">
-                        <Input
-                          placeholder="Filtrer par emploi..."
-                          value={filterEmploi}
-                          onChange={(e) => {
-                            setFilterEmploi(e.target.value);
-                            setCurrentPage(1);
-                          }}
-                          onFocus={() => setOpenEmploiPopover(true)}
-                          className="w-48 pl-8 pr-8 cursor-text"
-                        />
-                        <Filter className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                        {filterEmploi && (
-                          <X
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 cursor-pointer hover:bg-gray-200 rounded text-gray-400 hover:text-gray-600"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              clearEmploiFilter();
-                            }}
-                          />
-                        )}
-                      </div>
+                      <Button
+                        variant="outline"
+                        className="w-48 justify-start text-left overflow-hidden text-ellipsis whitespace-nowrap"
+                        role="combobox"
+                      >
+                        <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
+                        <span className="truncate">{filterEmploi || "Filtrer par emploi..."}</span>
+                      </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0" align="start" side="bottom" sideOffset={5}>
+                    <PopoverContent className="p-0 w-64" align="start" side="bottom" sideOffset={5}>
                       <Command>
                         <CommandInput placeholder="Rechercher un emploi..." />
                         <CommandList>
@@ -196,11 +165,14 @@ export function EmployeesList() {
                             {availableJobs.map((job: Emploi) => (
                               <CommandItem
                                 key={job.id_emploi}
-                                onSelect={() => selectEmploi(job.nom_emploi)}
+                                value={job.nom_emploi}
+                                onSelect={() => {
+                                  selectEmploi(job.nom_emploi);
+                                }}
                               >
                                 <div className="flex flex-col">
                                   <span className="font-medium">{job.nom_emploi}</span>
-                                  <span className="text-sm text-gray-500">{job.codeemploi}</span>
+                                  <span className="text-sm text-muted-foreground">{job.codeemploi}</span>
                                 </div>
                               </CommandItem>
                             ))}
@@ -209,6 +181,7 @@ export function EmployeesList() {
                       </Command>
                     </PopoverContent>
                   </Popover>
+
                 </div>
                 <Select 
                   value={filterRole}
@@ -324,10 +297,8 @@ export function EmployeesList() {
                                     <DialogHeader>
                                       <DialogTitle>{employee.nom_complet}</DialogTitle>
                                     </DialogHeader>
-                                    <div className="space-y-6 pr-2">
-                                      <div>
-                                        <h4 className="font-medium mb-3 text-gray-900">Informations personnelles</h4>
-                                        <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div className="pr-2">
+                                        <div className="grid grid-cols-2 gap-4 text-sm my-6">
                                           <div>
                                             <span className="font-medium text-gray-700">Emplois:</span>
                                             <p className="text-gray-600">
@@ -389,8 +360,7 @@ export function EmployeesList() {
                                             <p className="text-gray-600">{employee.experience_employe || "-"} ans</p>
                                           </div>
                                         </div>
-                                      </div>
-                                      <div>
+                                      <div className="mt-12">
                                         {(employee.competences && employee.competences.length > 0) ? (
                                           <CompetencesByLevel competences={employee.competences} />
                                         ) : (
