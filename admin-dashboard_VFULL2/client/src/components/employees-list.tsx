@@ -325,9 +325,7 @@ export function EmployeesList() {
                                       <DialogTitle>{employee.nom_complet}</DialogTitle>
                                     </DialogHeader>
                                     <div className="space-y-6 pr-2">
-                                      <div>
-                                        <h4 className="font-medium mb-3 text-gray-900">Informations personnelles</h4>
-                                        <div className="grid grid-cols-2 gap-4 text-sm">
+                                        <div className="grid grid-cols-2 gap-4 text-sm my-6">
                                           <div>
                                             <span className="font-medium text-gray-700">Emplois:</span>
                                             <p className="text-gray-600">
@@ -389,7 +387,6 @@ export function EmployeesList() {
                                             <p className="text-gray-600">{employee.experience_employe || "-"} ans</p>
                                           </div>
                                         </div>
-                                      </div>
                                       <div>
                                         {(employee.competences && employee.competences.length > 0) ? (
                                           <CompetencesByLevel competences={employee.competences} />
