@@ -5,42 +5,45 @@ const Joi = require("joi")
 
 // Schéma de validation pour un emploi
 const jobSchema = Joi.object({
-  nom_emploi: Joi.string().min(2).max(255).required(),
-  entite: Joi.string().min(2).max(100).required(),
-  formation: Joi.string().max(255).required(),
-  experience: Joi.number().integer().allow(null),
-  codeemploi: Joi.string().min(3).max(50).required(),
-  poidsemploi: Joi.number().integer().min(0).max(100).default(0),
+  code: Joi.string().min(3).max(20).required(),
+  title: Joi.string().min(2).max(100).required(),
+  entity: Joi.string().min(2).max(100).required(),
+  formation: Joi.string().allow(""),
+  experience: Joi.string().max(50).allow(""),
+  weight_percentage: Joi.number().integer().min(0).max(100),
+  department_id: Joi.number().integer().positive(),
   required_skills: Joi.array().items(
     Joi.object({
-      id_competencer: Joi.number().integer().positive().required(),
-      niveaur: Joi.number().integer().min(1).max(4).required(),
-    })
-  ).allow(null),
+      skill_id: Joi.number().integer().positive().required(),
+      required_level: Joi.number().integer().min(1).max(4).required(),
+    }),
+  ),
 })
 
 // GET /api/jobs - Récupérer tous les emplois
 router.get("/", async (req, res) => {
   try {
-    const { search } = req.query
+    const { search, department_id } = req.query
 
     let query = `
       SELECT 
         j.*,
+        d.name as department_name,
         COALESCE(
           json_agg(
             json_build_object(
-              'id_competencer', cr.id_competencer,
-              'code_competencer', cr.code_competencer,
-              'competencer', cr.competencer,
-              'niveaur', ec.niveaur
+              'skill_id', s.id,
+              'name', s.name,
+              'icon', s.icon,
+              'required_level', jrs.required_level
             )
-          ) FILTER (WHERE cr.id_competencer IS NOT NULL), 
+          ) FILTER (WHERE s.id IS NOT NULL), 
           '[]'
         ) as required_skills
-      FROM emploi j
-      LEFT JOIN emploi_competencer ec ON j.id_emploi = ec.id_emploi
-      LEFT JOIN competencesR cr ON ec.id_competencer = cr.id_competencer
+      FROM jobs j
+      LEFT JOIN departments d ON j.department_id = d.id
+      LEFT JOIN job_required_skills jrs ON j.id = jrs.job_id
+      LEFT JOIN skills s ON jrs.skill_id = s.id
     `
 
     const conditions = []
@@ -48,27 +51,24 @@ router.get("/", async (req, res) => {
 
     if (search) {
       conditions.push(
-        `(j.nom_emploi ILIKE $${params.length + 1} OR j.codeemploi ILIKE $${params.length + 1} OR j.entite ILIKE $${params.length + 1})`,
+        `(j.title ILIKE $${params.length + 1} OR j.code ILIKE $${params.length + 1} OR j.entity ILIKE $${params.length + 1})`,
       )
       params.push(`%${search}%`)
+    }
+
+    if (department_id) {
+      conditions.push(`j.department_id = $${params.length + 1}`)
+      params.push(department_id)
     }
 
     if (conditions.length > 0) {
       query += ` WHERE ${conditions.join(" AND ")}`
     }
 
-    query += ` GROUP BY j.id_emploi ORDER BY j.codeemploi`
+    query += ` GROUP BY j.id, d.name ORDER BY j.code`
 
     const result = await pool.query(query, params)
-    const jobs = result.rows.map(row => ({
-      ...row,
-      id_emploi: row.id_emploi.toString(),
-      required_skills: row.required_skills.map(skill => ({
-        ...skill,
-        id_competencer: skill.id_competencer.toString()
-      }))
-    }))
-    res.json(jobs)
+    res.json(result.rows)
   } catch (error) {
     console.error("Erreur lors de la récupération des emplois:", error)
     res.status(500).json({ error: "Erreur lors de la récupération des emplois" })
@@ -83,22 +83,24 @@ router.get("/:id", async (req, res) => {
     const query = `
       SELECT 
         j.*,
+        d.name as department_name,
         COALESCE(
           json_agg(
             json_build_object(
-              'id_competencer', cr.id_competencer,
-              'code_competencer', cr.code_competencer,
-              'competencer', cr.competencer,
-              'niveaur', ec.niveaur
+              'skill_id', s.id,
+              'name', s.name,
+              'icon', s.icon,
+              'required_level', jrs.required_level
             )
-          ) FILTER (WHERE cr.id_competencer IS NOT NULL), 
+          ) FILTER (WHERE s.id IS NOT NULL), 
           '[]'
         ) as required_skills
-      FROM emploi j
-      LEFT JOIN emploi_competencer ec ON j.id_emploi = ec.id_emploi
-      LEFT JOIN competencesR cr ON ec.id_competencer = cr.id_competencer
-      WHERE j.id_emploi = $1
-      GROUP BY j.id_emploi
+      FROM jobs j
+      LEFT JOIN departments d ON j.department_id = d.id
+      LEFT JOIN job_required_skills jrs ON j.id = jrs.job_id
+      LEFT JOIN skills s ON jrs.skill_id = s.id
+      WHERE j.id = $1
+      GROUP BY j.id, d.name
     `
 
     const result = await pool.query(query, [id])
@@ -107,16 +109,7 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ error: "Emploi non trouvé" })
     }
 
-    const job = {
-      ...result.rows[0],
-      id_emploi: result.rows[0].id_emploi.toString(),
-      required_skills: result.rows[0].required_skills.map(skill => ({
-        ...skill,
-        id_competencer: skill.id_competencer.toString()
-      }))
-    }
-
-    res.json(job)
+    res.json(result.rows[0])
   } catch (error) {
     console.error("Erreur lors de la récupération de l'emploi:", error)
     res.status(500).json({ error: "Erreur lors de la récupération de l'emploi" })
@@ -139,18 +132,19 @@ router.post("/", async (req, res) => {
 
     // Insérer l'emploi
     const insertJobQuery = `
-      INSERT INTO emploi (nom_emploi, entite, formation, experience, codeemploi, poidsemploi)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO jobs (code, title, entity, formation, experience, weight_percentage, department_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `
 
     const jobValues = [
-      jobData.nom_emploi,
-      jobData.entite,
+      jobData.code,
+      jobData.title,
+      jobData.entity,
       jobData.formation,
       jobData.experience,
-      jobData.codeemploi,
-      jobData.poidsemploi,
+      jobData.weight_percentage,
+      jobData.department_id,
     ]
 
     const jobResult = await client.query(insertJobQuery, jobValues)
@@ -159,49 +153,44 @@ router.post("/", async (req, res) => {
     // Insérer les compétences requises si elles existent
     if (required_skills && required_skills.length > 0) {
       for (const skill of required_skills) {
-        await client.query("INSERT INTO emploi_competencer (id_emploi, id_competencer, niveaur) VALUES ($1, $2, $3)", [
-          newJob.id_emploi,
-          skill.id_competencer,
-          skill.niveaur,
+        await client.query("INSERT INTO job_required_skills (job_id, skill_id, required_level) VALUES ($1, $2, $3)", [
+          newJob.id,
+          skill.skill_id,
+          skill.required_level,
         ])
       }
     }
 
     await client.query("COMMIT")
 
-    // Récupérer l'emploi complet
-    const completeJobQuery = `
+    // Récupérer l'emploi complet avec ses compétences requises
+    const completeJob = await pool.query(
+      `
       SELECT 
         j.*,
+        d.name as department_name,
         COALESCE(
           json_agg(
             json_build_object(
-              'id_competencer', cr.id_competencer,
-              'code_competencer', cr.code_competencer,
-              'competencer', cr.competencer,
-              'niveaur', ec.niveaur
+              'skill_id', s.id,
+              'name', s.name,
+              'icon', s.icon,
+              'required_level', jrs.required_level
             )
-          ) FILTER (WHERE cr.id_competencer IS NOT NULL), 
+          ) FILTER (WHERE s.id IS NOT NULL), 
           '[]'
         ) as required_skills
-      FROM emploi j
-      LEFT JOIN emploi_competencer ec ON j.id_emploi = ec.id_emploi
-      LEFT JOIN competencesR cr ON ec.id_competencer = cr.id_competencer
-      WHERE j.id_emploi = $1
-      GROUP BY j.id_emploi
-    `
+      FROM jobs j
+      LEFT JOIN departments d ON j.department_id = d.id
+      LEFT JOIN job_required_skills jrs ON j.id = jrs.job_id
+      LEFT JOIN skills s ON jrs.skill_id = s.id
+      WHERE j.id = $1
+      GROUP BY j.id, d.name
+    `,
+      [newJob.id],
+    )
 
-    const completeJobResult = await pool.query(completeJobQuery, [newJob.id_emploi])
-    const completeJob = {
-      ...completeJobResult.rows[0],
-      id_emploi: completeJobResult.rows[0].id_emploi.toString(),
-      required_skills: completeJobResult.rows[0].required_skills.map(skill => ({
-        ...skill,
-        id_competencer: skill.id_competencer.toString()
-      }))
-    }
-
-    res.status(201).json(completeJob)
+    res.status(201).json(completeJob.rows[0])
   } catch (error) {
     await client.query("ROLLBACK")
     console.error("Erreur lors de la création de l'emploi:", error)
@@ -233,20 +222,21 @@ router.put("/:id", async (req, res) => {
 
     // Mettre à jour l'emploi
     const updateJobQuery = `
-      UPDATE emploi 
-      SET nom_emploi = $nom_emploi, entite = $entite, formation = $formation, experience = $experience, 
-          codeemploi = $codeemploi, poidsemploi = $poidsemploi
-      WHERE id_emploi = $id_emploi
+      UPDATE jobs 
+      SET code = $1, title = $2, entity = $3, formation = $4, experience = $5, 
+          weight_percentage = $6, department_id = $7
+      WHERE id = $8
       RETURNING *
     `
 
     const jobValues = [
-      jobData.nom_emploi,
-      jobData.entite,
+      jobData.code,
+      jobData.title,
+      jobData.entity,
       jobData.formation,
       jobData.experience,
-      jobData.codeemploi,
-      jobData.poidsemploi,
+      jobData.weight_percentage,
+      jobData.department_id,
       id,
     ]
 
@@ -258,53 +248,49 @@ router.put("/:id", async (req, res) => {
     }
 
     // Supprimer les anciennes compétences requises
-    await client.query("DELETE FROM emploi_competencer WHERE id_emploi = $1", [id])
+    await client.query("DELETE FROM job_required_skills WHERE job_id = $1", [id])
 
     // Insérer les nouvelles compétences requises
     if (required_skills && required_skills.length > 0) {
       for (const skill of required_skills) {
-        await client.query("INSERT INTO emploi_competencer (id_emploi, id_competencer, niveaur) VALUES ($1, $2, $3)", [
+        await client.query("INSERT INTO job_required_skills (job_id, skill_id, required_level) VALUES ($1, $2, $3)", [
           id,
-          skill.id_competencer,
-          skill.niveaur,
+          skill.skill_id,
+          skill.required_level,
         ])
       }
     }
 
     await client.query("COMMIT")
 
-    // Récupérer l'emploi complet
-    const completeJobQuery = `
+    // Récupérer l'emploi complet mis à jour
+    const completeJob = await pool.query(
+      `
       SELECT 
         j.*,
+        d.name as department_name,
         COALESCE(
           json_agg(
             json_build_object(
-              'id_competencer', cr.id_competencer,
-              'code_competencer', cr.code_competencer,
-              'competencer', cr.competencer,
-              'niveaur', ec.niveaur
+              'skill_id', s.id,
+              'name', s.name,
+              'icon', s.icon,
+              'required_level', jrs.required_level
             )
-          ) FILTER (WHERE cr.id_competencer IS NOT NULL), 
+          ) FILTER (WHERE s.id IS NOT NULL), 
           '[]'
         ) as required_skills
-      FROM emploi j
-      LEFT JOIN emploi_competencer ec ON j.id_emploi = ec.id_emploi
-      LEFT JOIN competencesR cr ON ec.id_competencer = cr.id_competencer
-      WHERE j.id_emploi = $1
-      GROUP BY j.id_emploi
-    `
+      FROM jobs j
+      LEFT JOIN departments d ON j.department_id = d.id
+      LEFT JOIN job_required_skills jrs ON j.id = jrs.job_id
+      LEFT JOIN skills s ON jrs.skill_id = s.id
+      WHERE j.id = $1
+      GROUP BY j.id, d.name
+    `,
+      [id],
+    )
 
-    const completeJobResult = await pool.query(completeJobQuery, [id])
-    const completeJob = {
-      ...completeJobResult.rows[0],
-      id_emploi: completeJobResult.rows[0].id_emploi.toString(),
-      required_skills: completeJobResult.rows[0].required_skills.map(skill => ({
-        id_competencer: skill.id_competencer.toString(),
-      }))
-    }
-
-    res.json(completeJob)
+    res.json(completeJob.rows[0])
   } catch (error) {
     await client.query("ROLLBACK")
     console.error("Erreur lors de la mise à jour de l'emploi:", error)
@@ -324,13 +310,13 @@ router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params
 
-    const result = await pool.query("DELETE FROM emploi WHERE id_emploi = $1 RETURNING *", [id])
+    const result = await pool.query("DELETE FROM jobs WHERE id = $1 RETURNING *", [id])
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Emploi non trouvé" })
     }
 
-    res.json({ message: "Emploi supprimé avec succès", job: { id: result.rows[0].id_emploi.toString() } })
+    res.json({ message: "Emploi supprimé avec succès", job: result.rows[0] })
   } catch (error) {
     console.error("Erreur lors de la suppression de l'emploi:", error)
     res.status(500).json({ error: "Erreur lors de la suppression de l'emploi" })
