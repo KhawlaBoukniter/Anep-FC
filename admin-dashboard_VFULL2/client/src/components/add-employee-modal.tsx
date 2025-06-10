@@ -14,7 +14,7 @@ import { useJobs } from "../hooks/useJobs";
 import { useSkills } from "../hooks/useSkills";
 import { Employee, Competence, Emploi } from "../types/employee";
 import { useToast } from "../hooks/use-toast.ts";
-
+import axios from "axios";
 
 export function AddEmployeeModal() {
   const [open, setOpen] = useState(false);
@@ -48,49 +48,106 @@ export function AddEmployeeModal() {
   const { data: availableCompetences = [] } = useSkills();
   const { toast } = useToast();
 
-  const validateForm = () => {
+  const emailExists = async (email) => {
+    try {
+      const response = await axios.get(`/employees/check-email`, {
+        params: { email },
+      });
+      return response.data.exists;
+    } catch (error) {
+      console.error("Erreur lors de la vérification de l'email :", error);
+      return false;
+    }
+  };
+
+  const validateForm = async () => {
     if (!formData.nom_complet?.trim()) {
       toast({ variant: "destructive", title: "Erreur", description: "Le nom complet est requis." });
       return false;
     }
+
     if (!formData.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       toast({ variant: "destructive", title: "Erreur", description: "Un email valide est requis." });
       return false;
     }
+
+    const exists = await emailExists(formData.email);
+    if (exists) {
+      toast({ variant: "destructive", title: "Erreur", description: "Cet email est déjà utilisé." });
+      return false;
+    }
+
     if (!formData.telephone1?.trim() || !/^\+?\d{10,15}$/.test(formData.telephone1)) {
       toast({ variant: "destructive", title: "Erreur", description: "Un numéro de téléphone principal valide est requis (10-15 chiffres)." });
       return false;
     }
+
     if (formData.telephone2 && !/^\+?\d{10,15}$/.test(formData.telephone2)) {
       toast({ variant: "destructive", title: "Erreur", description: "Le numéro de téléphone secondaire doit être valide (10-15 chiffres)." });
       return false;
     }
+
     if (!formData.categorie?.trim()) {
       toast({ variant: "destructive", title: "Erreur", description: "La catégorie est requise." });
       return false;
     }
+
     if (!formData.role) {
       toast({ variant: "destructive", title: "Erreur", description: "Le rôle est requis." });
       return false;
     }
+
     if (!formData.date_recrutement) {
       toast({ variant: "destructive", title: "Erreur", description: "La date de recrutement est requise." });
       return false;
     }
-    if (!formData.cin?.trim() || !/^\d{12}$/.test(formData.cin)) {
-      toast({ variant: "destructive", title: "Erreur", description: "Le CIN doit contenir exactement 12 chiffres." });
+
+    const dateRecrutement = new Date(formData.date_recrutement);
+    const now = new Date();
+    if (dateRecrutement > now) {
+      toast({ variant: "destructive", title: "Erreur", description: "La date de recrutement ne peut pas être dans le futur." });
       return false;
     }
+
+    if (!formData.date_naissance) {
+      toast({ variant: "destructive", title: "Erreur", description: "La date de naissance est requise." });
+      return false;
+    }
+
+    const naissance = new Date(formData.date_naissance);
+    const age = now.getFullYear() - naissance.getFullYear();
+    const moisDiff = now.getMonth() - naissance.getMonth();
+    const jourDiff = now.getDate() - naissance.getDate();
+    const ageExact = (moisDiff < 0 || (moisDiff === 0 && jourDiff < 0)) ? age - 1 : age;
+
+    if (naissance > now) {
+      toast({ variant: "destructive", title: "Erreur", description: "La date de naissance ne peut pas être dans le futur." });
+      return false;
+    }
+
+    if (ageExact < 18) {
+      toast({ variant: "destructive", title: "Erreur", description: "L’employé doit avoir au moins 18 ans." });
+      return false;
+    }
+
+    if (!formData.cin?.trim() || !/^[A-Z]{1,2}[0-9]{6,8}$/.test(formData.cin)) {
+      toast({ variant: "destructive", title: "Erreur", description: "Le CIN doit suivre le format valide (1-2 lettres suivies de 6-8 chiffres)." });
+      return false;
+    }
+
     if (selectedJobs.length === 0) {
       toast({ variant: "destructive", title: "Erreur", description: "Au moins un emploi doit être sélectionné." });
       return false;
     }
+
     if (formData.experience_employe && formData.experience_employe < 0) {
       toast({ variant: "destructive", title: "Erreur", description: "L'expérience ne peut pas être négative." });
       return false;
     }
+
     return true;
   };
+
 
   const handleInputChange = (field: keyof Employee, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -415,7 +472,7 @@ export function AddEmployeeModal() {
                                     : "opacity-0"
                                 }`}
                               />
-                              {job.nom_emploi} ({job.codeemploi})
+                              <div className="w-full"><span className="font-bold">{job.codeemploi} : </span> {job.nom_emploi}</div>
                             </CommandItem>
                           ))}
                         </CommandGroup>
@@ -455,23 +512,20 @@ export function AddEmployeeModal() {
               </div>
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <Popover open={openSkillPopover} onOpenChange={setOpenSkillPopover}>
-                    <PopoverTrigger asChild>
-                      <div className="flex-1">
-                        <Input
+                    <div className="flex-1 relative">
+                      <Command className="rounded-lg border">
+                        <CommandInput
                           ref={inputRef}
-                          placeholder="Saisissez une compétence..."
+                          placeholder="Saisissez ou recherchez une compétence..."
                           value={newSkill}
-                          onChange={(e) => setNewSkill(e.target.value)}
+                          onValueChange={(value) => {
+                            setNewSkill(value)
+                            setOpenSkillPopover(value.length > 0)
+                          }}
                           onKeyDown={handleKeyDown}
-                          onFocus={() => setOpenSkillPopover(true)}
                         />
-                      </div>
-                    </PopoverTrigger>
-                    <PopoverContent className="p-0" align="start" side="bottom" sideOffset={5}>
-                      <Command>
-                        <CommandInput placeholder="Rechercher une compétence..." />
-                        <CommandList>
+                        {openSkillPopover && (
+                        <CommandList className="absolute top-10 w-full border shadow-md bg-white z-10">
                           <CommandEmpty>Aucune compétence trouvée.</CommandEmpty>
                           <CommandGroup>
                             {availableCompetences
@@ -488,9 +542,9 @@ export function AddEmployeeModal() {
                               ))}
                           </CommandGroup>
                         </CommandList>
+                        )}
                       </Command>
-                    </PopoverContent>
-                  </Popover>
+                    </div>
                   <Button
                     type="button"
                     onClick={() => {
