@@ -14,13 +14,7 @@ import { useJobs } from "../hooks/useJobs";
 import { useSkills } from "../hooks/useSkills";
 import { Employee, Competence, Emploi } from "../types/employee";
 import { useToast } from "../hooks/use-toast.ts";
-
-interface Skill {
-  id: string;
-  code_competencea: string;
-  competencea: string;
-  niveaua: number;
-}
+import axios from "axios";
 
 interface EditEmployeeModalProps {
   employee: Employee;
@@ -46,9 +40,9 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
     emplois: employee.emplois || [],
     competences: employee.competences || [],
   });
-  const [skills, setSkills] = useState<Skill[]>(
+  const [skills, setSkills] = useState<Competence[]>(
     (employee.competences || []).map((skill) => ({
-      id: skill.id_competencea,
+      id_competencea: skill.id_competencea,
       code_competencea: skill.code_competencea,
       competencea: skill.competencea,
       niveaua: skill.niveaua,
@@ -61,52 +55,130 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const jobInputRef = useRef<HTMLInputElement>(null);
 
-  const { mutate: updateEmployee, isLoading } = useUpdateEmployee();
+  const { mutate: updateEmployee, isPending } = useUpdateEmployee();
   const { data: jobs = [] } = useJobs();
   const { data: availableSkills = [] } = useSkills();
   const { toast } = useToast();
+  
 
-  const validateForm = () => {
-    if (!formData.nom_complet?.trim()) {
-      toast({ variant: "destructive", title: "Erreur", description: "Le nom complet est requis." });
+  const emailExists = async (email: string) => {
+    try {
+      const response = await axios.get(`/employees/check-email`, {
+        params: { email },
+      });
+      return response.data.exists;
+    } catch (error) {
+      console.error("Erreur lors de la vérification de l'email :", error);
       return false;
     }
+  };
+
+  const formatDateForInput = (isoDate: string) => {
+    if (!isoDate) return "";
+    return isoDate.split("T")[0];
+  };
+
+  const validateForm = async () => {
+    if (!formData.nom_complet?.trim() || formData.nom_complet.length < 2) {
+      toast({ variant: "destructive", title: "Erreur", description: "Le nom complet doit contenir au moins deux caractères." });
+      return false;
+    }
+
     if (!formData.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       toast({ variant: "destructive", title: "Erreur", description: "Un email valide est requis." });
       return false;
     }
+
+    if (formData.email !== employee.email) {
+      try {
+        const exists = await emailExists(formData.email);
+        if (exists) {
+          toast({ variant: "destructive", title: "Erreur", description: "Cet email est déjà utilisé." });
+          return false;
+        }
+      } catch (error) {
+        toast({ variant: "destructive", title: "Erreur", description: "Erreur lors de la vérification de l'email." });
+        return false;
+      }
+    }
+
     if (!formData.telephone1?.trim() || !/^\+?\d{10,15}$/.test(formData.telephone1)) {
       toast({ variant: "destructive", title: "Erreur", description: "Un numéro de téléphone principal valide est requis (10-15 chiffres)." });
       return false;
     }
+
     if (formData.telephone2 && !/^\+?\d{10,15}$/.test(formData.telephone2)) {
       toast({ variant: "destructive", title: "Erreur", description: "Le numéro de téléphone secondaire doit être valide (10-15 chiffres)." });
       return false;
     }
+
     if (!formData.categorie?.trim()) {
       toast({ variant: "destructive", title: "Erreur", description: "La catégorie est requise." });
       return false;
     }
-    if (!formData.role) {
+
+    if (!formData.role || !["user", "admin"].includes(formData.role)) {
       toast({ variant: "destructive", title: "Erreur", description: "Le rôle est requis." });
       return false;
     }
+
     if (!formData.date_recrutement) {
       toast({ variant: "destructive", title: "Erreur", description: "La date de recrutement est requise." });
       return false;
     }
-    if (!formData.cin?.trim() || !/^\d{12}$/.test(formData.cin)) {
-      toast({ variant: "destructive", title: "Erreur", description: "Le CIN doit contenir exactement 12 chiffres." });
+
+    const dateRecrutement = new Date(formData.date_recrutement);
+    const now = new Date();
+    if (isNaN(dateRecrutement.getTime()) || dateRecrutement > now) {
+      toast({ variant: "destructive", title: "Erreur", description: "La date de recrutement ne peut pas être dans le futur." });
       return false;
     }
+
+    if (!formData.date_naissance) {
+      toast({ variant: "destructive", title: "Erreur", description: "La date de naissance est requise." });
+      return false;
+    }
+
+    const naissance = new Date(formData.date_naissance);
+    const age = now.getFullYear() - naissance.getFullYear();
+    const moisDiff = now.getMonth() - naissance.getMonth();
+    const jourDiff = now.getDate() - naissance.getDate();
+    const ageExact = (moisDiff < 0 || (moisDiff === 0 && jourDiff < 0)) ? age - 1 : age;
+
+    if (isNaN(naissance.getTime()) || naissance > now) {
+      toast({ variant: "destructive", title: "Erreur", description: "La date de naissance ne peut pas être dans le futur." });
+      return false;
+    }
+
+    if (ageExact < 18) {
+      toast({ variant: "destructive", title: "Erreur", description: "L’employé doit avoir au moins 18 ans." });
+      return false;
+    }
+
+    if (!formData.cin?.trim() || !/^[A-Z]{1,2}[0-9]{(5,6)}$/.test(formData.cin)) {
+      toast({ variant: "destructive", title: "Erreur", description: "Le CIN doit suivre le format valide (1-2 lettres suivies de 5-6 chiffres)." });
+      return false;
+    }
+
     if (selectedJobs.length === 0) {
       toast({ variant: "destructive", title: "Erreur", description: "Au moins un emploi doit être sélectionné." });
       return false;
     }
+
     if (formData.experience_employe && formData.experience_employe < 0) {
       toast({ variant: "destructive", title: "Erreur", description: "L'expérience ne peut pas être négative." });
       return false;
     }
+
+    if (skills.length > 0) {
+      for (const skill of skills) {
+        if (!skill.id_competencea || !Number.isInteger(Number(skill.niveaua)) || skill.niveaua < 1 || skill.niveaua > 4) {
+          toast({ variant: "destructive", title: "Erreur", description: "Les compétences doivent avoir un niveau valide (1-4)." });
+          return false;
+        }
+      }
+    }
+
     return true;
   };
 
@@ -128,16 +200,16 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
     }, 100);
   };
 
-  const handleSkillLevelChange = (skillId: string, niveaua: number) => {
-    setSkills((prev) => prev.map((skill) => (skill.id === skillId ? { ...skill, niveaua } : skill)));
+  const handleSkillLevelChange = (skillId: number, niveaua: number) => {
+    setSkills((prev) => prev.map((skill) => (skill.id_competencea === skillId ? { ...skill, niveaua } : skill)));
   };
 
-  const addSkill = (skillId: string) => {
+  const addSkill = (skillId: number) => {
     const skill = availableSkills.find((s: Competence) => s.id_competencea === skillId);
-    if (!skill || skills.some((s) => s.id === skillId)) return;
+    if (!skill || skills.some((s) => s.id_competencea === skillId)) return;
 
-    const newSkillItem: Skill = {
-      id: skillId,
+    const newSkillItem: Competence = {
+      id_competencea: skillId,
       code_competencea: skill.code_competencea,
       competencea: skill.competencea,
       niveaua: 1,
@@ -161,8 +233,8 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
     }
   };
 
-  const removeSkill = (skillId: string) => {
-    setSkills((prev) => prev.filter((skill) => skill.id !== skillId));
+  const removeSkill = (skillId: number) => {
+    setSkills((prev) => prev.filter((skill) => skill.id_competencea !== skillId));
   };
 
   const handleSubmit = () => {
@@ -177,27 +249,30 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
       telephone2: formData.telephone2,
       categorie: formData.categorie,
       specialite: formData.specialite,
-      experience_employe: formData.experience_employe,
+      experience_employe: formData.experience_employe || 0,
       role: formData.role || "user",
-      date_naissance: formData.date_naissance,
-      date_recrutement: formData.date_recrutement,
-      cin: formData.cin,
+      date_naissance: formData.date_naissance? new Date(formData.date_naissance).toISOString() : "",
+      date_recrutement: formData.date_recrutement ? new Date(formData.date_recrutement).toISOString() : "",
+      cin: formData.cin || "",
       emplois: selectedJobs,
       competences: skills.map((s) => ({
-        id_competencea: s.id,
+        id_competencea: s.id_competencea,
         code_competencea: s.code_competencea,
         competencea: s.competencea,
         niveaua: s.niveaua,
       })) as Competence[],
     };
 
+    console.log("Payload sent to server:", data);
+    
     updateEmployee({ id: data.id, data }, {
       onSuccess: () => {
         toast({ title: "Succès", description: "Employé mis à jour avec succès." });
         setCurrentStep(1);
         setOpen(false);
       },
-      onError: () => {
+      onError: (error) => {
+        console.error("Update error details:", error.message);
         toast({ variant: "destructive", title: "Erreur", description: "Échec de la mise à jour de l'employé." });
       },
     });
@@ -224,7 +299,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
     });
     setSkills(
       (employee.competences || []).map((skill) => ({
-        id: skill.id_competencea,
+        id_competencea: skill.id_competencea,
         code_competencea: skill.code_competencea,
         competencea: skill.competencea,
         niveaua: skill.niveaua,
@@ -377,7 +452,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                   <Input
                     id="date_naissance"
                     type="date"
-                    value={formData.date_naissance || ""}
+                    value={formatDateForInput(formData.date_naissance || "")}
                     onChange={(e) => handleInputChange("date_naissance", e.target.value)}
                   />
                 </div>
@@ -386,7 +461,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                   <Input
                     id="date_recrutement"
                     type="date"
-                    value={formData.date_recrutement || ""}
+                    value={formatDateForInput(formData.date_recrutement || "")}
                     onChange={(e) => handleInputChange("date_recrutement", e.target.value)}
                   />
                 </div>
@@ -536,7 +611,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                   ) : (
                     skills.map((skill) => (
                       <div
-                        key={skill.id}
+                        key={skill.id_competencea}
                         className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
                       >
                         <div className="flex items-center gap-3">
@@ -547,7 +622,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                             <span className="text-sm text-gray-600">Niveau:</span>
                             <Select
                               value={skill.niveaua.toString()}
-                              onValueChange={(value) => handleSkillLevelChange(skill.id, Number.parseInt(value))}
+                              onValueChange={(value) => handleSkillLevelChange(skill.id_competencea, Number.parseInt(value))}
                             >
                               <SelectTrigger className="w-16">
                                 <SelectValue />
@@ -563,7 +638,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => removeSkill(skill.id)}
+                            onClick={() => removeSkill(skill.id_competencea)}
                             className="h-8 w-8 text-gray-500 hover:text-red-500"
                           >
                             <X className="h-4 w-4" />
@@ -597,9 +672,9 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
               <Button
                 onClick={handleSubmit}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
-                disabled={isLoading}
+                disabled={isPending}
               >
-                {isLoading ? "Enregistrement..." : "Enregistrer"}
+                {isPending ? "Enregistrement..." : "Enregistrer"}
               </Button>
             )}
           </div>
