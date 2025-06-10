@@ -17,7 +17,7 @@ CREATE TABLE employe (
     telephone2 VARCHAR(20),
     categorie VARCHAR(50),
     specialite VARCHAR(100),
-    experience_employe int
+    experience_employe int,
 );
 
 CREATE TABLE emploi_employe (
@@ -58,6 +58,39 @@ ALTER TABLE employe ADD COLUMN role varchar(50) not null check (role in ('user',
 ALTER TABLE employe ADD COLUMN date_naissance DATE ;
 ALTER TABLE employe ADD COLUMN date_recrutement DATE;
 ALTER TABLE employe ADD COLUMN cin varchar(50);
+ALTER TABLE employe ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE employe ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE employe_competencea ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE employe_competencea ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE emploi_employe ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE emploi_employe ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE emploi_employe
+ADD CONSTRAINT fk_emploi_employe_emploi
+FOREIGN KEY (id_emploi) REFERENCES emploi(id_emploi) ON DELETE CASCADE;
+
+ALTER TABLE emploi_employe
+ADD CONSTRAINT fk_emploi_employe_employe
+FOREIGN KEY (id_employe) REFERENCES employe(id_employe) ON DELETE CASCADE;
+
+ALTER TABLE emploi_competencer
+ADD CONSTRAINT fk_emploi_competencer_emploi
+FOREIGN KEY (id_emploi) REFERENCES emploi(id_emploi) ON DELETE CASCADE;
+
+ALTER TABLE emploi_competencer
+ADD CONSTRAINT fk_emploi_competencer_competencer
+FOREIGN KEY (id_competencer) REFERENCES competencesR(id_competencer) ON DELETE CASCADE;
+
+ALTER TABLE employe_competencea
+ADD CONSTRAINT fk_employe_competencea_employe
+FOREIGN KEY (id_employe) REFERENCES employe(id_employe) ON DELETE CASCADE;
+
+ALTER TABLE employe_competencea
+ADD CONSTRAINT fk_employe_competencea_competencea
+FOREIGN KEY (id_competencea) REFERENCES competencesa(id_competencea) ON DELETE CASCADE;
+
 
 
 \copy emploi(entite, formation, experience, codeemploi, poidsemploi, nom_emploi) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_emploi.csv' DELIMITER ';' CSV HEADER;
