@@ -1,0 +1,178 @@
+const express = require("express")
+const router = express.Router()
+const pool = require("../config/database")
+const Joi = require("joi")
+
+// Schéma de validation pour une compétence
+const skillSchema = Joi.object({
+  code_competencer: Joi.string().max(50).min(2).required(),
+  competencer: Joi.string().min(2).max(255).required(),
+})
+
+router.get("/latest-code", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT code_competencer FROM competencesr ORDER BY created_at ASC LIMIT 1"
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ latestCode: "C000" });
+    }
+
+    const latestCode = result.rows[0].code_competencer;
+    res.json({ latestCode });
+  } catch (error) {
+    console.error("Erreur lors de la récupération du dernier code:", {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+    });
+    res.status(500).json({
+      error: "Erreur lors de la récupération du dernier code",
+      details: error.message,
+    });
+  }
+})
+
+// GET /api/req-skills - Récupérer toutes les compétences
+router.get("/", async (req, res) => {
+  try {
+    const { search } = req.query
+
+    let query = "SELECT * FROM competencesr"
+    const conditions = []
+    const params = []
+
+    if (search) {
+      conditions.push(`competencer ILIKE $${params.length + 1}`)
+      params.push(`%${search}%`)
+    }
+
+    if (conditions.length > 0) {
+      query += ` WHERE ${conditions.join(" AND ")}`
+    }
+
+
+    const result = await pool.query(query, params)
+    const skills = result.rows.map(row => ({
+      ...row,
+      id: row.id_competencer.toString(),
+    }))
+    res.json(skills)
+  } catch (error) {
+    console.error("Erreur lors de la récupération des compétences:", error)
+    res.status(500).json({ error: "Erreur lors de la récupération des compétences" })
+  }
+})
+
+// GET /api/req-skills/:id - Récupérer une compétence par ID
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params
+    const result = await pool.query("SELECT * FROM competencesr WHERE id_competencer = $1", [id])
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Compétence non trouvé" })
+    }
+
+    const skill = {
+      ...result.rows[0],
+      id: result.rows[0].id_competencer.toString(),
+    }
+
+    res.json(skill)
+  } catch (error) {
+    console.error("Erreur lors de la récupération de la compétence:", error)
+    res.status(500).json({ error: "Erreur lors de la récupération de la compétence" })
+  }
+})
+
+// POST /api/skills - Créer une nouvelle compétence
+router.post("/", async (req, res) => {
+  try {
+    const { error, value } = skillSchema.validate(req.body)
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message })
+    }
+
+    const { code_competencer, competencer } = value
+
+    const result = await pool.query(
+      "INSERT INTO competencesr (code_competencer, competencer) VALUES ($1, $2) RETURNING *",
+      [code_competencer, competencer],
+    )
+
+    const newSkill = {
+      ...result.rows[0],
+      id: result.rows[0].id_competencer.toString(),
+    }
+
+    res.status(201).json(newSkill)
+
+  } catch (error) {
+    console.error("Erreur lors de la création de la compétence:", error)
+
+    if (error.code === "23505") {
+      res.status(409).json({ error: "Une compétence avec ce code existe déjà" })
+    } else {
+      res.status(500).json({ error: "Erreur lors de la création de la compétence" })
+    }
+  }
+})
+
+// PUT /api/req-skills/:id - Mettre à jour une compétence
+router.put("/:id", async (req, res) => {
+  try {
+    const { id } = req.params
+    const { error, value } = skillSchema.validate(req.body)
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message })
+    }
+
+    const { code_competencer, competencer } = value
+
+    const result = await pool.query(
+      "UPDATE competencesr SET code_competencer = $1, competencer = $2 WHERE id_competencer = $3 RETURNING *",
+      [code_competencer, competencer, id],
+    )
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Compétence non trouvée" })
+    }
+
+    const updatedSkill = {
+      ...result.rows[0],
+      id: result.rows[0].id_competencer.toString(),
+    }
+
+    res.json(updatedSkill)
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour de la compétence:", error)
+
+    if (error.code === "23505") {
+      res.status(409).json({ error: "Une compétence avec ce code existe déjà" })
+    } else {
+      res.status(500).json({ error: "Erreur lors de la mise à jour de la compétence" })
+    }
+  }
+})
+
+// DELETE /api/req-skills/:id - Supprimer une compétence
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const result = await pool.query("DELETE FROM competencesr WHERE id_competencer = $1 RETURNING *", [id])
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Compétence non trouvée" })
+    }
+
+    res.json({ message: "Compétence supprimée avec succès", skill: { id: result.rows[0].id_competencer.toString() } })
+  } catch (error) {
+    console.error("Erreur lors de la suppression de la compétence:", error)
+    res.status(500).json({ error: "Erreur lors de la suppression de la compétence" })
+  }
+})
+
+module.exports = router

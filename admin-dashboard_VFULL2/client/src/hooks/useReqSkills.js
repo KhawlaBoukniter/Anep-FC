@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "react-query"
-import { skillService } from "../services/api"
+import { reqSkillService } from "../services/api"
 
 // Hook pour récupérer toutes les compétences
 export const useSkills = (filters = {}) => {
-  return useQuery(["skills", filters], () => skillService.getAll(filters), {
+  return useQuery(["req-skills", filters], () => reqSkillService.getAll(filters), {
     select: (response) => Array.isArray(response.data) ? response.data : [],
     staleTime: 10 * 60 * 1000,
     cacheTime: 15 * 60 * 1000,
@@ -14,10 +14,10 @@ export const useSkills = (filters = {}) => {
 export const useCreateSkill = () => {
   const queryClient = useQueryClient()
 
-  return useMutation((data) => skillService.create(data), {
+  return useMutation((data) => reqSkillService.create(data), {
     onSuccess: () => {
-      queryClient.invalidateQueries(["skills"])
-      queryClient.invalidateQueries(["latestSkillCode"])
+      queryClient.invalidateQueries(["req-skills"])
+      queryClient.invalidateQueries(["latestReqSkillCode"])
     },
     onError: (error) => {
       console.error("Erreur lors de la création de la compétence:", error)
@@ -29,9 +29,9 @@ export const useCreateSkill = () => {
 export const useUpdateSkill = () => {
   const queryClient = useQueryClient()
 
-  return useMutation(({ id, data }) => skillService.update(id, data), {
+  return useMutation(({ id, data }) => reqSkillService.update(id, data), {
     onSuccess: () => {
-      queryClient.invalidateQueries(["skills"])
+      queryClient.invalidateQueries(["req-skills"])
     },
     onError: (error) => {
       console.error("Erreur lors de la mise à jour de la compétence:", error)
@@ -43,10 +43,10 @@ export const useUpdateSkill = () => {
 export const useDeleteSkill = () => {
   const queryClient = useQueryClient()
 
-  return useMutation((id) => skillService.delete(id), {
+  return useMutation((id) => reqSkillService.delete(id), {
     onSuccess: () => {
-      queryClient.invalidateQueries(["skills"])
-      queryClient.invalidateQueries(["latestSkillCode"]);
+      queryClient.invalidateQueries(["req-skills"])
+      queryClient.invalidateQueries(["latestReqSkillCode"]);
     },
     onError: (error) => {
       console.error("Erreur lors de la suppression de la compétence:", error)
@@ -56,8 +56,8 @@ export const useDeleteSkill = () => {
 
 export const useLatestSkillCode = () => {
   return useQuery(
-    ["latestSkillCode"],
-    () => skillService.getLatestCode(),
+    ["latestReqSkillCode"],
+    () => reqSkillService.getLatestCode(),
     {
       select: (response) => response.data.latestCode,
       staleTime: 10 * 60 * 1000,
