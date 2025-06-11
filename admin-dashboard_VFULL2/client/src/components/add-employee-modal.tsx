@@ -130,7 +130,7 @@ export function AddEmployeeModal() {
       return false;
     }
 
-    if (!formData.cin?.trim() || !/^[A-Z]{1,2}[0-9]{6,8}$/.test(formData.cin)) {
+    if (!formData.cin?.trim() || !/^[A-Z]{1,2}[0-9]{5,6}$/.test(formData.cin)) {
       toast({ variant: "destructive", title: "Erreur", description: "Le CIN doit suivre le format valide (1-2 lettres suivies de 6-8 chiffres)." });
       return false;
     }

@@ -15,6 +15,7 @@ import { useSkills } from "../hooks/useSkills";
 import { Employee, Competence, Emploi } from "../types/employee";
 import { useToast } from "../hooks/use-toast.ts";
 import axios from "axios";
+import { log } from "console";
 
 interface EditEmployeeModalProps {
   employee: Employee;
@@ -155,8 +156,9 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
       return false;
     }
 
-    if (!formData.cin?.trim() || !/^[A-Z]{1,2}[0-9]{(5,6)}$/.test(formData.cin)) {
+    if (!formData.cin?.trim() || !/^[A-Z]{1,2}[0-9]{5,6}$/.test(formData.cin)) {
       toast({ variant: "destructive", title: "Erreur", description: "Le CIN doit suivre le format valide (1-2 lettres suivies de 5-6 chiffres)." });
+      console.log('aa')
       return false;
     }
 
