@@ -69,7 +69,7 @@ export const skillService = {
   create: (data) => api.post("/skills", data),
   update: (id, data) => api.put(`/skills/${id}`, data),
   delete: (id) => api.delete(`/skills/${id}`),
-  getCategories: () => api.get("/skills/meta/categories"),
+  getLatestCode: () => api.get("/skills/latest-code"),
 }
 
 // Services pour les départements
