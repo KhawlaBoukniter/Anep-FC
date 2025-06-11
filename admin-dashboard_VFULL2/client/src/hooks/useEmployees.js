@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "react-query"
+// import { Employee } from "../types/employee.ts";
 import { employeeService } from "../services/api"
+
 
 // Hook pour récupérer tous les employés
 export const useEmployees = (filters = {}) => {
@@ -36,22 +38,28 @@ export const useCreateEmployee = () => {
   })
 }
 
-// Hook pour mettre à jour un employé
-export const useUpdateEmployee = () => {
-  const queryClient = useQueryClient()
+/**
+ * @typedef {import('../types/employee').Employee} Employee
+ */
 
-  return useMutation(({ id, data }) => employeeService.update(id, data), {
+/**
+ * Hook to update an employee
+ * @returns {import('@tanstack/react-query').UseMutationResult<Employee, Error, { id: string; data: Employee }, unknown>}
+ */
+export const useUpdateEmployee = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }) => employeeService.update(id, data),
     onSuccess: (response, { id }) => {
-      // Mettre à jour le cache pour cet employé spécifique
-      queryClient.setQueryData(["employee", id], response)
-      // Invalider la liste des employés
-      queryClient.invalidateQueries(["employees"])
+      queryClient.setQueryData(["employee", id], response);
+      queryClient.invalidateQueries(["employees"]);
     },
     onError: (error) => {
-      console.error("Erreur lors de la mise à jour de l'employé:", error)
+      console.error("Error updating employee:", error);
     },
-  })
-}
+  });
+};
 
 // Hook pour supprimer un employé
 export const useDeleteEmployee = () => {
