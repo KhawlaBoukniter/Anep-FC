@@ -12,7 +12,7 @@ const skillSchema = Joi.object({
 router.get("/latest-code", async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT code_competencea FROM competencesa ORDER BY created_at DESC LIMIT 1"
+      "SELECT code_competencea FROM competencesa ORDER BY created_at ASC LIMIT 1"
     );
 
     if (result.rows.length === 0) {
@@ -52,7 +52,6 @@ router.get("/", async (req, res) => {
       query += ` WHERE ${conditions.join(" AND ")}`
     }
 
-    query += " ORDER BY created_at DESC"
 
     const result = await pool.query(query, params)
     const skills = result.rows.map(row => ({

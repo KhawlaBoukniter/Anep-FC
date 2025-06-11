@@ -54,10 +54,11 @@ export function SkillsManagement() {
     );
   });
 
-  const generateNextCode = (code) => {
-    if (!code || isNaN(parseInt(code.replace("C", "")))) return "C001"; 
-    const number = parseInt(code.replace("C", "")) + 1;
-    return `C${number.toString().padStart(3, "0")}`;
+  const generateNextCode = (latestCode) => {
+    if (!latestCode || isNaN(parseInt(latestCode.replace("C", "")))) return "C1";
+
+    const currentNumber = parseInt(latestCode.replace("C", ""));
+    return `C${(currentNumber + 1).toString()}`;
   };
 
   useEffect(() => {
