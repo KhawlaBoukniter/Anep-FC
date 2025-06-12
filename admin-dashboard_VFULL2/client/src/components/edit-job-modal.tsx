@@ -48,8 +48,6 @@ export function EditJobModal({ job }: EditJobModalProps) {
   const { toast } = useToast();
 
   const validateForm = () => {
-    setIsValidating(true);
-
     if (!formData.nom_emploi?.trim() || formData.nom_emploi.length <= 2) {
       toast({ variant: "destructive", title: "Erreur", description: "Le nom de l'emploi doit contenir au moins trois caractères." });
       return false;
@@ -95,6 +93,7 @@ export function EditJobModal({ job }: EditJobModalProps) {
 
   const handleInputChange = (field: keyof Job, value: string | number | undefined) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    setIsValidating(false); // Reset validating state on input change
   };
 
   const handleCompetenceLevelChange = (competenceId: string, niveaur: number) => {
@@ -137,6 +136,7 @@ export function EditJobModal({ job }: EditJobModalProps) {
   };
 
   const handleSubmit = () => {
+    setIsValidating(true);
     if (!validateForm()) return;
 
     const updatedJobData = {
@@ -167,6 +167,7 @@ export function EditJobModal({ job }: EditJobModalProps) {
             title: "Erreur",
             description: error.response?.data?.error || "Échec de la mise à jour de l'emploi.",
           });
+          setIsValidating(false); // Reset on error to allow retry
         },
       }
     );
@@ -361,9 +362,9 @@ export function EditJobModal({ job }: EditJobModalProps) {
                 </div>
                 <div className="space-y-3 max-h-60 overflow-y-auto">
                   {isSkillsLoading ? (
-                    <div className="text-center py-8 text-gray-500">Chargement des compétences...</div>
+                    <div className="text-center py-8 text-gray-600">Chargement des compétences...</div>
                   ) : selectedCompetences.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-8 text-gray-600">
                       Aucune compétence ajoutée. Utilisez le champ ci-dessus pour ajouter des compétences.
                     </div>
                   ) : (
