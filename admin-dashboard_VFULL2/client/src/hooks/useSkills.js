@@ -10,15 +10,6 @@ export const useSkills = (filters = {}) => {
   })
 }
 
-// Hook pour récupérer les catégories de compétences
-export const useSkillCategories = () => {
-  return useQuery(["skill-categories"], () => skillService.getCategories(), {
-    select: (response) => response.data,
-    staleTime: 30 * 60 * 1000, // 30 minutes
-    cacheTime: 60 * 60 * 1000, // 1 heure
-  })
-}
-
 // Hook pour créer une compétence
 export const useCreateSkill = () => {
   const queryClient = useQueryClient()
@@ -26,7 +17,7 @@ export const useCreateSkill = () => {
   return useMutation((data) => skillService.create(data), {
     onSuccess: () => {
       queryClient.invalidateQueries(["skills"])
-      queryClient.invalidateQueries(["skill-categories"])
+      queryClient.invalidateQueries(["latestSkillCode"])
     },
     onError: (error) => {
       console.error("Erreur lors de la création de la compétence:", error)
@@ -41,7 +32,6 @@ export const useUpdateSkill = () => {
   return useMutation(({ id, data }) => skillService.update(id, data), {
     onSuccess: () => {
       queryClient.invalidateQueries(["skills"])
-      queryClient.invalidateQueries(["skill-categories"])
     },
     onError: (error) => {
       console.error("Erreur lors de la mise à jour de la compétence:", error)
@@ -56,10 +46,22 @@ export const useDeleteSkill = () => {
   return useMutation((id) => skillService.delete(id), {
     onSuccess: () => {
       queryClient.invalidateQueries(["skills"])
-      queryClient.invalidateQueries(["skill-categories"])
+      queryClient.invalidateQueries(["latestSkillCode"]);
     },
     onError: (error) => {
       console.error("Erreur lors de la suppression de la compétence:", error)
     },
   })
 }
+
+export const useLatestSkillCode = () => {
+  return useQuery(
+    ["latestSkillCode"],
+    () => skillService.getLatestCode(),
+    {
+      select: (response) => response.data.latestCode,
+      staleTime: 10 * 60 * 1000,
+      cacheTime: 15 * 60 * 1000,
+    }
+  );
+};
