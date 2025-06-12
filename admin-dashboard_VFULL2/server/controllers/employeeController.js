@@ -42,13 +42,11 @@ async function createEmployee(req, res) {
     }
 }
 
-// employeeController.js
 async function updateEmployee(req, res) {
     try {
         const id = parseInt(req.params.id);
         if (isNaN(id)) return res.status(400).json({ message: "ID invalide." });
 
-        // Filter out extra fields
         const { emplois, competences, ...data } = req.body;
         const filteredData = {
             ...data,
@@ -65,11 +63,14 @@ async function updateEmployee(req, res) {
         }
 
         const updatedEmployee = await employeeModel.updateEmployee(id, value);
+        if (!updatedEmployee) {
+            return res.status(404).json({ message: "Employé non trouvé." });
+        }
         res.json(updatedEmployee);
     } catch (error) {
-        console.error(error);
-        if (error.message === "NOT_FOUND") {
-            return res.status(404).json({ message: "Employé non trouvé." });
+        console.error("Erreur lors de la mise à jour de l'employé :", error);
+        if (error.code === '23505') {
+            return res.status(400).json({ message: "Cet email est deja utilisé." });
         }
         res.status(500).json({ message: "Erreur serveur." });
     }

@@ -1,6 +1,6 @@
 "use client"
 
-import { Users, Briefcase, Building, BarChart3 } from "lucide-react"
+import { Users, Briefcase, Building, BarChart3, BookOpen } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -29,6 +29,11 @@ export function AppSidebar({ activeSection, setActiveSection }: AppSidebarProps)
       title: "Emplois",
       icon: Briefcase,
       id: "jobs",
+    },
+    {
+      title: "Compétences",
+      icon: BookOpen,
+      id: "skills",
     },
     {
       title: "Analyse Compétences",

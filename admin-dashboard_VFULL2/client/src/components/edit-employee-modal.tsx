@@ -15,7 +15,6 @@ import { useSkills } from "../hooks/useSkills";
 import { Employee, Competence, Emploi } from "../types/employee";
 import { useToast } from "../hooks/use-toast.ts";
 import axios from "axios";
-import { log } from "console";
 
 interface EditEmployeeModalProps {
   employee: Employee;
@@ -60,11 +59,12 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
   const { data: jobs = [] } = useJobs();
   const { data: availableSkills = [] } = useSkills();
   const { toast } = useToast();
+  const [isValidating, setIsValidating] = useState(false);
   
 
   const emailExists = async (email: string) => {
     try {
-      const response = await axios.get(`/employees/check-email`, {
+      const response = await axios.get(`api/employees/check-email`, {
         params: { email },
       });
       return response.data.exists;
@@ -80,8 +80,11 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
   };
 
   const validateForm = async () => {
-    if (!formData.nom_complet?.trim() || formData.nom_complet.length < 2) {
-      toast({ variant: "destructive", title: "Erreur", description: "Le nom complet doit contenir au moins deux caractères." });
+    setIsValidating(true);
+    console.log("Starting validation with date_naissance:", formData.date_naissance);
+
+    if (!formData.nom_complet?.trim() || formData.nom_complet.length <= 2) {
+      toast({ variant: "destructive", title: "Erreur", description: "Le nom complet doit contenir au moins trois caractères." });
       return false;
     }
 
@@ -146,6 +149,8 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
     const jourDiff = now.getDate() - naissance.getDate();
     const ageExact = (moisDiff < 0 || (moisDiff === 0 && jourDiff < 0)) ? age - 1 : age;
 
+    console.log("Calculated age:", ageExact, "for date_naissance:", formData.date_naissance);
+
     if (isNaN(naissance.getTime()) || naissance > now) {
       toast({ variant: "destructive", title: "Erreur", description: "La date de naissance ne peut pas être dans le futur." });
       return false;
@@ -153,6 +158,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
 
     if (ageExact < 18) {
       toast({ variant: "destructive", title: "Erreur", description: "L’employé doit avoir au moins 18 ans." });
+      console.log("Age validation failed:", ageExact);
       return false;
     }
 
@@ -181,6 +187,8 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
       }
     }
 
+    setIsValidating(false);
+    console.log("Validation passed");
     return true;
   };
 
@@ -239,18 +247,23 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
     setSkills((prev) => prev.filter((skill) => skill.id_competencea !== skillId));
   };
 
-  const handleSubmit = () => {
-    if (!validateForm()) return;
+  const handleSubmit = async () => {
+    setIsValidating(true);
+    const isValid = await validateForm(); 
+    if (!isValid) {
+      setIsValidating(false);
+      return;
+    }
 
     const data: Employee = {
       id: formData.id || "",
       nom_complet: formData.nom_complet || "",
       email: formData.email || "",
-      adresse: formData.adresse,
-      telephone1: formData.telephone1,
-      telephone2: formData.telephone2,
-      categorie: formData.categorie,
-      specialite: formData.specialite,
+      adresse: formData.adresse || "",
+      telephone1: formData.telephone1 || "",
+      telephone2: formData.telephone2 || "",
+      categorie: formData.categorie || "",
+      specialite: formData.specialite || "",
       experience_employe: formData.experience_employe || 0,
       role: formData.role || "user",
       date_naissance: formData.date_naissance? new Date(formData.date_naissance).toISOString() : "",
