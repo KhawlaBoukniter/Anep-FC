@@ -282,17 +282,6 @@ export function EditJobModal({ job }: EditJobModalProps) {
                   onChange={(e) => handleInputChange("codeemploi", e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="poidsemploi">Poids Emploi</Label>
-                <Input
-                  id="poidsemploi"
-                  type="number"
-                  min={0}
-                  placeholder="Entrez le poids de l'emploi"
-                  value={formData.poidsemploi ?? ""}
-                  onChange={(e) => handleInputChange("poidsemploi", parseInt(e.target.value) || undefined)}
-                />
-              </div>
             </div>
           )}
           {currentStep === 2 && (
