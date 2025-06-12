@@ -43,6 +43,8 @@ import { Job, Competence } from "../types/job.ts";
 export function JobsList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterEntite, setFilterEntite] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const jobsPerPage = 10;
 
   // Fetch jobs using the useJobs hook
   const { data: jobs = [], isLoading, isError, error } = useJobs({ search: searchTerm });
@@ -52,6 +54,18 @@ export function JobsList() {
     const matchesEntite = filterEntite === "all" || job.entite === filterEntite;
     return matchesEntite;
   });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredJobs.length / jobsPerPage);
+  const indexOfLastJob = currentPage * jobsPerPage;
+  const indexOfFirstJob = indexOfLastJob - jobsPerPage;
+  const currentJobs = filteredJobs.slice(indexOfFirstJob, indexOfLastJob);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
   const getLevelColor = (level: number) => {
     switch (level) {
@@ -151,13 +165,19 @@ export function JobsList() {
                 <Input
                   placeholder="Rechercher par entité, code ou formation..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   className="pl-10"
                 />
               </div>
 
               <div className="flex gap-2">
-                <Select value={filterEntite} onValueChange={setFilterEntite}>
+                <Select value={filterEntite} onValueChange={(value) => {
+                  setFilterEntite(value);
+                  setCurrentPage(1);
+                }}>
                   <SelectTrigger className="w-40">
                     <Filter className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Entité" />
@@ -199,7 +219,7 @@ export function JobsList() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredJobs.map((job) => (
+                  {currentJobs.map((job) => (
                     <TableRow key={job.id_emploi} className="hover:bg-gray-50">
                       <TableCell className="font-medium">{job.codeemploi}</TableCell>
                       <TableCell>
@@ -309,6 +329,74 @@ export function JobsList() {
                 </TableBody>
               </Table>
             </div>
+
+            {totalPages > 1 && (
+              <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="text-sm text-gray-600 text-center md:text-left">
+                  Affichage de {indexOfFirstJob + 1} à{" "}
+                  {Math.min(indexOfLastJob, filteredJobs.length)} sur {filteredJobs.length} emplois
+                </div>
+
+                <div className="flex flex-wrap justify-center gap-1 md:gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    Précédent
+                  </Button>
+
+                  {(() => {
+                    const pages: React.ReactNode[] = [];
+
+                    const showPages: (number | "start-ellipsis" | "end-ellipsis")[] = [1];
+
+                    if (currentPage > 3) showPages.push("start-ellipsis");
+
+                    for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+                      if (i > 1 && i < totalPages) {
+                        showPages.push(i);
+                      }
+                    }
+
+                    if (currentPage < totalPages - 2) showPages.push("end-ellipsis");
+
+                    if (totalPages > 1) showPages.push(totalPages);
+
+                    showPages.forEach((item, index) => {
+                      if (typeof item === "string") {
+                        pages.push(
+                          <span key={item + index} className="px-2 text-gray-500">…</span>
+                        );
+                      } else {
+                        pages.push(
+                          <Button
+                            key={item}
+                            variant={currentPage === item ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handlePageChange(item)}
+                          >
+                            {item}
+                          </Button>
+                        );
+                      }
+                    });
+
+                    return pages;
+                  })()}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Suivant
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {filteredJobs.length === 0 && (
               <div className="text-center py-8">
