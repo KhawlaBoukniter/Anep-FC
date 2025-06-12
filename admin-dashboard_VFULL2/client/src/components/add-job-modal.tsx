@@ -107,8 +107,6 @@ export function AddJobModal() {
       poidsemploi: formData.poidsemploi ? Number.parseInt(formData.poidsemploi) : 0,
       required_skills: requiredSkills.map((competence) => ({
         id_competencer: competence.id_competencer,
-        code_competencer: competence.code_competencer,
-        competencer: competence.competencer,
         niveaur: competence.niveaur,
       })),
     }
