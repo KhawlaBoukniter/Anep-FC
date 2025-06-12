@@ -57,7 +57,8 @@ router.get("/", async (req, res) => {
       query += ` WHERE ${conditions.join(" AND ")}`
     }
 
-    query += ` GROUP BY j.id_emploi ORDER BY j.codeemploi`
+    query += ` GROUP BY j.id_emploi ORDER BY CAST(SUBSTRING(j.codeemploi FROM '\\d+') AS INTEGER)
+`
 
     const result = await pool.query(query, params)
     const jobs = result.rows.map(row => ({
