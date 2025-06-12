@@ -1,6 +1,5 @@
 "use client";
 
-// MODIFIÉ : Ajout de 'useMemo' pour un calcul optimisé
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "./ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.tsx";
@@ -40,6 +39,8 @@ import {
 } from "./ui/tooltip.tsx";
 import { useJobs } from "../hooks/useJobs";
 import { Job, Competence } from "../types/job.ts";
+import clsx from "clsx";
+
 
 // Custom debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -70,24 +71,18 @@ export function JobsList() {
     search: debouncedSearchTerm,
   });
   
-  // NOUVEAU : Extraire les entités uniques de la liste des jobs
-  // useMemo garantit que ce calcul n'est effectué que lorsque les 'jobs' changent.
   const uniqueEntites = useMemo(() => {
     if (!jobs) return [];
-    // 1. Crée un tableau contenant uniquement les noms des entités.
     const entites = jobs.map(job => job.entite);
-    // 2. Utilise un Set pour obtenir les valeurs uniques, puis reconvertit en tableau.
-    return [...new Set(entites)].sort(); // .sort() pour les trier alphabétiquement
+    return [...new Set(entites)].sort();
   }, [jobs]);
 
 
-  // Filter jobs client-side based on entite
-  const filteredJobs = jobs.filter((job) => {
+  const filteredJobs = jobs.filter((job: Job) => {
     const matchesEntite = filterEntite === "all" || job.entite === filterEntite;
     return matchesEntite;
   });
 
-  // Pagination logic
   const totalPages = Math.ceil(filteredJobs.length / jobsPerPage);
   const indexOfLastJob = currentPage * jobsPerPage;
   const indexOfFirstJob = indexOfLastJob - jobsPerPage;
@@ -118,21 +113,9 @@ export function JobsList() {
     }
   };
 
-  const getEntiteColor = (entite: string) => {
-    // Note: cette fonction peut être étendue si de nouvelles entités apparaissent
-    const colors: { [key: string]: string } = {
-      "Département IT": "bg-blue-100 text-blue-800",
-      "Département Design": "bg-purple-100 text-purple-800",
-      "Département Management": "bg-indigo-100 text-indigo-800",
-      "Département Marketing": "bg-pink-100 text-pink-800",
-      "Département RH": "bg-teal-100 text-teal-800",
-    };
-    return colors[entite] || "bg-gray-100 text-gray-800";
-  };
-
   const stats = {
     total: jobs.length,
-    entites: uniqueEntites.length, // Utilise la liste dynamique
+    entites: uniqueEntites.length,
     competencesTotal: jobs.reduce((acc, job) => acc + (job.required_skills?.length || 0), 0),
   };
 
@@ -143,7 +126,6 @@ export function JobsList() {
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        {/* Header with statistics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardContent className="p-4">
@@ -188,7 +170,6 @@ export function JobsList() {
           </Card>
         </div>
 
-        {/* Search and filter bar */}
         <Card>
           <CardContent className="p-4">
             <div className="flex flex-col md:flex-row gap-4">
@@ -203,7 +184,6 @@ export function JobsList() {
               </div>
 
               <div className="flex gap-2">
-                {/* MODIFIÉ : Le contenu du Select est maintenant dynamique */}
                 <Select value={filterEntite} onValueChange={(value) => setFilterEntite(value)}>
                   <SelectTrigger className="w-40">
                     <Filter className="h-4 w-4 mr-2" />
@@ -211,7 +191,6 @@ export function JobsList() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Toutes les entités</SelectItem>
-                    {/* Boucle sur les entités uniques pour créer les options */}
                     {uniqueEntites.map((entite) => (
                       <SelectItem key={entite} value={entite}>
                         {entite}
@@ -226,7 +205,6 @@ export function JobsList() {
           </CardContent>
         </Card>
 
-        {/* Jobs table */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -243,24 +221,47 @@ export function JobsList() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Code</TableHead>
-                        <TableHead>Entité</TableHead>
-                        <TableHead>Formation</TableHead>
-                        <TableHead>Expérience</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableHead className="w-1/7 text-center">Code</TableHead>
+                        <TableHead className="w-1/4 text-center pr-12">Emploi</TableHead>
+                        <TableHead className="w-1/6 text-center ">Entité</TableHead>
+                        <TableHead className="w-1/6 text-center">Formation</TableHead>
+                        <TableHead className="w-1/6 text-center">Expérience</TableHead>
+                        <TableHead className="w-1/4 text-center">Poids emploi</TableHead>
+                        <TableHead className="text-center">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {currentJobs.map((job) => (
+                      {currentJobs.map((job: Job) => (
                         <TableRow key={job.id_emploi} className="hover:bg-gray-50">
                           <TableCell className="font-medium">{job.codeemploi}</TableCell>
                           <TableCell>
-                            <Badge className={getEntiteColor(job.entite)} variant="secondary">
+                            <div className="flex flex-col gap-1">
+                              <Badge
+                                key={job.id_emploi}
+                                className={clsx(
+                                  "relative overflow-hidden whitespace-nowrap max-w-[160px] px-2",
+                                  job.nom_emploi.length > 20 && "animate-scrollText"
+                                )}
+                              >
+                                <span
+                                  className={clsx(
+                                    "block max-w-full whitespace-nowrap",
+                                    job.nom_emploi.length > 20 && "will-change-transform animate-scrollContent"
+                                  )}
+                                >
+                                  {job.nom_emploi}
+                                </span>
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
                               {job.entite}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-gray-600">{job.formation}</TableCell>
-                          <TableCell className="text-gray-600">{job.experience || "N/A"}</TableCell>
+                          <TableCell className="text-gray-600">{job.experience || "-"}</TableCell>
+                          <TableCell className="text-gray-600">{job.poidsemploi || "-"}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex gap-1 justify-end">
                               <Tooltip>
@@ -286,8 +287,12 @@ export function JobsList() {
                                               <p className="text-gray-600">{job.codeemploi}</p>
                                             </div>
                                             <div>
+                                              <span className="font-medium text-gray-700">Nom emploi:</span>
+                                              <p className="text-gray-600">{job.nom_emploi}</p>
+                                            </div>
+                                            <div>
                                               <span className="font-medium text-gray-700">Entité:</span>
-                                              <Badge className={getEntiteColor(job.entite)} variant="secondary">
+                                              <Badge variant="secondary">
                                                 {job.entite}
                                               </Badge>
                                             </div>
@@ -297,11 +302,11 @@ export function JobsList() {
                                             </div>
                                             <div>
                                               <span className="font-medium text-gray-700">Expérience:</span>
-                                              <p className="text-gray-600">{job.experience || "N/A"}</p>
+                                              <p className="text-gray-600">{job.experience || "-"}</p>
                                             </div>
                                             <div>
                                               <span className="font-medium text-gray-700">Poids emploi:</span>
-                                              <p className="text-gray-600">{job.poidsemploi || "N/A"}</p>
+                                              <p className="text-gray-600">{job.poidsemploi || "-"}</p>
                                             </div>
                                           </div>
                                         </div>
