@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover.tsx"
 import { jobService, skillService } from "../services/api"
 import type { Job, Competence } from "../types/job"
 import { useSkills } from "../hooks/useReqSkills.js"
+import { useToast } from "../hooks/use-toast.ts"
 
 export function AddJobModal() {
   const [open, setOpen] = useState(false)
@@ -29,27 +30,74 @@ export function AddJobModal() {
   const [newCompetence, setNewCompetence] = useState("")
   const [openCompetencePopover, setOpenCompetencePopover] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [isValidating, setIsValidating] = useState(false)
   const queryClient = useQueryClient()
 
   // Fetch available competences from the backend
-  const { data: availableCompetences = [] } = useSkills();
+  const { data: availableCompetences = [] } = useSkills()
+  const { toast } = useToast()
 
   // Mutation to create a new job
   const createJobMutation = useMutation({
     mutationFn: (jobData: Job) => jobService.create(jobData),
     onSuccess: () => {
-      queryClient.invalidateQueries(["jobs"])
-      alert("Emploi ajouté avec succès!")
+      toast({ title: "Succès", description: "Emploi créé avec succès." })
       resetForm()
     },
     onError: (error: any) => {
       console.error("Erreur lors de la création de l'emploi:", error)
-      alert(error.response?.data?.error || "Erreur lors de la création de l'emploi")
+      toast({ variant: "destructive", title: "Erreur", description: "Échec de la création de l'emploi." })
+      setIsValidating(false)
     },
   })
 
+  const validateForm = () => {
+    if (!formData.nom_emploi?.trim() || formData.nom_emploi.length <= 2) {
+      toast({ variant: "destructive", title: "Erreur", description: "Le nom de l'emploi doit contenir au moins trois caractères." })
+      return false
+    }
+
+    if (!formData.entite?.trim()) {
+      toast({ variant: "destructive", title: "Erreur", description: "L'entité est requise." })
+      return false
+    }
+
+    if (!formData.formation?.trim()) {
+      toast({ variant: "destructive", title: "Erreur", description: "La formation est requise." })
+      return false
+    }
+
+    if (formData.experience && (Number(formData.experience) < 0 || !Number.isInteger(Number(formData.experience)))) {
+      toast({ variant: "destructive", title: "Erreur", description: "L'expérience doit être un nombre entier positif ou zéro." })
+      return false
+    }
+
+    if (!formData.codeemploi?.trim() || !/^[A-Z0-9]{3,10}$/.test(formData.codeemploi)) {
+      toast({ variant: "destructive", title: "Erreur", description: "Le code emploi doit être alphanumérique (3-10 caractères)." })
+      return false
+    }
+
+    if (formData.poidsemploi && (Number(formData.poidsemploi) <= 0 || !Number.isInteger(Number(formData.poidsemploi)))) {
+      toast({ variant: "destructive", title: "Erreur", description: "Le poids de l'emploi doit être un nombre entier positif." })
+      return false
+    }
+
+    if (requiredSkills.length > 0) {
+      for (const competence of requiredSkills) {
+        if (!competence.id_competencer || !Number.isInteger(Number(competence.niveaur)) || competence.niveaur < 1 || competence.niveaur > 4) {
+          toast({ variant: "destructive", title: "Erreur", description: "Les compétences doivent avoir un niveau valide (1-4)." })
+          return false
+        }
+      }
+    }
+
+    setIsValidating(false)
+    return true
+  }
+
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+    setIsValidating(false) // Reset validating state on input change
   }
 
   const handleCompetenceLevelChange = (competenceId: string, niveaur: number) => {
@@ -61,7 +109,7 @@ export function AddJobModal() {
   }
 
   const addCompetence = (id_competencer: string) => {
-    const competence = availableCompetences.find((s: Competence) => s.id_competencer === id_competencer);
+    const competence = availableCompetences.find((s: Competence) => s.id_competencer === id_competencer)
     if (requiredSkills.some((c) => c.id_competencer === id_competencer)) {
       return
     }
@@ -98,6 +146,9 @@ export function AddJobModal() {
   }
 
   const handleSubmit = () => {
+    setIsValidating(true)
+    if (!validateForm()) return
+
     const jobData: Job = {
       nom_emploi: formData.nom_emploi,
       entite: formData.entite,
@@ -381,7 +432,7 @@ export function AddJobModal() {
             ) : (
               <Button
                 onClick={handleSubmit}
-                disabled={createJobMutation.isLoading}
+                disabled={createJobMutation.isLoading || isValidating}
                 className="bg-green-600 hover:bg-green-700 text-white"
               >
                 {createJobMutation.isLoading ? "Enregistrement..." : "Enregistrer"}
