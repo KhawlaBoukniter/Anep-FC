@@ -31,9 +31,14 @@ export function AppSidebar({ activeSection, setActiveSection }: AppSidebarProps)
       id: "jobs",
     },
     {
-      title: "Compétences",
+      title: "Compétences aquises",
       icon: BookOpen,
       id: "skills",
+    },
+    {
+      title: "Compétences requises",
+      icon: BookOpen,
+      id: "req-skills",
     },
     {
       title: "Analyse Compétences",

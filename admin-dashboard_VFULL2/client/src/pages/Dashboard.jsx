@@ -9,6 +9,7 @@ import { JobsList } from "../components/jobs-list.tsx";
 import { SkillsAnalysis } from "../components/skills-analysis.tsx";
 import { SkillsManagement } from "../components/skillsManagement.tsx"
 import { Toaster } from "../components/ui/toaster.tsx";
+import { ReqSkillsManagement } from "../components/reqSkillsManagement.tsx";
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState("employees");
@@ -21,6 +22,8 @@ export default function AdminDashboard() {
         return <JobsList />;
       case "skills":
         return <SkillsManagement />;
+      case "req-skills":
+        return <ReqSkillsManagement />;
       case "skills-analysis":
         return <SkillsAnalysis />;
       default:

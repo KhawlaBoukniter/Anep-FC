@@ -72,13 +72,13 @@ export const skillService = {
   getLatestCode: () => api.get("/skills/latest-code"),
 }
 
-// Services pour les départements
-export const departmentService = {
-  getAll: () => api.get("/departments"),
-  getById: (id) => api.get(`/departments/${id}`),
-  create: (data) => api.post("/departments", data),
-  update: (id, data) => api.put(`/departments/${id}`, data),
-  delete: (id) => api.delete(`/departments/${id}`),
+export const reqSkillService = {
+  getAll: (params = {}) => api.get("/req-skills", { params }),
+  getById: (id) => api.get(`/req-skills/${id}`),
+  create: (data) => api.post("/req-skills", data),
+  update: (id, data) => api.put(`/req-skills/${id}`, data),
+  delete: (id) => api.delete(`/req-skills/${id}`),
+  getLatestCode: () => api.get("/req-skills/latest-code"),
 }
 
 // Services pour les analyses

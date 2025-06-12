@@ -10,23 +10,23 @@ import {
   useUpdateSkill,
   useDeleteSkill,
   useLatestSkillCode
-} from "../hooks/useSkills";
+} from "../hooks/useReqSkills";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "../components/ui/card.tsx";
-import { Button } from "../components/ui/button.tsx";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table.tsx";
-import { Badge } from "../components/ui/badge.tsx";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog.tsx";
-import { Input } from "../components/ui/input.tsx";
+} from "./ui/card.tsx";
+import { Button } from "./ui/button.tsx";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table.tsx";
+import { Badge } from "./ui/badge.tsx";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog.tsx";
+import { Input } from "./ui/input.tsx";
 import { Eye, Search, Filter, BookOpen, X } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../components/ui/tooltip.tsx";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip.tsx";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 
-export function SkillsManagement() {
+export function ReqSkillsManagement() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
@@ -35,8 +35,8 @@ export function SkillsManagement() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState(null);
-  const [newSkill, setNewSkill] = useState({ code_competencea: "", competencea: "" });
-  const [editSkill, setEditSkill] = useState({ id: "", code_competencea: "", competencea: "" });
+  const [newSkill, setNewSkill] = useState({ code_competencer: "", competencer: "" });
+  const [editSkill, setEditSkill] = useState({ id: "", code_competencer: "", competencer: "" });
   const [currentPage, setCurrentPage] = useState(1);
   const skillsPerPage = 10;
 
@@ -48,9 +48,10 @@ export function SkillsManagement() {
   const { data: latestCode, isLoading: isLatestCodeLoading, error } = useLatestSkillCode();
 
   const filteredSkills = allSkills.filter((skill) => {
+    // Safeguard against undefined or missing properties
     if (!skill || typeof skill !== "object") return false;
-    const code = skill.code_competencea || "";
-    const competence = skill.competencea || "";
+    const code = skill.code_competencer || "";
+    const competence = skill.competencer || "";
     return (
       code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       competence.toLowerCase().includes(searchTerm.toLowerCase())
@@ -68,12 +69,12 @@ export function SkillsManagement() {
     if (isAddModalOpen && latestCode && !isLatestCodeLoading && !error) {
       setNewSkill((prev) => ({
         ...prev,
-        code_competencea: generateNextCode(latestCode),
+        code_competencer: generateNextCode(latestCode),
       }));
     } else if (isAddModalOpen && !latestCode && !isLatestCodeLoading && error) {
-      setNewSkill((prev) => ({ ...prev, code_competencea: "C001" }));
+      setNewSkill((prev) => ({ ...prev, code_competencer: "C001" }));
     } else if (!isAddModalOpen) {
-      setNewSkill((prev) => ({ ...prev, code_competencea: "" }));
+      setNewSkill((prev) => ({ ...prev, code_competencer: "" }));
     }
   }, [isAddModalOpen, latestCode, isLatestCodeLoading, error]);
 
@@ -82,7 +83,7 @@ export function SkillsManagement() {
       onSuccess: () => {
         toast({ title: "Succès", description: "Compétence ajoutée avec succès." });
         setIsAddModalOpen(false);
-        setNewSkill({ code_competencea: "", competencea: "" });
+        setNewSkill({ code_competencer: "", competencer: "" });
         queryClient.invalidateQueries("skills");
       },
       onError: (error) => {
@@ -97,12 +98,12 @@ export function SkillsManagement() {
 
   const handleUpdateSkill = () => {
     updateSkill.mutate(
-      { id: editSkill.id, data: { code_competencea: editSkill.code_competencea, competencea: editSkill.competencea } },
+      { id: editSkill.id, data: { code_competencer: editSkill.code_competencer, competencer: editSkill.competencer } },
       {
         onSuccess: () => {
           toast({ title: "Succès", description: "Compétence mise à jour avec succès." });
           setIsEditModalOpen(false);
-          setEditSkill({ id: "", code_competencea: "", competencea: "" });
+          setEditSkill({ id: "", code_competencer: "", competencer: "" });
           queryClient.invalidateQueries("skills");
         },
         onError: (error) => {
@@ -155,8 +156,8 @@ export function SkillsManagement() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <BookOpen className="h-5 w-5 text-blue-600" />
+              <div className="p-2 bg-green-100 rounded-lg">
+                <BookOpen className="h-5 w-5 text-green-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total Compétences</p>
@@ -183,7 +184,7 @@ export function SkillsManagement() {
               </div>
               <Button
                 onClick={() => setIsAddModalOpen(true)}
-                className="bg-blue-500 text-white"
+                className="bg-green-500 text-white"
               >
                 Ajouter une compétence
               </Button>
@@ -214,8 +215,8 @@ export function SkillsManagement() {
                   <TableBody>
                     {currentSkills.map((skill) => (
                       <TableRow key={skill.id} className="hover:bg-gray-50">
-                        <TableCell className="text-center">{skill.code_competencea}</TableCell>
-                        <TableCell className="text-center">{skill.competencea}</TableCell>
+                        <TableCell className="text-center">{skill.code_competencer}</TableCell>
+                        <TableCell className="text-center">{skill.competencer}</TableCell>
                         <TableCell className="text-center">
                           <div className="flex gap-1 justify-center">
                             <Tooltip>
@@ -228,7 +229,7 @@ export function SkillsManagement() {
                                   </DialogTrigger>
                                   <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
                                     <DialogHeader>
-                                      <DialogTitle>Compétence: {skill.competencea}</DialogTitle>
+                                      <DialogTitle>Compétence: {skill.competencer}</DialogTitle>
                                     </DialogHeader>
                                     <div className="grid grid-cols-2 gap-4 text-sm my-6">
                                       <div>
@@ -237,11 +238,11 @@ export function SkillsManagement() {
                                       </div>
                                       <div>
                                         <span className="font-medium text-gray-700">Code:</span>
-                                        <p className="text-gray-600">{skill.code_competencea}</p>
+                                        <p className="text-gray-600">{skill.code_competencer}</p>
                                       </div>
                                       <div>
                                         <span className="font-medium text-gray-700">Compétence:</span>
-                                        <p className="text-gray-600">{skill.competencea}</p>
+                                        <p className="text-gray-600">{skill.competencer}</p>
                                       </div>
                                     </div>
                                   </DialogContent>
@@ -382,17 +383,17 @@ export function SkillsManagement() {
                 <Input
                   type="text"
                   placeholder="Code"
-                  value={newSkill.code_competencea}
-                  onChange={(e) => setNewSkill({ ...newSkill, code_competencea: e.target.value })}
+                  value={newSkill.code_competencer}
+                  onChange={(e) => setNewSkill({ ...newSkill, code_competencer: e.target.value })}
                   className="border p-2 w-full"
-                  disabled={isLatestCodeLoading || (latestCode && !error)} // Disable if loading or code is successfully retrieved
+                  disabled={isLatestCodeLoading || (latestCode && !error)} 
                 />
                 {error && <p className="text-red-500 text-sm">Erreur lors du chargement du dernier code. Veuillez entrer un code manuellement (ex: C001).</p>}
                 <Input
                   type="text"
                   placeholder="Compétence"
-                  value={newSkill.competencea}
-                  onChange={(e) => setNewSkill({ ...newSkill, competencea: e.target.value })}
+                  value={newSkill.competencer}
+                  onChange={(e) => setNewSkill({ ...newSkill, competencer: e.target.value })}
                   className="border p-2 w-full"
                 />
                 <div className="flex justify-end gap-2">
@@ -424,15 +425,15 @@ export function SkillsManagement() {
                 <Input
                   type="text"
                   placeholder="Code"
-                  value={editSkill.code_competencea}
-                  onChange={(e) => setEditSkill({ ...editSkill, code_competencea: e.target.value })}
+                  value={editSkill.code_competencer}
+                  onChange={(e) => setEditSkill({ ...editSkill, code_competencer: e.target.value })}
                   className="border p-2 w-full"
                 />
                 <Input
                   type="text"
                   placeholder="Compétence"
-                  value={editSkill.competencea}
-                  onChange={(e) => setEditSkill({ ...editSkill, competencea: e.target.value })}
+                  value={editSkill.competencer}
+                  onChange={(e) => setEditSkill({ ...editSkill, competencer: e.target.value })}
                   className="border p-2 w-full"
                 />
                 <div className="flex justify-end gap-2">
