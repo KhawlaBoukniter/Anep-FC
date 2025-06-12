@@ -383,7 +383,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                   onChange={(e) => handleInputChange("email", e.target.value)}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              
                 <div className="space-y-2">
                   <Label htmlFor="adresse">Adresse</Label>
                   <Input
@@ -393,6 +393,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                     onChange={(e) => handleInputChange("adresse", e.target.value)}
                   />
                 </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="telephone1">Téléphone 1 *</Label>
                   <Input
@@ -568,23 +569,20 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
               </div>
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <Popover open={openSkillPopover} onOpenChange={setOpenSkillPopover}>
-                    <PopoverTrigger asChild>
-                      <div className="flex-1">
-                        <Input
+                      <div className="flex-1 relative">
+                      <Command className="rounded-lg border">
+                        <CommandInput
                           ref={inputRef}
-                          placeholder="Saisissez une compétence..."
+                          placeholder="Saisissez ou recherchez une compétence..."
                           value={newSkill}
-                          onChange={(e) => setNewSkill(e.target.value)}
+                          onValueChange={(value) => {
+                            setNewSkill(value)
+                            setOpenSkillPopover(value.length > 0)
+                          }}
                           onKeyDown={handleKeyDown}
-                          onFocus={() => setOpenSkillPopover(true)}
                         />
-                      </div>
-                    </PopoverTrigger>
-                    <PopoverContent className="p-0" align="start" side="bottom" sideOffset={5}>
-                      <Command>
-                        <CommandInput placeholder="Rechercher une compétence..." />
-                        <CommandList>
+                      {openSkillPopover && (
+                        <CommandList className="absolute top-10 w-full border shadow-md bg-white z-10">
                           <CommandEmpty>Aucune compétence trouvée.</CommandEmpty>
                           <CommandGroup>
                             {availableSkills
@@ -601,9 +599,9 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                               ))}
                           </CommandGroup>
                         </CommandList>
+                      )}   
                       </Command>
-                    </PopoverContent>
-                  </Popover>
+                      </div>
                   <Button
                     type="button"
                     onClick={() => {
