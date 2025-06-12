@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+// MODIFIÉ : Ajout de 'useMemo' pour un calcul optimisé
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "./ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.tsx";
 import { Badge } from "./ui/badge.tsx";
@@ -63,13 +64,22 @@ export function JobsList() {
   const [currentPage, setCurrentPage] = useState(1);
   const jobsPerPage = 10;
 
-  // Debounce the search term
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-  // Fetch jobs using the useJobs hook with debounced search term
   const { data: jobs = [], isLoading, isError, error } = useJobs({
     search: debouncedSearchTerm,
   });
+  
+  // NOUVEAU : Extraire les entités uniques de la liste des jobs
+  // useMemo garantit que ce calcul n'est effectué que lorsque les 'jobs' changent.
+  const uniqueEntites = useMemo(() => {
+    if (!jobs) return [];
+    // 1. Crée un tableau contenant uniquement les noms des entités.
+    const entites = jobs.map(job => job.entite);
+    // 2. Utilise un Set pour obtenir les valeurs uniques, puis reconvertit en tableau.
+    return [...new Set(entites)].sort(); // .sort() pour les trier alphabétiquement
+  }, [jobs]);
+
 
   // Filter jobs client-side based on entite
   const filteredJobs = jobs.filter((job) => {
@@ -89,7 +99,6 @@ export function JobsList() {
     }
   };
 
-  // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearchTerm, filterEntite]);
@@ -110,19 +119,20 @@ export function JobsList() {
   };
 
   const getEntiteColor = (entite: string) => {
-    const colors = {
+    // Note: cette fonction peut être étendue si de nouvelles entités apparaissent
+    const colors: { [key: string]: string } = {
       "Département IT": "bg-blue-100 text-blue-800",
       "Département Design": "bg-purple-100 text-purple-800",
       "Département Management": "bg-indigo-100 text-indigo-800",
       "Département Marketing": "bg-pink-100 text-pink-800",
       "Département RH": "bg-teal-100 text-teal-800",
     };
-    return colors[entite as keyof typeof colors] || "bg-gray-100 text-gray-800";
+    return colors[entite] || "bg-gray-100 text-gray-800";
   };
 
   const stats = {
     total: jobs.length,
-    entites: new Set(jobs.map((j) => j.entite)).size,
+    entites: uniqueEntites.length, // Utilise la liste dynamique
     competencesTotal: jobs.reduce((acc, job) => acc + (job.required_skills?.length || 0), 0),
   };
 
@@ -193,6 +203,7 @@ export function JobsList() {
               </div>
 
               <div className="flex gap-2">
+                {/* MODIFIÉ : Le contenu du Select est maintenant dynamique */}
                 <Select value={filterEntite} onValueChange={(value) => setFilterEntite(value)}>
                   <SelectTrigger className="w-40">
                     <Filter className="h-4 w-4 mr-2" />
@@ -200,11 +211,12 @@ export function JobsList() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Toutes les entités</SelectItem>
-                    <SelectItem value="Département IT">Département IT</SelectItem>
-                    <SelectItem value="Département Design">Département Design</SelectItem>
-                    <SelectItem value="Département Management">Département Management</SelectItem>
-                    <SelectItem value="Département Marketing">Département Marketing</SelectItem>
-                    <SelectItem value="Département RH">Département RH</SelectItem>
+                    {/* Boucle sur les entités uniques pour créer les options */}
+                    {uniqueEntites.map((entite) => (
+                      <SelectItem key={entite} value={entite}>
+                        {entite}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
 
