@@ -53,15 +53,3 @@ export const useDeleteSkill = () => {
     },
   })
 }
-
-export const useLatestSkillCode = () => {
-  return useQuery(
-    ["latestSkillCode"],
-    () => skillService.getLatestCode(),
-    {
-      select: (response) => response.data.latestCode,
-      staleTime: 10 * 60 * 1000,
-      cacheTime: 15 * 60 * 1000,
-    }
-  );
-};

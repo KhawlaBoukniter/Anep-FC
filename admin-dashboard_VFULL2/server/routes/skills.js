@@ -9,31 +9,6 @@ const skillSchema = Joi.object({
   competencea: Joi.string().min(2).max(255).required(),
 })
 
-router.get("/latest-code", async (req, res) => {
-  try {
-    const result = await pool.query(
-      "SELECT code_competencea FROM competencesa ORDER BY created_at ASC LIMIT 1"
-    );
-
-    if (result.rows.length === 0) {
-      return res.json({ latestCode: "C000" });
-    }
-
-    const latestCode = result.rows[0].code_competencea;
-    res.json({ latestCode });
-  } catch (error) {
-    console.error("Erreur lors de la récupération du dernier code:", {
-      message: error.message,
-      stack: error.stack,
-      code: error.code,
-    });
-    res.status(500).json({
-      error: "Erreur lors de la récupération du dernier code",
-      details: error.message,
-    });
-  }
-})
-
 // GET /api/skills - Récupérer toutes les compétences
 router.get("/", async (req, res) => {
   try {

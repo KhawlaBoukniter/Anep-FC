@@ -32,7 +32,6 @@ export function SkillsManagement() {
   const queryClient = useQueryClient();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState(null);
   const [newSkill, setNewSkill] = useState({ code_competencea: "", competencea: "" });
@@ -57,43 +56,7 @@ export function SkillsManagement() {
     );
   });
 
-  const generateNextCode = (latestCode) => {
-    if (!latestCode || isNaN(parseInt(latestCode.replace("C", "")))) return "C1";
 
-    const currentNumber = parseInt(latestCode.replace("C", ""));
-    return `C${(currentNumber + 1).toString()}`;
-  };
-
-  useEffect(() => {
-    if (isAddModalOpen && latestCode && !isLatestCodeLoading && !error) {
-      setNewSkill((prev) => ({
-        ...prev,
-        code_competencea: generateNextCode(latestCode),
-      }));
-    } else if (isAddModalOpen && !latestCode && !isLatestCodeLoading && error) {
-      setNewSkill((prev) => ({ ...prev, code_competencea: "C001" }));
-    } else if (!isAddModalOpen) {
-      setNewSkill((prev) => ({ ...prev, code_competencea: "" }));
-    }
-  }, [isAddModalOpen, latestCode, isLatestCodeLoading, error]);
-
-  const handleAddSkill = () => {
-    createSkill.mutate(newSkill, {
-      onSuccess: () => {
-        toast({ title: "Succès", description: "Compétence ajoutée avec succès." });
-        setIsAddModalOpen(false);
-        setNewSkill({ code_competencea: "", competencea: "" });
-        queryClient.invalidateQueries("skills");
-      },
-      onError: (error) => {
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: error.response?.data?.error || "Échec de l'ajout de la compétence.",
-        });
-      },
-    });
-  };
 
   const handleUpdateSkill = () => {
     updateSkill.mutate(
@@ -181,12 +144,6 @@ export function SkillsManagement() {
                   className="pl-10"
                 />
               </div>
-              <Button
-                onClick={() => setIsAddModalOpen(true)}
-                className="bg-blue-500 text-white"
-              >
-                Ajouter une compétence
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -371,48 +328,6 @@ export function SkillsManagement() {
             )}
           </CardContent>
         </Card>
-
-        {isAddModalOpen && (
-          <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Ajouter une compétence</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <Input
-                  type="text"
-                  placeholder="Code"
-                  value={newSkill.code_competencea}
-                  onChange={(e) => setNewSkill({ ...newSkill, code_competencea: e.target.value })}
-                  className="border p-2 w-full"
-                  disabled={isLatestCodeLoading || (latestCode && !error)} // Disable if loading or code is successfully retrieved
-                />
-                {error && <p className="text-red-500 text-sm">Erreur lors du chargement du dernier code. Veuillez entrer un code manuellement (ex: C001).</p>}
-                <Input
-                  type="text"
-                  placeholder="Compétence"
-                  value={newSkill.competencea}
-                  onChange={(e) => setNewSkill({ ...newSkill, competencea: e.target.value })}
-                  className="border p-2 w-full"
-                />
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsAddModalOpen(false)}
-                  >
-                    Annuler
-                  </Button>
-                  <Button
-                    onClick={handleAddSkill}
-                    disabled={createSkill.isLoading}
-                  >
-                    {createSkill.isLoading ? "Ajout en cours..." : "Ajouter"}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
 
         {isEditModalOpen && (
           <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
