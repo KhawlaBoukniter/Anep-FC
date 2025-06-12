@@ -12,6 +12,8 @@ import {
   DialogTrigger,
 } from "./ui/dialog.tsx"
 import { Trash2, AlertTriangle } from "lucide-react"
+import { useDeleteJob } from "../hooks/useJobs" 
+import { useQueryClient } from "react-query"
 
 interface DeleteJobModalProps {
   jobId: string
@@ -20,11 +22,19 @@ interface DeleteJobModalProps {
 
 export function DeleteJobModal({ jobId, jobCode }: DeleteJobModalProps) {
   const [open, setOpen] = useState(false)
+  const queryClient = useQueryClient()
+  const deleteJobMutation = useDeleteJob()
 
   const handleDelete = () => {
-    console.log("Suppression de l'emploi:", jobId)
-    alert(`Emploi ${jobCode} supprimé avec succès!`)
-    setOpen(false)
+    deleteJobMutation.mutate(jobId, {
+      onSuccess: () => {
+        setOpen(false)
+      },
+      onError: (error: any) => {
+        console.error("Erreur lors de la suppression de l'emploi:", error)
+        alert(error.response?.data?.error || "Erreur lors de la suppression de l'emploi")
+      },
+    })
   }
 
   return (
@@ -60,9 +70,9 @@ export function DeleteJobModal({ jobId, jobCode }: DeleteJobModalProps) {
           <Button variant="outline" onClick={() => setOpen(false)}>
             Annuler
           </Button>
-          <Button variant="destructive" onClick={handleDelete}>
+          <Button variant="destructive" onClick={handleDelete} disabled={deleteJobMutation.isLoading}>
             <Trash2 className="h-4 w-4 mr-2" />
-            Supprimer définitivement
+            {deleteJobMutation.isLoading ? "Suppression..." : "Supprimer définitivement"}
           </Button>
         </DialogFooter>
       </DialogContent>

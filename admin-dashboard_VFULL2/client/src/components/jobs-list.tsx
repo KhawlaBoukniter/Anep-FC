@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+// MODIFIÉ : Ajout de 'useMemo' pour un calcul optimisé
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "./ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.tsx";
 import { Badge } from "./ui/badge.tsx";
@@ -37,21 +38,70 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip.tsx";
-import { useJobs } from "../hooks/useJobs"; // Import the useJobs hook
+import { useJobs } from "../hooks/useJobs";
 import { Job, Competence } from "../types/job.ts";
+
+// Custom debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 export function JobsList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterEntite, setFilterEntite] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const jobsPerPage = 10;
 
-  // Fetch jobs using the useJobs hook
-  const { data: jobs = [], isLoading, isError, error } = useJobs({ search: searchTerm });
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  const { data: jobs = [], isLoading, isError, error } = useJobs({
+    search: debouncedSearchTerm,
+  });
+  
+  // NOUVEAU : Extraire les entités uniques de la liste des jobs
+  // useMemo garantit que ce calcul n'est effectué que lorsque les 'jobs' changent.
+  const uniqueEntites = useMemo(() => {
+    if (!jobs) return [];
+    // 1. Crée un tableau contenant uniquement les noms des entités.
+    const entites = jobs.map(job => job.entite);
+    // 2. Utilise un Set pour obtenir les valeurs uniques, puis reconvertit en tableau.
+    return [...new Set(entites)].sort(); // .sort() pour les trier alphabétiquement
+  }, [jobs]);
+
 
   // Filter jobs client-side based on entite
   const filteredJobs = jobs.filter((job) => {
     const matchesEntite = filterEntite === "all" || job.entite === filterEntite;
     return matchesEntite;
   });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredJobs.length / jobsPerPage);
+  const indexOfLastJob = currentPage * jobsPerPage;
+  const indexOfFirstJob = indexOfLastJob - jobsPerPage;
+  const currentJobs = filteredJobs.slice(indexOfFirstJob, indexOfLastJob);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, filterEntite]);
 
   const getLevelColor = (level: number) => {
     switch (level) {
@@ -69,28 +119,24 @@ export function JobsList() {
   };
 
   const getEntiteColor = (entite: string) => {
-    const colors = {
+    // Note: cette fonction peut être étendue si de nouvelles entités apparaissent
+    const colors: { [key: string]: string } = {
       "Département IT": "bg-blue-100 text-blue-800",
       "Département Design": "bg-purple-100 text-purple-800",
       "Département Management": "bg-indigo-100 text-indigo-800",
       "Département Marketing": "bg-pink-100 text-pink-800",
       "Département RH": "bg-teal-100 text-teal-800",
     };
-    return colors[entite as keyof typeof colors] || "bg-gray-100 text-gray-800";
+    return colors[entite] || "bg-gray-100 text-gray-800";
   };
 
   const stats = {
     total: jobs.length,
-    entites: new Set(jobs.map((j) => j.entite)).size,
+    entites: uniqueEntites.length, // Utilise la liste dynamique
     competencesTotal: jobs.reduce((acc, job) => acc + (job.required_skills?.length || 0), 0),
   };
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
   if (isError) {
-    // Type assertion for error
     return <div>Error: {(error as Error)?.message || 'An unknown error occurred'}</div>;
   }
 
@@ -157,18 +203,20 @@ export function JobsList() {
               </div>
 
               <div className="flex gap-2">
-                <Select value={filterEntite} onValueChange={setFilterEntite}>
+                {/* MODIFIÉ : Le contenu du Select est maintenant dynamique */}
+                <Select value={filterEntite} onValueChange={(value) => setFilterEntite(value)}>
                   <SelectTrigger className="w-40">
                     <Filter className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Entité" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Toutes les entités</SelectItem>
-                    <SelectItem value="Département IT">Département IT</SelectItem>
-                    <SelectItem value="Département Design">Département Design</SelectItem>
-                    <SelectItem value="Département Management">Département Management</SelectItem>
-                    <SelectItem value="Département Marketing">Département Marketing</SelectItem>
-                    <SelectItem value="Département RH">Département RH</SelectItem>
+                    {/* Boucle sur les entités uniques pour créer les options */}
+                    {uniqueEntites.map((entite) => (
+                      <SelectItem key={entite} value={entite}>
+                        {entite}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
 
@@ -187,137 +235,208 @@ export function JobsList() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Entité</TableHead>
-                    <TableHead>Formation</TableHead>
-                    <TableHead>Expérience</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredJobs.map((job) => (
-                    <TableRow key={job.id_emploi} className="hover:bg-gray-50">
-                      <TableCell className="font-medium">{job.codeemploi}</TableCell>
-                      <TableCell>
-                        <Badge className={getEntiteColor(job.entite)} variant="secondary">
-                          {job.entite}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-gray-600">{job.formation}</TableCell>
-                      <TableCell className="text-gray-600">{job.experience || "N/A"}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-1 justify-end">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                                  <DialogHeader>
-                                    <DialogTitle>
-                                      {job.entite} - {job.codeemploi}
-                                    </DialogTitle>
-                                  </DialogHeader>
-                                  <div className="space-y-6 pr-2">
-                                    {/* General information */}
-                                    <div>
-                                      <h4 className="font-medium mb-3 text-gray-900">Informations générales</h4>
-                                      <div className="grid grid-cols-2 gap-4 text-sm">
+            {isLoading ? (
+              <p>Chargement...</p>
+            ) : (
+              <>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Code</TableHead>
+                        <TableHead>Entité</TableHead>
+                        <TableHead>Formation</TableHead>
+                        <TableHead>Expérience</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {currentJobs.map((job) => (
+                        <TableRow key={job.id_emploi} className="hover:bg-gray-50">
+                          <TableCell className="font-medium">{job.codeemploi}</TableCell>
+                          <TableCell>
+                            <Badge className={getEntiteColor(job.entite)} variant="secondary">
+                              {job.entite}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-gray-600">{job.formation}</TableCell>
+                          <TableCell className="text-gray-600">{job.experience || "N/A"}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex gap-1 justify-end">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <Eye className="h-4 w-4" />
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                                      <DialogHeader>
+                                        <DialogTitle>
+                                          {job.entite} - {job.codeemploi}
+                                        </DialogTitle>
+                                      </DialogHeader>
+                                      <div className="space-y-6 pr-2">
                                         <div>
-                                          <span className="font-medium text-gray-700">Code emploi:</span>
-                                          <p className="text-gray-600">{job.codeemploi}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Entité:</span>
-                                          <Badge className={getEntiteColor(job.entite)} variant="secondary">
-                                            {job.entite}
-                                          </Badge>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Formation requise:</span>
-                                          <p className="text-gray-600">{job.formation}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Expérience:</span>
-                                          <p className="text-gray-600">{job.experience || "N/A"}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Poids emploi:</span>
-                                          <p className="text-gray-600">{job.poidsemploi || "N/A"}</p>
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {/* Required skills */}
-                                    <div>
-                                      <h4 className="font-medium mb-3 text-gray-900">
-                                        Compétences requises ({job.required_skills?.length || 0})
-                                      </h4>
-                                      <div className="space-y-3 max-h-60 overflow-y-auto">
-                                        {job.required_skills?.map((skill, index) => (
-                                          <div
-                                            key={index}
-                                            className="flex items-center justify-between p-3 border rounded-lg"
-                                          >
-                                            <div className="flex items-center gap-3">
-                                              <span className="font-medium">{skill.competencer}</span>
+                                          <h4 className="font-medium mb-3 text-gray-900">Informations générales</h4>
+                                          <div className="grid grid-cols-2 gap-4 text-sm">
+                                            <div>
+                                              <span className="font-medium text-gray-700">Code emploi:</span>
+                                              <p className="text-gray-600">{job.codeemploi}</p>
                                             </div>
-                                            <Badge className={getLevelColor(skill.niveaur)}>
-                                              Niveau {skill.niveaur}
-                                            </Badge>
+                                            <div>
+                                              <span className="font-medium text-gray-700">Entité:</span>
+                                              <Badge className={getEntiteColor(job.entite)} variant="secondary">
+                                                {job.entite}
+                                              </Badge>
+                                            </div>
+                                            <div>
+                                              <span className="font-medium text-gray-700">Formation requise:</span>
+                                              <p className="text-gray-600">{job.formation}</p>
+                                            </div>
+                                            <div>
+                                              <span className="font-medium text-gray-700">Expérience:</span>
+                                              <p className="text-gray-600">{job.experience || "N/A"}</p>
+                                            </div>
+                                            <div>
+                                              <span className="font-medium text-gray-700">Poids emploi:</span>
+                                              <p className="text-gray-600">{job.poidsemploi || "N/A"}</p>
+                                            </div>
                                           </div>
-                                        ))}
+                                        </div>
+
+                                        <div>
+                                          <h4 className="font-medium mb-3 text-gray-900">
+                                            Compétences requises ({job.required_skills?.length || 0})
+                                          </h4>
+                                          <div className="space-y-3 max-h-60 overflow-y-auto">
+                                            {job.required_skills?.map((skill, index) => (
+                                              <div
+                                                key={index}
+                                                className="flex items-center justify-between p-3 border rounded-lg"
+                                              >
+                                                <div className="flex items-center gap-3">
+                                                  <span className="font-medium">{skill.competencer}</span>
+                                                </div>
+                                                <Badge className={getLevelColor(skill.niveaur)}>
+                                                  Niveau {skill.niveaur}
+                                                </Badge>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
                                       </div>
-                                    </div>
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Voir les détails</p>
-                            </TooltipContent>
-                          </Tooltip>
+                                    </DialogContent>
+                                  </Dialog>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Voir les détails</p>
+                                </TooltipContent>
+                              </Tooltip>
 
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <EditJobModal job={job} />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Modifier l'emploi</p>
-                            </TooltipContent>
-                          </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <EditJobModal job={job} />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Modifier l'emploi</p>
+                                </TooltipContent>
+                              </Tooltip>
 
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <DeleteJobModal jobId={job.id_emploi} jobCode={job.codeemploi} />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Supprimer l'emploi</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <DeleteJobModal jobId={job.id_emploi} jobCode={job.codeemploi} />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Supprimer l'emploi</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
 
-            {filteredJobs.length === 0 && (
-              <div className="text-center py-8">
-                <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun emploi trouvé</h3>
-                <p className="text-gray-600">
-                  Essayez de modifier vos critères de recherche ou d'ajouter un nouvel emploi.
-                </p>
-              </div>
+                {totalPages > 1 && (
+                  <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div className="text-sm text-gray-600 text-center md:text-left">
+                      Affichage de {indexOfFirstJob + 1} à{" "}
+                      {Math.min(indexOfLastJob, filteredJobs.length)} sur {filteredJobs.length} emplois
+                    </div>
+
+                    <div className="flex flex-wrap justify-center gap-1 md:gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                      >
+                        Précédent
+                      </Button>
+
+                      {(() => {
+                        const pages: React.ReactNode[] = [];
+                        const showPages: (number | "start-ellipsis" | "end-ellipsis")[] = [1];
+
+                        if (currentPage > 3) showPages.push("start-ellipsis");
+
+                        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+                          if (i > 1 && i < totalPages) {
+                            showPages.push(i);
+                          }
+                        }
+
+                        if (currentPage < totalPages - 2) showPages.push("end-ellipsis");
+
+                        if (totalPages > 1) showPages.push(totalPages);
+
+                        showPages.forEach((item, index) => {
+                          if (typeof item === "string") {
+                            pages.push(
+                              <span key={item + index} className="px-2 text-gray-500">…</span>
+                            );
+                          } else {
+                            pages.push(
+                              <Button
+                                key={item}
+                                variant={currentPage === item ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => handlePageChange(item)}
+                              >
+                                {item}
+                              </Button>
+                            );
+                          }
+                        });
+
+                        return pages;
+                      })()}
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                      >
+                        Suivant
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {filteredJobs.length === 0 && !isLoading && (
+                  <div className="text-center py-8">
+                    <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun emploi trouvé</h3>
+                    <p className="text-gray-600">
+                      Essayez de modifier vos critères de recherche ou d'ajouter un nouvel emploi.
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
