@@ -12,6 +12,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover.tsx"
 import { jobService, skillService } from "../services/api"
 import type { Job, Competence } from "../types/job"
+import { useSkills } from "../hooks/useReqSkills.js"
 
 export function AddJobModal() {
   const [open, setOpen] = useState(false)
@@ -31,19 +32,7 @@ export function AddJobModal() {
   const queryClient = useQueryClient()
 
   // Fetch available competences from the backend
-  const { data: availableCompetences = [], isLoading: isCompetencesLoading } = useQuery(
-    ["competences"],
-    () => skillService.getAll().then((res) => res.data),
-    {
-      staleTime: 5 * 60 * 1000,
-      select: (data) =>
-        data.map((competence: any) => ({
-          id_competencer: competence.id_competencer.toString(),
-          competencer: competence.competencer,
-          code_competencer: competence.code_competencer,
-        })),
-    }
-  )
+  const { data: availableCompetences = [] } = useSkills();
 
   // Mutation to create a new job
   const createJobMutation = useMutation({
@@ -71,13 +60,14 @@ export function AddJobModal() {
     )
   }
 
-  const addCompetence = (competence: { id_competencer: string; competencer: string; code_competencer: string }) => {
-    if (requiredSkills.some((c) => c.id_competencer === competence.id_competencer)) {
+  const addCompetence = (id_competencer: string) => {
+    const competence = availableCompetences.find((s: Competence) => s.id_competencer === id_competencer);
+    if (requiredSkills.some((c) => c.id_competencer === id_competencer)) {
       return
     }
 
     const newCompetenceItem: Competence = {
-      id_competencer: competence.id_competencer,
+      id_competencer: id_competencer,
       competencer: competence.competencer,
       code_competencer: competence.code_competencer,
       niveaur: 1,
@@ -116,7 +106,7 @@ export function AddJobModal() {
       codeemploi: formData.codeemploi,
       poidsemploi: formData.poidsemploi ? Number.parseInt(formData.poidsemploi) : 0,
       required_skills: requiredSkills.map((competence) => ({
-        id_competencer: Number.parseInt(competence.id_competencer),
+        id_competencer: competence.id_competencer,
         code_competencer: competence.code_competencer,
         competencer: competence.competencer,
         niveaur: competence.niveaur,
@@ -280,28 +270,22 @@ export function AddJobModal() {
                       />
                       {openCompetencePopover && (
                         <CommandList className="absolute top-10 w-full border shadow-md bg-white z-10">
-                          {isCompetencesLoading ? (
-                            <CommandEmpty>Chargement des compétences...</CommandEmpty>
-                          ) : (
-                            <>
                               <CommandEmpty>Aucune compétence trouvée.</CommandEmpty>
                               <CommandGroup>
                                 {availableCompetences
-                                  .filter((competence: any) =>
+                                  .filter((competence: Competence) =>
                                     competence.competencer.toLowerCase().includes(newCompetence.toLowerCase())
                                   )
-                                  .map((competence: any) => (
+                                  .map((competence: Competence) => (
                                     <CommandItem
                                       key={competence.id_competencer}
-                                      onSelect={() => addCompetence(competence)}
+                                      onSelect={() => addCompetence(competence.id_competencer)}
                                       className="cursor-pointer"
                                     >
                                       <span>{competence.competencer}</span>
                                     </CommandItem>
                                   ))}
                               </CommandGroup>
-                            </>
-                          )}
                         </CommandList>
                       )}
                     </Command>
