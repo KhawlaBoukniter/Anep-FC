@@ -1,35 +1,17 @@
 "use client"
 
 import { useState, useRef, type KeyboardEvent } from "react"
+import { useQuery, useMutation, useQueryClient } from "react-query"
 import { Button } from "./ui/button.tsx"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog.tsx"
 import { Input } from "./ui/input.tsx"
 import { Label } from "./ui/label.tsx"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.tsx"
-import { Badge } from "./ui/badge.tsx"
 import { ChevronLeft, ChevronRight, Plus, Briefcase, X } from "lucide-react"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command.tsx"
-
-interface Skill {
-  id: string
-  name: string
-  icon: string
-  level: number
-}
-
-// Liste des compétences disponibles pour les suggestions
-const availableSkills = [
-  { name: "Programmation", icon: "💻" },
-  { name: "Langues étrangères", icon: "🌍" },
-  { name: "Gestion d'équipe", icon: "👥" },
-  { name: "Rédaction", icon: "✏️" },
-  { name: "Design", icon: "🎨" },
-  { name: "Communication", icon: "💬" },
-  { name: "Marketing", icon: "📊" },
-  { name: "Comptabilité", icon: "🧮" },
-  { name: "Vente", icon: "🤝" },
-  { name: "Analyse de données", icon: "📈" },
-]
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover.tsx"
+import { jobService, skillService } from "../services/api"
+import type { Job, Competence } from "../types/job"
 
 export function AddJobModal() {
   const [open, setOpen] = useState(false)
@@ -39,82 +21,127 @@ export function AddJobModal() {
     entite: "",
     formation: "",
     experience: "",
-    codeEmploi: "",
-    poidEmploi: "",
+    codeemploi: "",
+    poidsemploi: "",
   })
-
-  const [requiredSkills, setRequiredSkills] = useState<Skill[]>([])
-  const [newSkill, setNewSkill] = useState("")
-  const [openSkillPopover, setOpenSkillPopover] = useState(false)
+  const [requiredSkills, setRequiredSkills] = useState<Competence[]>([])
+  const [newCompetence, setNewCompetence] = useState("")
+  const [openCompetencePopover, setOpenCompetencePopover] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const queryClient = useQueryClient()
+
+  // Fetch available competences from the backend
+  const { data: availableCompetences = [], isLoading: isCompetencesLoading } = useQuery(
+    ["competences"],
+    () => skillService.getAll().then((res) => res.data),
+    {
+      staleTime: 5 * 60 * 1000,
+      select: (data) =>
+        data.map((competence: any) => ({
+          id_competencer: competence.id_competencer.toString(),
+          competencer: competence.competencer,
+          code_competencer: competence.code_competencer,
+        })),
+    }
+  )
+
+  // Mutation to create a new job
+  const createJobMutation = useMutation({
+    mutationFn: (jobData: Job) => jobService.create(jobData),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["jobs"])
+      alert("Emploi ajouté avec succès!")
+      resetForm()
+    },
+    onError: (error: any) => {
+      console.error("Erreur lors de la création de l'emploi:", error)
+      alert(error.response?.data?.error || "Erreur lors de la création de l'emploi")
+    },
+  })
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleSkillLevelChange = (skillId: string, level: number) => {
-    setRequiredSkills((prev) => prev.map((skill) => (skill.id === skillId ? { ...skill, level } : skill)))
+  const handleCompetenceLevelChange = (competenceId: string, niveaur: number) => {
+    setRequiredSkills((prev) =>
+      prev.map((competence) =>
+        competence.id_competencer === competenceId ? { ...competence, niveaur } : competence
+      )
+    )
   }
 
-  const addSkill = (skillName: string) => {
-    // Vérifier si la compétence existe déjà
-    if (requiredSkills.some((skill) => skill.name.toLowerCase() === skillName.toLowerCase())) {
+  const addCompetence = (competence: { id_competencer: string; competencer: string; code_competencer: string }) => {
+    if (requiredSkills.some((c) => c.id_competencer === competence.id_competencer)) {
       return
     }
 
-    // Trouver l'icône correspondante ou utiliser une icône par défaut
-    const matchedSkill = availableSkills.find((skill) => skill.name.toLowerCase() === skillName.toLowerCase())
-    const icon = matchedSkill?.icon || "⭐"
-
-    const newSkillItem: Skill = {
-      id: Date.now().toString(),
-      name: skillName,
-      icon: icon,
-      level: 1,
+    const newCompetenceItem: Competence = {
+      id_competencer: competence.id_competencer,
+      competencer: competence.competencer,
+      code_competencer: competence.code_competencer,
+      niveaur: 1,
     }
 
-    setRequiredSkills((prev) => [...prev, newSkillItem])
-    setNewSkill("")
-    setOpenSkillPopover(false)
+    setRequiredSkills((prev) => [...prev, newCompetenceItem])
+    setNewCompetence("")
+    setOpenCompetencePopover(false)
     setTimeout(() => {
       inputRef.current?.focus()
     }, 100)
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && newSkill.trim()) {
+    if (e.key === "Enter" && newCompetence.trim()) {
       e.preventDefault()
-      addSkill(newSkill.trim())
+      const matchedCompetence = availableCompetences.find(
+        (competence: any) => competence.competencer.toLowerCase().includes(newCompetence.trim().toLowerCase())
+      )
+      if (matchedCompetence) {
+        addCompetence(matchedCompetence)
+      }
     }
   }
 
-  const removeSkill = (skillId: string) => {
-    setRequiredSkills((prev) => prev.filter((skill) => skill.id !== skillId))
+  const removeCompetence = (competenceId: string) => {
+    setRequiredSkills((prev) => prev.filter((competence) => competence.id_competencer !== competenceId))
   }
 
   const handleSubmit = () => {
-    console.log("Données emploi:", formData)
-    console.log("Compétences requises:", requiredSkills)
-    alert("Emploi ajouté avec succès!")
+    const jobData: Job = {
+      nom_emploi: formData.nom_emploi,
+      entite: formData.entite,
+      formation: formData.formation,
+      experience: formData.experience ? Number.parseInt(formData.experience) : null,
+      codeemploi: formData.codeemploi,
+      poidsemploi: formData.poidsemploi ? Number.parseInt(formData.poidsemploi) : 0,
+      required_skills: requiredSkills.map((competence) => ({
+        id_competencer: Number.parseInt(competence.id_competencer),
+        code_competencer: competence.code_competencer,
+        competencer: competence.competencer,
+        niveaur: competence.niveaur,
+      })),
+    }
 
-    // Reset form and close modal
+    createJobMutation.mutate(jobData)
+  }
+
+  const resetForm = () => {
     setCurrentStep(1)
     setFormData({
       nom_emploi: "",
       entite: "",
       formation: "",
       experience: "",
-      codeEmploi: "",
-      poidEmploi: "",
+      codeemploi: "",
+      poidsemploi: "",
     })
     setRequiredSkills([])
     setOpen(false)
   }
 
   const handleClose = () => {
-    setCurrentStep(1)
-    setRequiredSkills([])
-    setOpen(false)
+    resetForm()
   }
 
   return (
@@ -135,7 +162,9 @@ export function AddJobModal() {
           <div className="flex items-center justify-center gap-4">
             <div className="justify-items-center">
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 1 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"}`}
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${
+                  currentStep === 1 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"
+                }`}
               >
                 1
               </div>
@@ -144,7 +173,9 @@ export function AddJobModal() {
             <div className="w-16 h-0.5 bg-gray-200"></div>
             <div className="justify-items-center">
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 2 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"}`}
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${
+                  currentStep === 2 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"
+                }`}
               >
                 2
               </div>
@@ -180,38 +211,51 @@ export function AddJobModal() {
                 <Label htmlFor="formation">Formation</Label>
                 <Input
                   id="formation"
-                  placeholder="Entrer la formation"
+                  placeholder="Entrez la formation"
                   value={formData.formation}
                   onChange={(e) => handleInputChange("formation", e.target.value)}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="experience">Expérience</Label>
+                <Label htmlFor="experience">Expérience (années)</Label>
                 <Input
                   id="experience"
                   type="number"
                   min={0}
                   max={60}
-                  placeholder="Entrer les années d'expérience"
+                  placeholder="Entrez les années d'expérience"
                   value={formData.experience}
                   onChange={(e) => handleInputChange("experience", e.target.value)}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="codeEmploi">Code Emploi</Label>
+                <Label htmlFor="codeemploi">Code Emploi</Label>
                 <Input
-                  id="codeEmploi"
-                  placeholder="Entrer le code d'emploi"
-                  value={formData.codeEmploi}
-                  onChange={(e) => handleInputChange("codeEmploi", e.target.value)}
+                  id="codeemploi"
+                  placeholder="Entrez le code d'emploi"
+                  value={formData.codeemploi}
+                  onChange={(e) => handleInputChange("codeemploi", e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="poidsemploi">Poids Emploi</Label>
+                <Input
+                  id="poidsemploi"
+                  type="number"
+                  min={0}
+                  max={100}
+                  placeholder="Entrez le poids de l'emploi"
+                  value={formData.poidsemploi}
+                  onChange={(e) => handleInputChange("poidsemploi", e.target.value)}
                 />
               </div>
             </div>
           )}
 
-         {currentStep === 2 && (
+          {currentStep === 2 && (
             <div className="space-y-6">
               <div className="text-center">
                 <h3 className="text-lg font-semibold mb-2">Compétences & Niveaux</h3>
@@ -220,7 +264,6 @@ export function AddJobModal() {
                   Débutant, 4 = Expert).
                 </p>
               </div>
-
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <div className="flex-1 relative">
@@ -228,69 +271,84 @@ export function AddJobModal() {
                       <CommandInput
                         ref={inputRef}
                         placeholder="Saisissez ou recherchez une compétence..."
-                        value={newSkill}
+                        value={newCompetence}
                         onValueChange={(value) => {
-                          setNewSkill(value)
-                          setOpenSkillPopover(value.length > 0)
+                          setNewCompetence(value)
+                          setOpenCompetencePopover(value.length > 0)
                         }}
                         onKeyDown={handleKeyDown}
                       />
-                      {openSkillPopover && (
+                      {openCompetencePopover && (
                         <CommandList className="absolute top-10 w-full border shadow-md bg-white z-10">
-                          <CommandEmpty>Aucune compétence trouvée.</CommandEmpty>
-                          <CommandGroup>
-                            {availableSkills
-                              .filter((skill) =>
-                                skill.name.toLowerCase().includes(newSkill.toLowerCase())
-                              )
-                              .map((skill) => (
-                                <CommandItem
-                                  key={skill.name}
-                                  onSelect={() => {
-                                    setNewSkill(skill.name)
-                                    addSkill(skill.name)
-                                  }}
-                                  className="cursor-pointer"
-                                >
-                                  <span className="mr-2">{skill.icon}</span>
-                                  <span>{skill.name}</span>
-                                </CommandItem>
-                              ))}
-                          </CommandGroup>
+                          {isCompetencesLoading ? (
+                            <CommandEmpty>Chargement des compétences...</CommandEmpty>
+                          ) : (
+                            <>
+                              <CommandEmpty>Aucune compétence trouvée.</CommandEmpty>
+                              <CommandGroup>
+                                {availableCompetences
+                                  .filter((competence: any) =>
+                                    competence.competencer.toLowerCase().includes(newCompetence.toLowerCase())
+                                  )
+                                  .map((competence: any) => (
+                                    <CommandItem
+                                      key={competence.id_competencer}
+                                      onSelect={() => addCompetence(competence)}
+                                      className="cursor-pointer"
+                                    >
+                                      <span>{competence.competencer}</span>
+                                    </CommandItem>
+                                  ))}
+                              </CommandGroup>
+                            </>
+                          )}
                         </CommandList>
                       )}
                     </Command>
                   </div>
                   <Button
                     type="button"
-                    onClick={() => newSkill.trim() && addSkill(newSkill.trim())}
+                    onClick={() => {
+                      const matchedCompetence = availableCompetences.find((competence: any) =>
+                        competence.competencer.toLowerCase().includes(newCompetence.trim().toLowerCase())
+                      )
+                      if (matchedCompetence) {
+                        addCompetence(matchedCompetence)
+                      }
+                    }}
+                    disabled={
+                      !newCompetence.trim() ||
+                      !availableCompetences.some((competence: any) =>
+                        competence.competencer.toLowerCase().includes(newCompetence.trim().toLowerCase())
+                      )
+                    }
                     className="bg-green-600 hover:bg-green-700 text-white"
                   >
                     Ajouter
                   </Button>
                 </div>
-
                 <div className="space-y-3 max-h-60 overflow-y-auto">
                   {requiredSkills.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                       Aucune compétence ajoutée. Utilisez le champ ci-dessus pour ajouter des compétences.
                     </div>
                   ) : (
-                    requiredSkills.map((skill) => (
+                    requiredSkills.map((competence) => (
                       <div
-                        key={skill.id}
+                        key={competence.id_competencer}
                         className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-2xl">{skill.icon}</span>
-                          <span className="font-medium">{skill.name}</span>
+                          <span className="font-medium">{competence.competencer}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-gray-600">Niveau:</span>
                             <Select
-                              value={skill.level.toString()}
-                              onValueChange={(value) => handleSkillLevelChange(skill.id, Number.parseInt(value))}
+                              value={competence.niveaur.toString()}
+                              onValueChange={(value) =>
+                                handleCompetenceLevelChange(competence.id_competencer, Number.parseInt(value))
+                              }
                             >
                               <SelectTrigger className="w-16">
                                 <SelectValue />
@@ -306,7 +364,7 @@ export function AddJobModal() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => removeSkill(skill.id)}
+                            onClick={() => removeCompetence(competence.id_competencer)}
                             className="h-8 w-8 text-gray-500 hover:text-red-500"
                           >
                             <X className="h-4 w-4" />
@@ -339,8 +397,12 @@ export function AddJobModal() {
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
-              <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-700 text-white">
-                Enregistrer
+              <Button
+                onClick={handleSubmit}
+                disabled={createJobMutation.isLoading}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                {createJobMutation.isLoading ? "Enregistrement..." : "Enregistrer"}
               </Button>
             )}
           </div>
