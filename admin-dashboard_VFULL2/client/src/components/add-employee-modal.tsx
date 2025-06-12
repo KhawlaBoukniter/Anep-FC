@@ -61,8 +61,8 @@ export function AddEmployeeModal() {
   };
 
   const validateForm = async () => {
-    if (!formData.nom_complet?.trim()) {
-      toast({ variant: "destructive", title: "Erreur", description: "Le nom complet est requis." });
+    if (!formData.nom_complet?.trim() || formData.nom_complet.length <= 2) {
+      toast({ variant: "destructive", title: "Erreur", description: "Le nom complet doit contenir au moins trois caractères." });
       return false;
     }
 
@@ -104,7 +104,7 @@ export function AddEmployeeModal() {
 
     const dateRecrutement = new Date(formData.date_recrutement);
     const now = new Date();
-    if (dateRecrutement > now) {
+    if (isNaN(dateRecrutement.getTime()) || dateRecrutement > now) {
       toast({ variant: "destructive", title: "Erreur", description: "La date de recrutement ne peut pas être dans le futur." });
       return false;
     }
@@ -120,7 +120,7 @@ export function AddEmployeeModal() {
     const jourDiff = now.getDate() - naissance.getDate();
     const ageExact = (moisDiff < 0 || (moisDiff === 0 && jourDiff < 0)) ? age - 1 : age;
 
-    if (naissance > now) {
+    if (isNaN(naissance.getTime()) || naissance > now) {
       toast({ variant: "destructive", title: "Erreur", description: "La date de naissance ne peut pas être dans le futur." });
       return false;
     }
