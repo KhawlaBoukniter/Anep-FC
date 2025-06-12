@@ -222,8 +222,12 @@ router.put("/:id", async (req, res) => {
 
   try {
     const { id } = req.params
+    console.log("Received PUT request for job ID:", id)
+    console.log("Request body:", req.body)
+
     const { error, value } = jobSchema.validate(req.body)
     if (error) {
+      console.error("Validation error:", error.details[0].message)
       return res.status(400).json({ error: error.details[0].message })
     }
 
@@ -234,9 +238,9 @@ router.put("/:id", async (req, res) => {
     // Mettre à jour l'emploi
     const updateJobQuery = `
       UPDATE emploi 
-      SET nom_emploi = $nom_emploi, entite = $entite, formation = $formation, experience = $experience, 
-          codeemploi = $codeemploi, poidsemploi = $poidsemploi
-      WHERE id_emploi = $id_emploi
+      SET nom_emploi = $1, entite = $2, formation = $3, experience = $4, 
+          codeemploi = $5, poidsemploi = $6
+      WHERE id_emploi = $7
       RETURNING *
     `
 
@@ -250,18 +254,25 @@ router.put("/:id", async (req, res) => {
       id,
     ]
 
+    console.log("Executing update query:", updateJobQuery)
+    console.log("Query parameters:", jobValues)
+
     const jobResult = await client.query(updateJobQuery, jobValues)
+    console.log("Update query result:", jobResult.rows)
 
     if (jobResult.rows.length === 0) {
       await client.query("ROLLBACK")
+      console.log("No job found for ID:", id)
       return res.status(404).json({ error: "Emploi non trouvé" })
     }
 
     // Supprimer les anciennes compétences requises
+    console.log("Deleting old skills for job ID:", id)
     await client.query("DELETE FROM emploi_competencer WHERE id_emploi = $1", [id])
 
     // Insérer les nouvelles compétences requises
     if (required_skills && required_skills.length > 0) {
+      console.log("Inserting new skills:", required_skills)
       for (const skill of required_skills) {
         await client.query("INSERT INTO emploi_competencer (id_emploi, id_competencer, niveaur) VALUES ($1, $2, $3)", [
           id,
@@ -269,6 +280,8 @@ router.put("/:id", async (req, res) => {
           skill.niveaur,
         ])
       }
+    } else {
+      console.log("No new skills to insert")
     }
 
     await client.query("COMMIT")
@@ -300,6 +313,7 @@ router.put("/:id", async (req, res) => {
       ...completeJobResult.rows[0],
       id_emploi: completeJobResult.rows[0].id_emploi.toString(),
       required_skills: completeJobResult.rows[0].required_skills.map(skill => ({
+        ...skill,
         id_competencer: skill.id_competencer.toString(),
       }))
     }
@@ -307,13 +321,8 @@ router.put("/:id", async (req, res) => {
     res.json(completeJob)
   } catch (error) {
     await client.query("ROLLBACK")
-    console.error("Erreur lors de la mise à jour de l'emploi:", error)
-
-    if (error.code === "23505") {
-      res.status(409).json({ error: "Un emploi avec ce code existe déjà" })
-    } else {
-      res.status(500).json({ error: "Erreur lors de la mise à jour de l'emploi" })
-    }
+    console.error("Error during job update:", error.stack || error)
+    res.status(500).json({ error: "Erreur lors de la mise à jour de l'emploi" })
   } finally {
     client.release()
   }
