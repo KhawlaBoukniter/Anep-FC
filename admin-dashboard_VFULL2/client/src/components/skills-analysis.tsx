@@ -5,13 +5,14 @@ import { Button } from "./ui/button.tsx"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.tsx"
 import { Badge } from "./ui/badge.tsx"
 import { Label } from "./ui/label.tsx"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.tsx"
+import { Checkbox } from "./ui/checkbox.tsx"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table.tsx"
-import { BarChart3, Users, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react"
+import { BarChart3, Users, CheckCircle, AlertTriangle } from "lucide-react"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command.tsx"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover.tsx"
 import { Input } from "./ui/input.tsx"
 
+// Interface pour les employés
 interface Employee {
   id: string
   nom: string
@@ -31,14 +32,25 @@ interface Employee {
   }>
 }
 
-interface AnalysisResult {
-  employee: Employee
-  currentLevel: number | null
-  gap: number
-  hasSkill: boolean
+// Interface pour une compétence sélectionnée
+interface SelectedSkill {
+  name: string
+  acquiredLevels: number[] // Niveaux acquis sélectionnés (1 à 4)
+  requiredLevels: number[] // Niveaux requis sélectionnés (1 à 4)
 }
 
-// Données mockées des employés (même que dans employees-list)
+// Interface pour les résultats d'analyse
+interface AnalysisResult {
+  employee: Employee
+  matchedSkills: Array<{
+    name: string
+    currentLevel: number | null
+    matchesAcquired: boolean
+    matchesRequired: boolean
+  }>
+}
+
+// Données mockées des employés
 const mockEmployees: Employee[] = [
   {
     id: "1",
@@ -53,7 +65,7 @@ const mockEmployees: Employee[] = [
     departement: "IT",
     role: "admin",
     skills: [
-      { name: "Programmation", level: 4, icon: "💻" },
+      { name: "Programmation", level: 3, icon: "💻" },
       { name: "Langues étrangères", level: 3, icon: "🌍" },
       { name: "Gestion d'équipe", level: 2, icon: "👥" },
     ],
@@ -163,56 +175,141 @@ const availableSkills = [
   { name: "Analyse de données", icon: "📈" },
 ]
 
+// Exigences par poste
+const jobRequirements: Record<string, Array<{ name: string; requiredLevel: number }>> = {
+  "Développeur Senior": [
+    { name: "Programmation", requiredLevel: 4 },
+    { name: "Gestion d'équipe", requiredLevel: 2 },
+  ],
+  "Designer UX/UI": [
+    { name: "Design", requiredLevel: 4 },
+    { name: "Communication", requiredLevel: 3 },
+  ],
+  "Chef de Projet": [
+    { name: "Gestion d'équipe", requiredLevel: 4 },
+    { name: "Communication", requiredLevel: 4 },
+  ],
+  "Analyste Marketing": [
+    { name: "Marketing", requiredLevel: 3 },
+    { name: "Analyse de données", requiredLevel: 4 },
+  ],
+  "Développeur Frontend": [
+    { name: "Programmation", requiredLevel: 3 },
+    { name: "Design", requiredLevel: 2 },
+  ],
+  "Responsable RH": [
+    { name: "Gestion d'équipe", requiredLevel: 4 },
+    { name: "Communication", requiredLevel: 4 },
+  ],
+}
+
 export function SkillsAnalysis() {
-  const [selectedSkill, setSelectedSkill] = useState("")
-  const [requiredLevel, setRequiredLevel] = useState<number>(1)
-  const [useGapFilter, setUseGapFilter] = useState(false)
-  const [specificGap, setSpecificGap] = useState<number>(1)
+  const [selectedSkills, setSelectedSkills] = useState<SelectedSkill[]>([])
+  const [searchSkill, setSearchSkill] = useState("")
+  const [openSkillPopover, setOpenSkillPopover] = useState(false)
   const [analysisResults, setAnalysisResults] = useState<AnalysisResult[]>([])
   const [hasAnalyzed, setHasAnalyzed] = useState(false)
-  const [openSkillPopover, setOpenSkillPopover] = useState(false)
 
-  const analyzeSkill = () => {
-    if (!selectedSkill) return
+  // Ajouter une compétence à la liste
+  const addSkill = (skillName: string) => {
+    if (!selectedSkills.some((s) => s.name === skillName)) {
+      setSelectedSkills([...selectedSkills, { name: skillName, acquiredLevels: [], requiredLevels: [] }])
+      setSearchSkill("")
+      setOpenSkillPopover(false)
+    }
+  }
 
-    const results: AnalysisResult[] = mockEmployees.map((employee) => {
-      const skill = employee.skills.find((s) => s.name.toLowerCase() === selectedSkill.toLowerCase())
-      const currentLevel = skill ? skill.level : null
-      const gap = currentLevel ? requiredLevel - currentLevel : requiredLevel
+  // Supprimer une compétence
+  const removeSkill = (skillName: string) => {
+    setSelectedSkills(selectedSkills.filter((s) => s.name !== skillName))
+  }
 
-      return {
-        employee,
-        currentLevel,
-        gap,
-        hasSkill: !!skill,
-      }
-    })
+  // Mettre à jour les niveaux acquis pour une compétence
+  const updateAcquiredLevels = (skillName: string, level: number, checked: boolean) => {
+    setSelectedSkills(
+      selectedSkills.map((s) =>
+        s.name === skillName
+          ? {
+              ...s,
+              acquiredLevels: checked
+                ? [...s.acquiredLevels, level]
+                : s.acquiredLevels.filter((l) => l !== level),
+            }
+          : s
+      )
+    )
+  }
 
-    // Filtrer selon les critères
-    let filteredResults = results
+  // Mettre à jour les niveaux requis pour une compétence
+  const updateRequiredLevels = (skillName: string, level: number, checked: boolean) => {
+    setSelectedSkills(
+      selectedSkills.map((s) =>
+        s.name === skillName
+          ? {
+              ...s,
+              requiredLevels: checked
+                ? [...s.requiredLevels, level]
+                : s.requiredLevels.filter((l) => l !== level),
+            }
+          : s
+      )
+    )
+  }
 
-    if (useGapFilter) {
-      // Afficher seulement les employés avec l'écart spécifique
-      filteredResults = results.filter((result) => result.gap === specificGap)
-    } else {
-      // Afficher tous les employés qui ont besoin de formation (gap > 0 ou n'ont pas la compétence)
-      filteredResults = results.filter((result) => result.gap > 0 || !result.hasSkill)
+  // Analyser les compétences
+  const analyzeSkills = () => {
+    if (selectedSkills.length === 0 || selectedSkills.some((s) => s.acquiredLevels.length === 0 || s.requiredLevels.length === 0)) {
+      return
     }
 
-    setAnalysisResults(filteredResults)
+    const results: AnalysisResult[] = mockEmployees
+      .map((employee) => {
+        const matchedSkills = selectedSkills.map((selectedSkill) => {
+          const employeeSkill = employee.skills.find((s) => s.name.toLowerCase() === selectedSkill.name.toLowerCase())
+          const currentLevel = employeeSkill ? employeeSkill.level : null
+          const jobReq = jobRequirements[employee.poste]?.find((req) => req.name.toLowerCase() === selectedSkill.name.toLowerCase())
+          const jobRequiredLevel = jobReq ? jobReq.requiredLevel : null
+
+          // Vérifier si le niveau acquis correspond
+          const matchesAcquired = currentLevel !== null && selectedSkill.acquiredLevels.includes(currentLevel)
+
+          // Vérifier si le niveau requis correspond à celui du poste
+          const matchesRequired = jobRequiredLevel !== null && selectedSkill.requiredLevels.includes(jobRequiredLevel)
+
+          return {
+            name: selectedSkill.name,
+            currentLevel,
+            matchesAcquired,
+            matchesRequired,
+          }
+        })
+
+        // L'employé doit correspondre à au moins un critère pour une compétence
+        const allSkillsMatch = matchedSkills.some((s) => s.matchesAcquired && s.matchesRequired)
+
+        return {
+          employee,
+          matchedSkills,
+          allSkillsMatch,
+        }
+      })
+      .filter((result) => result.allSkillsMatch)
+
+    setAnalysisResults(results)
     setHasAnalyzed(true)
   }
 
+  // Réinitialiser
   const resetAnalysis = () => {
-    setSelectedSkill("")
-    setRequiredLevel(1)
-    setUseGapFilter(false)
-    setSpecificGap(1)
+    setSelectedSkills([])
+    setSearchSkill("")
     setAnalysisResults([])
     setHasAnalyzed(false)
   }
 
-  const getLevelColor = (level: number) => {
+  // Couleurs pour les niveaux et départements
+  const getLevelColor = (level: number | null) => {
+    if (!level) return "bg-gray-100 text-gray-800"
     switch (level) {
       case 1:
         return "bg-red-100 text-red-800"
@@ -227,13 +324,6 @@ export function SkillsAnalysis() {
     }
   }
 
-  const getGapColor = (gap: number) => {
-    if (gap <= 0) return "bg-green-100 text-green-800"
-    if (gap === 1) return "bg-yellow-100 text-yellow-800"
-    if (gap === 2) return "bg-orange-100 text-orange-800"
-    return "bg-red-100 text-red-800"
-  }
-
   const getDepartementColor = (departement: string) => {
     const colors = {
       IT: "bg-blue-100 text-blue-800",
@@ -245,20 +335,8 @@ export function SkillsAnalysis() {
     return colors[departement as keyof typeof colors] || "bg-gray-100 text-gray-800"
   }
 
-  const selectedSkillIcon = availableSkills.find((skill) => skill.name === selectedSkill)?.icon || "⭐"
-
-  const stats = hasAnalyzed
-    ? {
-        total: analysisResults.length,
-        needTraining: analysisResults.filter((r) => r.gap > 0 || !r.hasSkill).length,
-        hasSkill: analysisResults.filter((r) => r.hasSkill).length,
-        noSkill: analysisResults.filter((r) => !r.hasSkill).length,
-      }
-    : { total: 0, needTraining: 0, hasSkill: 0, noSkill: 0 }
-
   return (
     <div className="space-y-6">
-      {/* En-tête */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
@@ -268,142 +346,110 @@ export function SkillsAnalysis() {
             <div>
               <CardTitle className="text-xl">Analyse des Compétences</CardTitle>
               <p className="text-sm text-gray-600">
-                Analysez les écarts de compétences et identifiez les besoins de formation
+                Sélectionnez des compétences et leurs niveaux pour identifier les employés correspondants
               </p>
             </div>
           </div>
         </CardHeader>
       </Card>
 
-      {/* Formulaire d'analyse */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Paramètres d'Analyse</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Sélection de compétence */}
-            <div className="space-y-2">
-              <Label>Compétence à analyser</Label>
-              <Popover onOpenChange={setOpenSkillPopover}>
-                <PopoverTrigger asChild>
-                  <div className="relative">
-                    <Input
-                      placeholder="Rechercher une compétence..."
-                      value={selectedSkill}
-                      onChange={(e) => setSelectedSkill(e.target.value)}
-                      onFocus={() => setOpenSkillPopover(true)}
-                      className="cursor-text"
-                    />
+          <div className="space-y-2">
+            <Label>Ajouter une compétence</Label>
+            <Popover open={openSkillPopover} onOpenChange={setOpenSkillPopover}>
+              <PopoverTrigger asChild>
+                <div className="relative">
+                  <Input
+                    placeholder="Rechercher une compétence..."
+                    value={searchSkill}
+                    onChange={(e) => setSearchSkill(e.target.value)}
+                    onFocus={() => setOpenSkillPopover(true)}
+                    className="cursor-text"
+                  />
+                </div>
+              </PopoverTrigger>
+              <PopoverContent className="p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Rechercher une compétence..." />
+                  <CommandList>
+                    <CommandEmpty>Aucune compétence trouvée.</CommandEmpty>
+                    <CommandGroup>
+                      {availableSkills
+                        .filter((skill) => skill.name.toLowerCase().includes(searchSkill.toLowerCase()))
+                        .map((skill) => (
+                          <CommandItem
+                            key={skill.name}
+                            onSelect={() => addSkill(skill.name)}
+                            disabled={selectedSkills.some((s) => s.name === skill.name)}
+                          >
+                            <span className="mr-2">{skill.icon}</span>
+                            <span>{skill.name}</span>
+                          </CommandItem>
+                        ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {selectedSkills.length > 0 && (
+            <div className="space-y-4">
+              <Label>Compétences sélectionnées</Label>
+              {selectedSkills.map((skill) => (
+                <Card key={skill.name} className="p-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{availableSkills.find((s) => s.name === skill.name)?.icon}</span>
+                      <span className="font-medium">{skill.name}</span>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => removeSkill(skill.name)}>
+                      Supprimer
+                    </Button>
                   </div>
-                </PopoverTrigger>
-                <PopoverContent className="p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Rechercher une compétence..." />
-                    <CommandList>
-                      <CommandEmpty>Aucune compétence trouvée.</CommandEmpty>
-                      <CommandGroup>
-                        {availableSkills
-                          .filter((skill) => skill.name.toLowerCase().includes(selectedSkill.toLowerCase()))
-                          .map((skill) => (
-                            <CommandItem
-                              key={skill.name}
-                              onSelect={() => {
-                                setSelectedSkill(skill.name)
-                                setOpenSkillPopover(false)
-                              }}
-                            >
-                              <span className="mr-2">{skill.icon}</span>
-                              <span>{skill.name}</span>
-                            </CommandItem>
-                          ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="mb-2 block">Niveaux acquis</Label>
+                      {[1, 2, 3, 4].map((level) => (
+                        <div key={level} className="flex items-center space-x-2 mb-2">
+                          <Checkbox
+                            id={`${skill.name}-acquired-${level}`}
+                            checked={skill.acquiredLevels.includes(level)}
+                            onCheckedChange={(checked) => updateAcquiredLevels(skill.name, level, checked as boolean)}
+                          />
+                          <Label htmlFor={`${skill.name}-acquired-${level}`}>Niveau {level}</Label>
+                        </div>
+                      ))}
+                    </div>
+                    <div>
+                      <Label className="mb-2 block">Niveaux requis</Label>
+                      {[1, 2, 3, 4].map((level) => (
+                        <div key={level} className="flex items-center space-x-2 mb-2">
+                          <Checkbox
+                            id={`${skill.name}-required-${level}`}
+                            checked={skill.requiredLevels.includes(level)}
+                            onCheckedChange={(checked) => updateRequiredLevels(skill.name, level, checked as boolean)}
+                          />
+                          <Label htmlFor={`${skill.name}-required-${level}`}>Niveau {level}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
+          )}
 
-            {/* Niveau requis */}
-            <div className="space-y-2">
-              <Label>Niveau requis</Label>
-              <Select value={requiredLevel.toString()} onValueChange={(value) => setRequiredLevel(Number(value))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Niveau 1</SelectItem>
-                  <SelectItem value="2">Niveau 2</SelectItem>
-                  <SelectItem value="3">Niveau 3</SelectItem>
-                  <SelectItem value="4">Niveau 4</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label>Formation</Label>
-              <Input placeholder="Entrer la formation à analyser"></Input>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="inscrit">Inscrit</SelectItem>
-                  <SelectItem value="non-inscrit">Non inscrit</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Options de filtrage */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="useGapFilter"
-                checked={useGapFilter}
-                onChange={(e) => setUseGapFilter(e.target.checked)}
-                className="rounded border-gray-300"
-              />
-              <Label htmlFor="useGapFilter">Filtrer par écart spécifique</Label>
-            </div>
-
-            {useGapFilter && (
-              <div className="ml-6 space-y-2">
-                <Label>Écart de niveau spécifique</Label>
-                <Select value={specificGap.toString()} onValueChange={(value) => setSpecificGap(Number(value))}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Écart de 1 niveau</SelectItem>
-                    <SelectItem value="2">Écart de 2 niveaux</SelectItem>
-                    <SelectItem value="3">Écart de 3 niveaux</SelectItem>
-                    <SelectItem value="4">Écart de 4 niveaux</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-gray-600">
-                  Affiche uniquement les employés avec exactement cet écart de niveau
-                </p>
-              </div>
-            )}
-
-            {!useGapFilter && (
-              <p className="text-sm text-gray-600 ml-6">
-                Affiche tous les employés qui ont besoin de formation (niveau insuffisant ou compétence manquante)
-              </p>
-            )}
-          </div>
-
-          {/* Boutons d'action */}
           <div className="flex gap-3">
-            <Button onClick={analyzeSkill} disabled={!selectedSkill} className="bg-purple-600 hover:bg-purple-700">
+            <Button
+              onClick={analyzeSkills}
+              disabled={selectedSkills.length === 0 || selectedSkills.some((s) => s.acquiredLevels.length === 0 || s.requiredLevels.length === 0)}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
               <BarChart3 className="h-4 w-4 mr-2" />
               Analyser
             </Button>
@@ -416,84 +462,13 @@ export function SkillsAnalysis() {
         </CardContent>
       </Card>
 
-      {/* Statistiques */}
-      {hasAnalyzed && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Users className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Employés analysés</p>
-                  <p className="text-2xl font-bold">{stats.total}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-100 rounded-lg">
-                  <TrendingDown className="h-5 w-5 text-red-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Besoin formation</p>
-                  <p className="text-2xl font-bold">{stats.needTraining}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Ont la compétence</p>
-                  <p className="text-2xl font-bold">{stats.hasSkill}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <AlertTriangle className="h-5 w-5 text-orange-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Sans la compétence</p>
-                  <p className="text-2xl font-bold">{stats.noSkill}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Résultats */}
       {hasAnalyzed && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{selectedSkillIcon}</span>
-                <div>
-                  <CardTitle className="text-lg">
-                    Analyse: {selectedSkill} (Niveau requis: {requiredLevel})
-                  </CardTitle>
-                  <p className="text-sm text-gray-600">
-                    {useGapFilter
-                      ? `Employés avec un écart de ${specificGap} niveau(x)`
-                      : "Employés ayant besoin de formation"}
-                  </p>
-                </div>
+              <div>
+                <CardTitle className="text-lg">Résultats de l'analyse</CardTitle>
+                <p className="text-sm text-gray-600">Employés correspondant à au moins un critère</p>
               </div>
               <Badge variant="secondary">{analysisResults.length} résultat(s)</Badge>
             </div>
@@ -507,9 +482,9 @@ export function SkillsAnalysis() {
                       <TableHead>Employé</TableHead>
                       <TableHead>Poste</TableHead>
                       <TableHead>Département</TableHead>
-                      <TableHead>Niveau actuel</TableHead>
-                      <TableHead>Niveau requis</TableHead>
-                      <TableHead>Écart</TableHead>
+                      {selectedSkills.map((skill) => (
+                        <TableHead key={skill.name}>{skill.name}</TableHead>
+                      ))}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -524,23 +499,21 @@ export function SkillsAnalysis() {
                             {result.employee.departement}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          {result.currentLevel ? (
-                            <Badge className={getLevelColor(result.currentLevel)}>Niveau {result.currentLevel}</Badge>
-                          ) : (
-                            <Badge variant="secondary" className="bg-gray-100 text-gray-600">
-                              Non acquise
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getLevelColor(requiredLevel)}>Niveau {requiredLevel}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getGapColor(result.gap)}>
-                            {result.gap > 0 ? `+${result.gap}` : result.gap === 0 ? "0" : result.gap}
-                          </Badge>
-                        </TableCell>
+                        {result.matchedSkills.map((skill) => (
+                          <TableCell key={skill.name}>
+                            <div className="space-y-1">
+                              <Badge className={getLevelColor(skill.currentLevel)}>
+                                {skill.currentLevel ? `Niveau ${skill.currentLevel}` : "Non acquise"}
+                              </Badge>
+                              <div>
+                                <span className="text-xs text-gray-600">
+                                  Requis (poste):{" "}
+                                  {jobRequirements[result.employee.poste]?.find((req) => req.name === skill.name)?.requiredLevel || "N/A"}
+                                </span>
+                              </div>
+                            </div>
+                          </TableCell>
+                        ))}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -548,12 +521,10 @@ export function SkillsAnalysis() {
               </div>
             ) : (
               <div className="text-center py-8">
-                <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                <AlertTriangle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun employé trouvé</h3>
                 <p className="text-gray-600">
-                  {useGapFilter
-                    ? `Aucun employé n'a un écart de ${specificGap} niveau(x) pour cette compétence.`
-                    : "Tous les employés ont le niveau requis pour cette compétence."}
+                  Aucun employé ne correspond aux critères de compétences et d'exigences sélectionnés.
                 </p>
               </div>
             )}
