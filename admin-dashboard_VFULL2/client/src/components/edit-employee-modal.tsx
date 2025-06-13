@@ -22,6 +22,7 @@ interface EditEmployeeModalProps {
 
 export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
   const [open, setOpen] = useState(false);
+  const [selectedJobs, setSelectedJobs] = useState<Emploi[]>(employee.emplois || []);
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<Partial<Employee>>({
     id: employee.id,
@@ -48,7 +49,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
       niveaua: skill.niveaua,
     }))
   );
-  const [selectedJobs, setSelectedJobs] = useState<Emploi[]>(employee.emplois || []);
+  const [newSkills, setNewSkills] = useState<{ tempId: number; competencea: string; code_competencea: string; niveaua: number }[]>([]);
   const [newSkill, setNewSkill] = useState("");
   const [openSkillPopover, setOpenSkillPopover] = useState(false);
   const [openJobPopover, setOpenJobPopover] = useState(false);
@@ -60,7 +61,6 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
   const { data: availableSkills = [] } = useSkills();
   const { toast } = useToast();
   const [isValidating, setIsValidating] = useState(false);
-  
 
   const emailExists = async (email: string) => {
     try {
@@ -81,7 +81,6 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
 
   const validateForm = async () => {
     setIsValidating(true);
-    console.log("Starting validation with date_naissance:", formData.date_naissance);
 
     if (!formData.nom_complet?.trim() || formData.nom_complet.length <= 2) {
       toast({ variant: "destructive", title: "Erreur", description: "Le nom complet doit contenir au moins trois caractères." });
@@ -149,8 +148,6 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
     const jourDiff = now.getDate() - naissance.getDate();
     const ageExact = (moisDiff < 0 || (moisDiff === 0 && jourDiff < 0)) ? age - 1 : age;
 
-    console.log("Calculated age:", ageExact, "for date_naissance:", formData.date_naissance);
-
     if (isNaN(naissance.getTime()) || naissance > now) {
       toast({ variant: "destructive", title: "Erreur", description: "La date de naissance ne peut pas être dans le futur." });
       return false;
@@ -158,13 +155,11 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
 
     if (ageExact < 18) {
       toast({ variant: "destructive", title: "Erreur", description: "L’employé doit avoir au moins 18 ans." });
-      console.log("Age validation failed:", ageExact);
       return false;
     }
 
     if (!formData.cin?.trim() || !/^[A-Z]{1,2}[0-9]{5,6}$/.test(formData.cin)) {
       toast({ variant: "destructive", title: "Erreur", description: "Le CIN doit suivre le format valide (1-2 lettres suivies de 5-6 chiffres)." });
-      console.log('aa')
       return false;
     }
 
@@ -188,7 +183,6 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
     }
 
     setIsValidating(false);
-    console.log("Validation passed");
     return true;
   };
 
@@ -212,6 +206,9 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
 
   const handleSkillLevelChange = (skillId: number, niveaua: number) => {
     setSkills((prev) => prev.map((skill) => (skill.id_competencea === skillId ? { ...skill, niveaua } : skill)));
+    setNewSkills((prev) =>
+      prev.map((skill) => (skill.tempId === skillId ? { ...skill, niveaua } : skill))
+    );
   };
 
   const addSkill = (skillId: number) => {
@@ -233,23 +230,65 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
     }, 100);
   };
 
+  const addNewSkill = () => {
+    if (!newSkill.trim()) return;
+
+    const skillExists =
+      skills.some((s) => s.competencea.toLowerCase() === newSkill.toLowerCase()) ||
+      availableSkills.some((s: Competence) => s.competencea.toLowerCase() === newSkill.toLowerCase());
+
+    if (skillExists) {
+      toast({ variant: "destructive", title: "Erreur", description: "Cette compétence existe déjà." });
+      return;
+    }
+
+    const tempId = -(skills.length + newSkills.length + 1);
+    const newSkillItem: Competence = {
+      id_competencea: tempId,
+      code_competencea: `SKILL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+      competencea: newSkill.trim(),
+      niveaua: 1,
+    };
+
+    setSkills((prev) => [...prev, newSkillItem]);
+    setNewSkills((prev) => [
+      ...prev,
+      {
+        tempId,
+        competencea: newSkill.trim(),
+        code_competencea: newSkillItem.code_competencea,
+        niveaua: 1,
+      },
+    ]);
+    setNewSkill("");
+    setOpenSkillPopover(false);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+  };
+
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && newSkill.trim()) {
       e.preventDefault();
       const skill = availableSkills.find((s: Competence) =>
         s.competencea.toLowerCase().includes(newSkill.toLowerCase())
       );
-      if (skill) addSkill(skill.id_competencea);
+      if (skill) {
+        addSkill(skill.id_competencea);
+      } else {
+        addNewSkill();
+      }
     }
   };
 
   const removeSkill = (skillId: number) => {
     setSkills((prev) => prev.filter((skill) => skill.id_competencea !== skillId));
+    setNewSkills((prev) => prev.filter((skill) => skill.tempId !== skillId));
   };
 
   const handleSubmit = async () => {
     setIsValidating(true);
-    const isValid = await validateForm(); 
+    const isValid = await validateForm();
     if (!isValid) {
       setIsValidating(false);
       return;
@@ -266,29 +305,32 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
       specialite: formData.specialite || "",
       experience_employe: formData.experience_employe || 0,
       role: formData.role || "user",
-      date_naissance: formData.date_naissance? new Date(formData.date_naissance).toISOString() : "",
+      date_naissance: formData.date_naissance ? new Date(formData.date_naissance).toISOString() : "",
       date_recrutement: formData.date_recrutement ? new Date(formData.date_recrutement).toISOString() : "",
       cin: formData.cin || "",
       emplois: selectedJobs,
       competences: skills.map((s) => ({
         id_competencea: s.id_competencea,
-        code_competencea: s.code_competencea,
-        competencea: s.competencea,
+        code_competencea: s.id_competencea < 0 ? s.code_competencea : undefined,
+        competencea: s.id_competencea < 0 ? s.competencea : undefined,
         niveaua: s.niveaua,
       })) as Competence[],
     };
 
-    console.log("Payload sent to server:", data);
-    
     updateEmployee({ id: data.id, data }, {
       onSuccess: () => {
         toast({ title: "Succès", description: "Employé mis à jour avec succès." });
         setCurrentStep(1);
         setOpen(false);
+        setNewSkills([]);
       },
-      onError: (error) => {
+      onError: (error: any) => {
         console.error("Update error details:", error.message);
-        toast({ variant: "destructive", title: "Erreur", description: "Échec de la mise à jour de l'employé." });
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: error.response?.data?.message || "Échec de la mise à jour de l'employé.",
+        });
       },
     });
   };
@@ -321,6 +363,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
       }))
     );
     setSelectedJobs(employee.emplois || []);
+    setNewSkills([]);
     setOpen(false);
   };
 
@@ -383,16 +426,15 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                   onChange={(e) => handleInputChange("email", e.target.value)}
                 />
               </div>
-              
-                <div className="space-y-2">
-                  <Label htmlFor="adresse">Adresse</Label>
-                  <Input
-                    id="adresse"
-                    placeholder="Entrez l'adresse"
-                    value={formData.adresse || ""}
-                    onChange={(e) => handleInputChange("adresse", e.target.value)}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="adresse">Adresse</Label>
+                <Input
+                  id="adresse"
+                  placeholder="Entrez l'adresse"
+                  value={formData.adresse || ""}
+                  onChange={(e) => handleInputChange("adresse", e.target.value)}
+                />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="telephone1">Téléphone 1 *</Label>
@@ -569,21 +611,23 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
               </div>
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                      <div className="flex-1 relative">
-                      <Command className="rounded-lg border">
-                        <CommandInput
-                          ref={inputRef}
-                          placeholder="Saisissez ou recherchez une compétence..."
-                          value={newSkill}
-                          onValueChange={(value) => {
-                            setNewSkill(value)
-                            setOpenSkillPopover(value.length > 0)
-                          }}
-                          onKeyDown={handleKeyDown}
-                        />
+                  <div className="flex-1 relative">
+                    <Command className="rounded-lg border">
+                      <CommandInput
+                        ref={inputRef}
+                        placeholder="Saisissez ou recherchez une compétence..."
+                        value={newSkill}
+                        onValueChange={(value) => {
+                          setNewSkill(value);
+                          setOpenSkillPopover(value.length > 0);
+                        }}
+                        onKeyDown={handleKeyDown}
+                      />
                       {openSkillPopover && (
                         <CommandList className="absolute top-10 w-full border shadow-md bg-white z-10">
-                          <CommandEmpty>Aucune compétence trouvée.</CommandEmpty>
+                          <CommandEmpty>
+                            Aucune compétence trouvée. Appuyez sur Entrée pour ajouter "{newSkill}" comme nouvelle compétence.
+                          </CommandEmpty>
                           <CommandGroup>
                             {availableSkills
                               .filter((skill: Competence) =>
@@ -599,16 +643,20 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                               ))}
                           </CommandGroup>
                         </CommandList>
-                      )}   
-                      </Command>
-                      </div>
+                      )}
+                    </Command>
+                  </div>
                   <Button
                     type="button"
                     onClick={() => {
                       const skill = availableSkills.find((s: Competence) =>
                         s.competencea.toLowerCase().includes(newSkill.toLowerCase())
                       );
-                      if (skill) addSkill(skill.id_competencea);
+                      if (skill) {
+                        addSkill(skill.id_competencea);
+                      } else {
+                        addNewSkill();
+                      }
                     }}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                     disabled={!newSkill.trim()}
@@ -629,6 +677,9 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                       >
                         <div className="flex items-center gap-3">
                           <span className="font-medium">{skill.competencea}</span>
+                          {newSkills.some((ns) => ns.tempId === skill.id_competencea) && (
+                            <span className="text-xs text-blue-600">(Nouvelle)</span>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="flex items-center gap-2">
@@ -685,9 +736,9 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
               <Button
                 onClick={handleSubmit}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
-                disabled={isPending}
+                disabled={isPending || isValidating}
               >
-                {isPending ? "Enregistrement..." : "Enregistrer"}
+                {isPending || isValidating ? "Enregistrement..." : "Enregistrer"}
               </Button>
             )}
           </div>
