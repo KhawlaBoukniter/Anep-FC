@@ -87,6 +87,7 @@ export const analysisService = {
   getSkillsDistribution: () => api.get("/analysis/skills-distribution"),
   getDepartmentSkills: () => api.get("/analysis/department-skills"),
   getJobMatching: (jobId) => api.get("/analysis/job-matching", { params: { job_id: jobId } }),
+  getSkillsAnalysis: () => api.get("/analysis/skills-analysis"),
 }
 
 // Service de santé de l'API
