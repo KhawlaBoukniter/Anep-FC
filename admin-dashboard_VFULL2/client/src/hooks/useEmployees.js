@@ -21,22 +21,67 @@ export const useEmployee = (id) => {
 }
 
 // Hook pour créer un employé
+// export const useCreateEmployee = () => {
+//   const queryClient = useQueryClient()
+
+//   return useMutation({
+//     /**
+//      * @param {{ [key: string]: any }} data
+//      */
+//     mutationFn: async (data) => employeeService.create(data),
+//     onSuccess: () => {
+//       queryClient.invalidateQueries(["employees"])
+//     },
+//     onError: (error) => {
+//       console.error("Erreur lors de la création de l'employé:", error)
+//     },
+//   })
+// }
+
 export const useCreateEmployee = () => {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
-    /**
-     * @param {{ [key: string]: any }} data
-     */
-    mutationFn: (data) => employeeService.create(data),
+    mutationFn: async (data) => {
+      const newSkills = data.competences.filter((skill) => skill.id_competencea < 0);
+      const existingSkills = data.competences.filter((skill) => skill.id_competencea >= 0);
+
+      const createdSkills = [];
+      for (const skill of newSkills) {
+        const response = await employeeService.createSkill({
+          code_competencea: skill.code_competencea,
+          competencea: skill.competencea,
+        });
+        createdSkills.push({
+          id_competencea: response.data.id_competencea,
+          niveaua: skill.niveaua,
+        });
+      }
+
+      const allSkills = [
+        ...existingSkills.map((skill) => ({
+          id_competencea: skill.id_competencea,
+          niveaua: skill.niveaua,
+        })),
+        ...createdSkills,
+      ];
+
+      const finalData = {
+        ...data,
+        competences: allSkills,
+      };
+
+      return employeeService.create(finalData);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries(["employees"])
+      queryClient.invalidateQueries(["employees"]);
+      queryClient.invalidateQueries(["skills"]);
     },
     onError: (error) => {
-      console.error("Erreur lors de la création de l'employé:", error)
+      console.error("Erreur lors de la création de l'employé:", error);
     },
-  })
-}
+  });
+};
 
 /**
  * @typedef {import('../types/employee').Employee} Employee
@@ -50,10 +95,41 @@ export const useUpdateEmployee = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }) => employeeService.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const newSkills = data.competences.filter((skill) => skill.id_competencea < 0);
+      const existingSkills = data.competences.filter((skill) => skill.id_competencea >= 0);
+
+      const createdSkills = [];
+      for (const skill of newSkills) {
+        const response = await employeeService.createSkill({
+          code_competencea: skill.code_competencea,
+          competencea: skill.competencea,
+        });
+        createdSkills.push({
+          id_competencea: response.data.id_competencea,
+          niveaua: skill.niveaua,
+        });
+      }
+
+      const allSkills = [
+        ...existingSkills.map((skill) => ({
+          id_competencea: skill.id_competencea,
+          niveaua: skill.niveaua,
+        })),
+        ...createdSkills,
+      ];
+
+      const finalData = {
+        ...data,
+        competences: allSkills,
+      };
+
+      return employeeService.update(id, finalData);
+    },
     onSuccess: (response, { id }) => {
       queryClient.setQueryData(["employee", id], response);
       queryClient.invalidateQueries(["employees"]);
+      queryClient.invalidateQueries(["skills"]);
     },
     onError: (error) => {
       console.error("Error updating employee:", error);

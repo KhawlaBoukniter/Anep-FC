@@ -36,8 +36,9 @@ export function AddEmployeeModal() {
     competences: [],
   });
   const [competences, setCompetences] = useState<Competence[]>([]);
-  const [selectedJobs, setSelectedJobs] = useState<Emploi[]>([]);
+  const [newSkills, setNewSkills] = useState<{ tempId: number; competencea: string; code_competencea: string; niveaua: number }[]>([]);
   const [newSkill, setNewSkill] = useState("");
+  const [selectedJobs, setSelectedJobs] = useState<Emploi[]>([]);
   const [openSkillPopover, setOpenSkillPopover] = useState(false);
   const [openJobPopover, setOpenJobPopover] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -148,7 +149,6 @@ export function AddEmployeeModal() {
     return true;
   };
 
-
   const handleInputChange = (field: keyof Employee, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -169,6 +169,9 @@ export function AddEmployeeModal() {
 
   const handleSkillLevelChange = (id_competencea: number, niveaua: number) => {
     setCompetences((prev) => prev.map((skill) => (skill.id_competencea === id_competencea ? { ...skill, niveaua } : skill)));
+    setNewSkills((prev) =>
+      prev.map((skill) => (skill.tempId === id_competencea ? { ...skill, niveaua } : skill))
+    );
   };
 
   const addSkill = (id_competencea: number) => {
@@ -190,28 +193,76 @@ export function AddEmployeeModal() {
     }, 100);
   };
 
+  const addNewSkill = () => {
+    if (!newSkill.trim()) return;
+
+    // Vérifier si la compétence existe déjà (case-insensitive)
+    const skillExists =
+      competences.some((s) => s.competencea.toLowerCase() === newSkill.toLowerCase()) ||
+      availableCompetences.some((s: Competence) => s.competencea.toLowerCase() === newSkill.toLowerCase());
+
+    if (skillExists) {
+      toast({ variant: "destructive", title: "Erreur", description: "Cette compétence existe déjà." });
+      return;
+    }
+
+    // Générer un ID temporaire négatif
+    const tempId = -(competences.length + newSkills.length + 1);
+    const newSkillItem: Competence = {
+      id_competencea: tempId,
+      code_competencea: `SKILL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+      competencea: newSkill.trim(),
+      niveaua: 1,
+    };
+
+    setCompetences((prev) => [...prev, newSkillItem]);
+    setNewSkills((prev) => [
+      ...prev,
+      {
+        tempId,
+        competencea: newSkill.trim(),
+        code_competencea: newSkillItem.code_competencea,
+        niveaua: 1,
+      },
+    ]);
+    setNewSkill("");
+    setOpenSkillPopover(false);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+  };
+
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && newSkill.trim()) {
       e.preventDefault();
       const skill = availableCompetences.find((s: Competence) =>
         s.competencea.toLowerCase().includes(newSkill.toLowerCase())
       );
-      if (skill) addSkill(skill.id_competencea);
+      if (skill) {
+        addSkill(skill.id_competencea);
+      } else {
+        addNewSkill();
+      }
     }
   };
 
   const removeSkill = (skillId: number) => {
     setCompetences((prev) => prev.filter((skill) => skill.id_competencea !== skillId));
+    setNewSkills((prev) => prev.filter((skill) => skill.tempId !== skillId));
   };
 
-  const handleSubmit = () => {
-    if (!validateForm()) return;
+  const handleSubmit = async () => {
+    if (!(await validateForm())) return;
 
-     const finalData = {
-    ...formData,
-    emplois: selectedJobs.map((job) => ({ id_emploi: job.id_emploi })),
-    competences: competences.map(({ id_competencea, niveaua }) => ({ id_competencea, niveaua })),
-  };
+    const finalData = {
+      ...formData,
+      emplois: selectedJobs.map((job) => ({ id_emploi: job.id_emploi })),
+      competences: competences.map(({ id_competencea, niveaua, competencea, code_competencea }) => ({
+        id_competencea,
+        niveaua,
+        ...(id_competencea < 0 ? { competencea, code_competencea } : {}),
+      })),
+    };
 
     createEmployee(finalData, {
       onSuccess: () => {
@@ -235,10 +286,15 @@ export function AddEmployeeModal() {
         });
         setCompetences([]);
         setSelectedJobs([]);
+        setNewSkills([]);
         setOpen(false);
       },
-      onError: () => {
-        toast({ variant: "destructive", title: "Erreur", description: "Échec de la création de l'employé." });
+      onError: (error: any) => {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: error.response?.data?.message || "Échec de la création de l'employé.",
+        });
       },
     });
   };
@@ -263,6 +319,7 @@ export function AddEmployeeModal() {
     });
     setCompetences([]);
     setSelectedJobs([]);
+    setNewSkills([]);
     setOpen(false);
   };
 
@@ -519,45 +576,51 @@ export function AddEmployeeModal() {
                           placeholder="Saisissez ou recherchez une compétence..."
                           value={newSkill}
                           onValueChange={(value) => {
-                            setNewSkill(value)
-                            setOpenSkillPopover(value.length > 0)
+                            setNewSkill(value);
+                            setOpenSkillPopover(value.length > 0);
                           }}
                           onKeyDown={handleKeyDown}
                         />
                         {openSkillPopover && (
-                        <CommandList className="absolute top-10 w-full border shadow-md bg-white z-10">
-                          <CommandEmpty>Aucune compétence trouvée.</CommandEmpty>
-                          <CommandGroup>
-                            {availableCompetences
-                              .filter((skill: Competence) =>
-                                skill.competencea.toLowerCase().includes(newSkill.toLowerCase())
-                              )
-                              .map((skill: Competence) => (
-                                <CommandItem
-                                  key={skill.id_competencea}
-                                  onSelect={() => addSkill(skill.id_competencea)}
-                                >
-                                  <span>{skill.competencea}</span>
-                                </CommandItem>
-                              ))}
-                          </CommandGroup>
-                        </CommandList>
+                          <CommandList className="absolute top-10 w-full border shadow-md bg-white z-10">
+                            <CommandEmpty>
+                              Aucune compétence trouvée. Appuyez sur Entrée pour ajouter "{newSkill}" comme nouvelle compétence.
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {availableCompetences
+                                .filter((skill: Competence) =>
+                                  skill.competencea.toLowerCase().includes(newSkill.toLowerCase())
+                                )
+                                .map((skill: Competence) => (
+                                  <CommandItem
+                                    key={skill.id_competencea}
+                                    onSelect={() => addSkill(skill.id_competencea)}
+                                  >
+                                    <span>{skill.competencea}</span>
+                                  </CommandItem>
+                                ))}
+                            </CommandGroup>
+                          </CommandList>
                         )}
                       </Command>
                     </div>
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      const skill = availableCompetences.find((s: Competence) =>
-                        s.competencea.toLowerCase().includes(newSkill.toLowerCase())
-                      );
-                      if (skill) addSkill(skill.id_competencea);
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                    disabled={!newSkill.trim()}
-                  >
-                    Ajouter
-                  </Button>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        const skill = availableCompetences.find((s: Competence) =>
+                          s.competencea.toLowerCase().includes(newSkill.toLowerCase())
+                        );
+                        if (skill) {
+                          addSkill(skill.id_competencea);
+                        } else {
+                          addNewSkill();
+                        }
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      disabled={!newSkill.trim()}
+                    >
+                      Ajouter
+                    </Button>
                 </div>
                 <div className="space-y-3 max-h-60 overflow-y-auto">
                   {competences.length === 0 ? (
@@ -572,6 +635,9 @@ export function AddEmployeeModal() {
                       >
                         <div className="flex items-center gap-3">
                           <span className="font-medium">{skill.competencea}</span>
+                          {newSkills.some((ns) => ns.tempId === skill.id_competencea) && (
+                            <span className="text-xs text-blue-600">(Nouvelle)</span>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="flex items-center gap-2">
