@@ -4,39 +4,15 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "./ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.tsx";
 import { Badge } from "./ui/badge.tsx";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "./ui/dialog.tsx";
+import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogTrigger,} from "./ui/dialog.tsx";
 import { Input } from "./ui/input.tsx";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select.tsx";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "./ui/table.tsx";
+import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue,} from "./ui/select.tsx";
+import {Table,TableBody,TableCell,TableHead,TableHeader,TableRow,} from "./ui/table.tsx";
 import { Eye, Search, Filter, Briefcase, TrendingUp, Award } from "lucide-react";
 import { AddJobModal } from "./add-job-modal.tsx";
 import { EditJobModal } from "./edit-job-modal.tsx";
 import { DeleteJobModal } from "./delete-job-modal.tsx";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "./ui/tooltip.tsx";
+import {Tooltip,TooltipContent,TooltipProvider,TooltipTrigger,} from "./ui/tooltip.tsx";
 import { useJobs } from "../hooks/useJobs";
 import { Job, Competence } from "../types/job.ts";
 import clsx from "clsx";
@@ -76,7 +52,7 @@ export function JobsList() {
   const uniqueEntites = useMemo(() => {
     if (!jobs) return [];
     const entites = jobs.map(job => job.entite);
-    return [...new Set(entites)].sort();
+    return [...new Set(entites)].sort()as string[];
   }, [jobs]);
 
 
