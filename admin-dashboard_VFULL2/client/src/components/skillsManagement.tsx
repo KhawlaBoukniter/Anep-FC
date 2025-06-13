@@ -9,7 +9,6 @@ import {
   useCreateSkill,
   useUpdateSkill,
   useDeleteSkill,
-  useLatestSkillCode
 } from "../hooks/useSkills";
 import {
   Card,
@@ -44,7 +43,6 @@ export function SkillsManagement() {
   const createSkill = useCreateSkill();
   const updateSkill = useUpdateSkill();
   const deleteSkill = useDeleteSkill();
-  const { data: latestCode, isLoading: isLatestCodeLoading, error } = useLatestSkillCode();
 
   const filteredSkills = allSkills.filter((skill) => {
     if (!skill || typeof skill !== "object") return false;
