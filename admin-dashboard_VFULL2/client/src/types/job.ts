@@ -10,7 +10,7 @@ interface Job {
   nom_emploi: string;
   entite: string;
   formation: string;
-  experience?: number;
+  experience?: number | null;
   codeemploi: string;
   poidsemploi?: number;
   required_skills?: Competence[];
