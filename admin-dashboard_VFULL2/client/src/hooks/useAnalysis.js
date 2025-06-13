@@ -34,3 +34,10 @@ export const useJobMatching = (jobId, enabled = false) => {
     staleTime: 2 * 60 * 1000,
   })
 }
+
+export const useSkillsAnalysis = () => {
+  return useQuery(["skills-analysis"], () => analysisService.getSkillsAnalysis(), {
+    select: (response) => response.data,
+    staleTime: 5 * 60 * 1000,
+  })
+}

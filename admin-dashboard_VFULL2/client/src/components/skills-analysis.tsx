@@ -1,42 +1,40 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Button } from "./ui/button.tsx"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.tsx"
 import { Badge } from "./ui/badge.tsx"
 import { Label } from "./ui/label.tsx"
 import { Checkbox } from "./ui/checkbox.tsx"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table.tsx"
-import { BarChart3, Users, CheckCircle, AlertTriangle } from "lucide-react"
+import { BarChart3, AlertTriangle } from "lucide-react"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command.tsx"
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover.tsx"
 import { Input } from "./ui/input.tsx"
+import { useSkillsAnalysis } from "../hooks/useAnalysis"
 
 // Interface pour les employés
 interface Employee {
   id: string
-  nom: string
-  prenom: string
-  poste: string
+  nom_complet: string
   email: string
   telephone: string
   categorie: string
   specialite: string
   dateEmbauche: string
-  departement: string
   role: "user" | "admin"
+  poste: string
+  departement: string
   skills: Array<{
     name: string
     level: number
-    icon: string
   }>
 }
 
 // Interface pour une compétence sélectionnée
 interface SelectedSkill {
   name: string
-  acquiredLevels: number[] // Niveaux acquis sélectionnés (1 à 4)
-  requiredLevels: number[] // Niveaux requis sélectionnés (1 à 4)
+  acquiredLevels: number[]
+  requiredLevels: number[]
 }
 
 // Interface pour les résultats d'analyse
@@ -50,165 +48,16 @@ interface AnalysisResult {
   }>
 }
 
-// Données mockées des employés
-const mockEmployees: Employee[] = [
-  {
-    id: "1",
-    nom: "Dupont",
-    prenom: "Jean",
-    poste: "Développeur Senior",
-    email: "jean.dupont@company.com",
-    telephone: "+33 1 23 45 67 89",
-    categorie: "Technique",
-    specialite: "Full Stack",
-    dateEmbauche: "2022-03-15",
-    departement: "IT",
-    role: "admin",
-    skills: [
-      { name: "Programmation", level: 3, icon: "💻" },
-      { name: "Langues étrangères", level: 3, icon: "🌍" },
-      { name: "Gestion d'équipe", level: 2, icon: "👥" },
-    ],
-  },
-  {
-    id: "2",
-    nom: "Martin",
-    prenom: "Sophie",
-    poste: "Designer UX/UI",
-    email: "sophie.martin@company.com",
-    telephone: "+33 1 98 76 54 32",
-    categorie: "Créatif",
-    specialite: "Interface Design",
-    dateEmbauche: "2021-09-10",
-    departement: "Design",
-    role: "user",
-    skills: [
-      { name: "Design", level: 4, icon: "🎨" },
-      { name: "Rédaction", level: 3, icon: "✏️" },
-      { name: "Langues étrangères", level: 2, icon: "🌍" },
-    ],
-  },
-  {
-    id: "3",
-    nom: "Bernard",
-    prenom: "Pierre",
-    poste: "Chef de Projet",
-    email: "pierre.bernard@company.com",
-    telephone: "+33 1 11 22 33 44",
-    categorie: "Management",
-    specialite: "Gestion de Projet",
-    dateEmbauche: "2020-01-20",
-    departement: "Management",
-    role: "admin",
-    skills: [
-      { name: "Gestion d'équipe", level: 4, icon: "👥" },
-      { name: "Communication", level: 4, icon: "💬" },
-      { name: "Programmation", level: 2, icon: "💻" },
-    ],
-  },
-  {
-    id: "4",
-    nom: "Leroy",
-    prenom: "Marie",
-    poste: "Analyste Marketing",
-    email: "marie.leroy@company.com",
-    telephone: "+33 1 55 66 77 88",
-    categorie: "Marketing",
-    specialite: "Digital Marketing",
-    dateEmbauche: "2023-06-01",
-    departement: "Marketing",
-    role: "user",
-    skills: [
-      { name: "Marketing", level: 3, icon: "📊" },
-      { name: "Analyse de données", level: 4, icon: "📈" },
-      { name: "Communication", level: 3, icon: "💬" },
-    ],
-  },
-  {
-    id: "5",
-    nom: "Dubois",
-    prenom: "Thomas",
-    poste: "Développeur Frontend",
-    email: "thomas.dubois@company.com",
-    telephone: "+33 1 77 88 99 00",
-    categorie: "Technique",
-    specialite: "React/Vue.js",
-    dateEmbauche: "2023-08-15",
-    departement: "IT",
-    role: "user",
-    skills: [
-      { name: "Programmation", level: 3, icon: "💻" },
-      { name: "Design", level: 2, icon: "🎨" },
-    ],
-  },
-  {
-    id: "6",
-    nom: "Moreau",
-    prenom: "Claire",
-    poste: "Responsable RH",
-    email: "claire.moreau@company.com",
-    telephone: "+33 1 44 55 66 77",
-    categorie: "RH",
-    specialite: "Recrutement",
-    dateEmbauche: "2019-05-10",
-    departement: "RH",
-    role: "admin",
-    skills: [
-      { name: "Gestion d'équipe", level: 4, icon: "👥" },
-      { name: "Communication", level: 4, icon: "💬" },
-      { name: "Rédaction", level: 3, icon: "✏️" },
-    ],
-  },
-]
-
-// Liste des compétences disponibles
-const availableSkills = [
-  { name: "Programmation", icon: "💻" },
-  { name: "Langues étrangères", icon: "🌍" },
-  { name: "Gestion d'équipe", icon: "👥" },
-  { name: "Rédaction", icon: "✏️" },
-  { name: "Design", icon: "🎨" },
-  { name: "Communication", icon: "💬" },
-  { name: "Marketing", icon: "📊" },
-  { name: "Comptabilité", icon: "🧮" },
-  { name: "Vente", icon: "🤝" },
-  { name: "Analyse de données", icon: "📈" },
-]
-
-// Exigences par poste
-const jobRequirements: Record<string, Array<{ name: string; requiredLevel: number }>> = {
-  "Développeur Senior": [
-    { name: "Programmation", requiredLevel: 4 },
-    { name: "Gestion d'équipe", requiredLevel: 2 },
-  ],
-  "Designer UX/UI": [
-    { name: "Design", requiredLevel: 4 },
-    { name: "Communication", requiredLevel: 3 },
-  ],
-  "Chef de Projet": [
-    { name: "Gestion d'équipe", requiredLevel: 4 },
-    { name: "Communication", requiredLevel: 4 },
-  ],
-  "Analyste Marketing": [
-    { name: "Marketing", requiredLevel: 3 },
-    { name: "Analyse de données", requiredLevel: 4 },
-  ],
-  "Développeur Frontend": [
-    { name: "Programmation", requiredLevel: 3 },
-    { name: "Design", requiredLevel: 2 },
-  ],
-  "Responsable RH": [
-    { name: "Gestion d'équipe", requiredLevel: 4 },
-    { name: "Communication", requiredLevel: 4 },
-  ],
-}
-
 export function SkillsAnalysis() {
   const [selectedSkills, setSelectedSkills] = useState<SelectedSkill[]>([])
   const [searchSkill, setSearchSkill] = useState("")
   const [openSkillPopover, setOpenSkillPopover] = useState(false)
   const [analysisResults, setAnalysisResults] = useState<AnalysisResult[]>([])
   const [hasAnalyzed, setHasAnalyzed] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Fetch data using the hook
+  const { data, isLoading, error } = useSkillsAnalysis()
 
   // Ajouter une compétence à la liste
   const addSkill = (skillName: string) => {
@@ -262,18 +111,19 @@ export function SkillsAnalysis() {
       return
     }
 
-    const results: AnalysisResult[] = mockEmployees
-      .map((employee) => {
+    if (!data?.employees) {
+      return
+    }
+
+    const results: AnalysisResult[] = data.employees
+      .map((employee: Employee) => {
         const matchedSkills = selectedSkills.map((selectedSkill) => {
           const employeeSkill = employee.skills.find((s) => s.name.toLowerCase() === selectedSkill.name.toLowerCase())
           const currentLevel = employeeSkill ? employeeSkill.level : null
-          const jobReq = jobRequirements[employee.poste]?.find((req) => req.name.toLowerCase() === selectedSkill.name.toLowerCase())
+          const jobReq = data.jobRequirements[employee.poste]?.find((req: any) => req.name.toLowerCase() === selectedSkill.name.toLowerCase())
           const jobRequiredLevel = jobReq ? jobReq.requiredLevel : null
 
-          // Vérifier si le niveau acquis correspond
           const matchesAcquired = currentLevel !== null && selectedSkill.acquiredLevels.includes(currentLevel)
-
-          // Vérifier si le niveau requis correspond à celui du poste
           const matchesRequired = jobRequiredLevel !== null && selectedSkill.requiredLevels.includes(jobRequiredLevel)
 
           return {
@@ -284,7 +134,6 @@ export function SkillsAnalysis() {
           }
         })
 
-        // L'employé doit correspondre à au moins un critère pour une compétence
         const allSkillsMatch = matchedSkills.some((s) => s.matchesAcquired && s.matchesRequired)
 
         return {
@@ -305,6 +154,7 @@ export function SkillsAnalysis() {
     setSearchSkill("")
     setAnalysisResults([])
     setHasAnalyzed(false)
+    setOpenSkillPopover(false)
   }
 
   // Couleurs pour les niveaux et départements
@@ -324,15 +174,12 @@ export function SkillsAnalysis() {
     }
   }
 
-  const getDepartementColor = (departement: string) => {
-    const colors = {
-      IT: "bg-blue-100 text-blue-800",
-      Design: "bg-purple-100 text-purple-800",
-      Management: "bg-indigo-100 text-indigo-800",
-      Marketing: "bg-pink-100 text-pink-800",
-      RH: "bg-teal-100 text-teal-800",
-    }
-    return colors[departement as keyof typeof colors] || "bg-gray-100 text-gray-800"
+  if (isLoading) {
+    return <div>Chargement des données...</div>
+  }
+
+  if (error) {
+    return <div>Erreur lors du chargement des données : {(error as any).message}</div>
   }
 
   return (
@@ -360,41 +207,37 @@ export function SkillsAnalysis() {
         <CardContent className="space-y-6">
           <div className="space-y-2">
             <Label>Ajouter une compétence</Label>
-            <Popover open={openSkillPopover} onOpenChange={setOpenSkillPopover}>
-              <PopoverTrigger asChild>
-                <div className="relative">
-                  <Input
-                    placeholder="Rechercher une compétence..."
-                    value={searchSkill}
-                    onChange={(e) => setSearchSkill(e.target.value)}
-                    onFocus={() => setOpenSkillPopover(true)}
-                    className="cursor-text"
-                  />
-                </div>
-              </PopoverTrigger>
-              <PopoverContent className="p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Rechercher une compétence..." />
-                  <CommandList>
+            <div className="flex-1 relative">
+              <Command className="rounded-lg border">
+                <CommandInput
+                  ref={inputRef}
+                  placeholder="Saisissez ou recherchez une compétence..."
+                  value={searchSkill}
+                  onValueChange={(value) => {
+                    setSearchSkill(value)
+                    setOpenSkillPopover(value.length > 0)
+                  }}
+                />
+                {openSkillPopover && (
+                  <CommandList className="absolute top-10 w-full border shadow-md bg-white z-10">
                     <CommandEmpty>Aucune compétence trouvée.</CommandEmpty>
                     <CommandGroup>
-                      {availableSkills
-                        .filter((skill) => skill.name.toLowerCase().includes(searchSkill.toLowerCase()))
-                        .map((skill) => (
+                      {data?.availableSkills
+                        ?.filter((skill: any) => skill.name.toLowerCase().includes(searchSkill.toLowerCase()))
+                        .map((skill: any) => (
                           <CommandItem
-                            key={skill.name}
+                            key={skill.id}
                             onSelect={() => addSkill(skill.name)}
                             disabled={selectedSkills.some((s) => s.name === skill.name)}
                           >
-                            <span className="mr-2">{skill.icon}</span>
                             <span>{skill.name}</span>
                           </CommandItem>
                         ))}
                     </CommandGroup>
                   </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+                )}
+              </Command>
+            </div>
           </div>
 
           {selectedSkills.length > 0 && (
@@ -404,7 +247,6 @@ export function SkillsAnalysis() {
                 <Card key={skill.name} className="p-4">
                   <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center gap-2">
-                      <span className="text-xl">{availableSkills.find((s) => s.name === skill.name)?.icon}</span>
                       <span className="font-medium">{skill.name}</span>
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => removeSkill(skill.name)}>
@@ -491,11 +333,11 @@ export function SkillsAnalysis() {
                     {analysisResults.map((result) => (
                       <TableRow key={result.employee.id} className="hover:bg-gray-50">
                         <TableCell className="font-medium">
-                          {result.employee.prenom} {result.employee.nom}
+                          {result.employee.nom_complet}
                         </TableCell>
                         <TableCell>{result.employee.poste}</TableCell>
                         <TableCell>
-                          <Badge className={getDepartementColor(result.employee.departement)} variant="secondary">
+                          <Badge variant="secondary">
                             {result.employee.departement}
                           </Badge>
                         </TableCell>
@@ -508,7 +350,7 @@ export function SkillsAnalysis() {
                               <div>
                                 <span className="text-xs text-gray-600">
                                   Requis (poste):{" "}
-                                  {jobRequirements[result.employee.poste]?.find((req) => req.name === skill.name)?.requiredLevel || "N/A"}
+                                  {data?.jobRequirements[result.employee.poste]?.find((req: any) => req.name === skill.name)?.requiredLevel || "N/A"}
                                 </span>
                               </div>
                             </div>

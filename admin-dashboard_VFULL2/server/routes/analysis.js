@@ -181,4 +181,84 @@ router.get("/job-match", async (req, res) => {
   }
 })
 
+// GET /api/analysis/skills-analysis - Analyse des compétences
+router.get("/skills-analysis", async (req, res) => {
+  try {
+    // Fetch employees with their skills
+    const employeesQuery = `
+      SELECT 
+        e.id_employe as id,
+        e.nom_complet,
+        e.email,
+        e.telephone1 as telephone,
+        e.categorie,
+        e.specialite,
+        e.date_recrutement as dateEmbauche,
+        e.role,
+        em.nom_emploi as poste,
+        em.entite as departement,
+        json_agg(
+          json_build_object(
+            'name', ca.competencea,
+            'level', ec.niveaua
+          )
+        ) FILTER (WHERE ec.id_competencea IS NOT NULL) as skills
+      FROM employe e
+      LEFT JOIN emploi_employe ee ON e.id_employe = ee.id_employe
+      LEFT JOIN emploi em ON ee.id_emploi = em.id_emploi
+      LEFT JOIN employe_competencea ec ON e.id_employe = ec.id_employe
+      LEFT JOIN competencesa ca ON ec.id_competencea = ca.id_competencea
+      GROUP BY e.id_employe, em.nom_emploi, em.entite
+      ORDER BY e.nom_complet
+    `
+    const employeesResult = await pool.query(employeesQuery)
+    const employees = employeesResult.rows.map(row => ({
+      ...row,
+      id: row.id.toString(),
+      skills: row.skills || [],
+    }))
+
+    // Fetch available skills
+    const skillsQuery = `
+      SELECT 
+        id_competencea as id,
+        competencea as name
+      FROM competencesa
+      ORDER BY competencea
+    `
+    const skillsResult = await pool.query(skillsQuery)
+    const availableSkills = skillsResult.rows
+
+    // Fetch job requirements
+    const jobRequirementsQuery = `
+      SELECT 
+        em.nom_emploi as poste,
+        json_agg(
+          json_build_object(
+            'name', cr.competencer,
+            'requiredLevel', ecr.niveaur
+          )
+        ) as requirements
+      FROM emploi em
+      LEFT JOIN emploi_competencer ecr ON em.id_emploi = ecr.id_emploi
+      LEFT JOIN competencesR cr ON ecr.id_competencer = cr.id_competencer
+      GROUP BY em.nom_emploi
+    `
+    const jobRequirementsResult = await pool.query(jobRequirementsQuery)
+    const jobRequirements = jobRequirementsResult.rows.reduce((acc, row) => {
+      acc[row.poste] = row.requirements.filter(req => req.name); // Filter out null requirements
+      return acc;
+    }, {})
+
+    res.json({
+      employees,
+      availableSkills,
+      jobRequirements,
+    })
+  } catch (error) {
+    console.error("Erreur lors de l'analyse des compétences:", error)
+    res.status(500).json({ error: "Erreur lors de l'analyse des compétences" })
+  }
+})
+
 module.exports = router
