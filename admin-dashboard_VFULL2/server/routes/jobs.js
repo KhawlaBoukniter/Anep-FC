@@ -19,10 +19,34 @@ const jobSchema = Joi.object({
   ).allow(null),
 })
 
+const updateEmploiWeights = async (pool) => {
+  const updateQuery = `
+    UPDATE emploi j
+    SET poidsemploi = sub.nb_employes
+    FROM (
+      SELECT id_emploi, COUNT(*) AS nb_employes
+      FROM emploi_employe
+      GROUP BY id_emploi
+    ) AS sub
+    WHERE j.id_emploi = sub.id_emploi
+  `;
+
+  try {
+    await pool.query(updateQuery);
+    console.log("Mise à jour des poids des emplois réussie.");
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour des poids des emplois :", error);
+  }
+};
+
+
 // GET /api/jobs - Récupérer tous les emplois
 router.get("/", async (req, res) => {
   try {
-    const { search } = req.query
+    const { search } = req.query;
+
+    // ⬅️ Mise à jour des poids
+    await updateEmploiWeights(pool);
 
     let query = `
       SELECT 
@@ -41,26 +65,25 @@ router.get("/", async (req, res) => {
       FROM emploi j
       LEFT JOIN emploi_competencer ec ON j.id_emploi = ec.id_emploi
       LEFT JOIN competencesR cr ON ec.id_competencer = cr.id_competencer
-    `
+    `;
 
-    const conditions = []
-    const params = []
+    const conditions = [];
+    const params = [];
 
     if (search) {
       conditions.push(
-        `(j.nom_emploi ILIKE $${params.length + 1} OR j.codeemploi ILIKE $${params.length + 1} OR j.entite ILIKE $${params.length + 1})`,
-      )
-      params.push(`%${search}%`)
+        `(j.nom_emploi ILIKE $${params.length + 1} OR j.codeemploi ILIKE $${params.length + 1} OR j.entite ILIKE $${params.length + 1})`
+      );
+      params.push(`%${search}%`);
     }
 
     if (conditions.length > 0) {
-      query += ` WHERE ${conditions.join(" AND ")}`
+      query += ` WHERE ${conditions.join(" AND ")}`;
     }
 
-    query += ` GROUP BY j.id_emploi ORDER BY CAST(SUBSTRING(j.codeemploi FROM '\\d+') AS INTEGER)
-`
+    query += ` GROUP BY j.id_emploi ORDER BY CAST(SUBSTRING(j.codeemploi FROM '\\d+') AS INTEGER)`;
 
-    const result = await pool.query(query, params)
+    const result = await pool.query(query, params);
     const jobs = result.rows.map(row => ({
       ...row,
       id_emploi: row.id_emploi.toString(),
@@ -68,13 +91,16 @@ router.get("/", async (req, res) => {
         ...skill,
         id_competencer: skill.id_competencer.toString()
       }))
-    }))
-    res.json(jobs)
+    }));
+
+    res.json(jobs);
   } catch (error) {
-    console.error("Erreur lors de la récupération des emplois:", error)
-    res.status(500).json({ error: "Erreur lors de la récupération des emplois" })
+    console.error("Erreur lors de la récupération des emplois:", error);
+    res.status(500).json({ error: "Erreur lors de la récupération des emplois" });
   }
-})
+});
+
+
 
 // GET /api/jobs/:id - Récupérer un emploi par ID
 router.get("/:id", async (req, res) => {
