@@ -40,6 +40,8 @@ import {
 import { useJobs } from "../hooks/useJobs";
 import { Job, Competence } from "../types/job.ts";
 import clsx from "clsx";
+import CompetencesByLevel from "./CompetencesByLevel.tsx";
+import CompetencesRByLevel from "./CompetencesRByLevel.tsx";
 
 
 // Custom debounce hook
@@ -70,7 +72,7 @@ export function JobsList() {
   const { data: jobs = [], isLoading, isError, error } = useJobs({
     search: debouncedSearchTerm,
   });
-  
+
   const uniqueEntites = useMemo(() => {
     if (!jobs) return [];
     const entites = jobs.map(job => job.entite);
@@ -315,20 +317,12 @@ export function JobsList() {
                                           <h4 className="font-medium mb-3 text-gray-900">
                                             Compétences requises ({job.required_skills?.length || 0})
                                           </h4>
-                                          <div className="space-y-3 max-h-60 overflow-y-auto">
-                                            {job.required_skills?.map((skill, index) => (
-                                              <div
-                                                key={index}
-                                                className="flex items-center justify-between p-3 border rounded-lg"
-                                              >
-                                                <div className="flex items-center gap-3">
-                                                  <span className="font-medium">{skill.competencer}</span>
-                                                </div>
-                                                <Badge className={getLevelColor(skill.niveaur)}>
-                                                  Niveau {skill.niveaur}
-                                                </Badge>
-                                              </div>
-                                            ))}
+                                          <div className="mt-12">
+                                            {(job.required_skills && job.required_skills.length > 0) ? (
+                                              <CompetencesRByLevel competences={job.required_skills} />
+                                            ) : (
+                                              <span className="text-gray-400 italic">Aucune compétence</span>
+                                            )}
                                           </div>
                                         </div>
                                       </div>
