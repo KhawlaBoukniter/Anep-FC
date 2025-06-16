@@ -25,7 +25,7 @@ import { Input } from "./ui/input.tsx";
 import { Eye, Search, Filter, BookOpen, X } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip.tsx";
 import { DialogTrigger } from "@radix-ui/react-dialog";
-
+import { Trash } from "lucide-react";
 export function ReqSkillsManagement() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -291,7 +291,7 @@ export function ReqSkillsManagement() {
                                   className="h-8 w-8"
                                   onClick={() => handleDeleteSkill(skill.id)}
                                 >
-                                  <X className="h-4 w-4 text-red-500" />
+                                  <Trash className="h-4 w-4 text-red-500" />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>

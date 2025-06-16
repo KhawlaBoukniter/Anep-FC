@@ -51,8 +51,7 @@ export function AppSidebar({ activeSection, setActiveSection }: AppSidebarProps)
     <Sidebar>
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
-          <Building className="h-6 w-6" />
-          <span className="font-semibold">Admin RH</span>
+          <span className="font-semibold"><img src="logo1.png" className="w-24 h-12" alt="Description de l'image" /></span>
         </div>
       </SidebarHeader>
       <SidebarContent>
