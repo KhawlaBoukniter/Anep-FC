@@ -1,13 +1,18 @@
+// @/components/SkillsAnalysis.tsx
+
 "use client"
 
 import { useState, useRef } from "react"
+// Importation de la bibliothèque pour Excel
+import * as XLSX from "xlsx"
 import { Button } from "./ui/button.tsx"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.tsx"
 import { Badge } from "./ui/badge.tsx"
 import { Label } from "./ui/label.tsx"
 import { Checkbox } from "./ui/checkbox.tsx"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table.tsx"
-import { BarChart3, AlertTriangle } from "lucide-react"
+// Importation de l'icône de téléchargement
+import { BarChart3, AlertTriangle, Download } from "lucide-react"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command.tsx"
 import { Input } from "./ui/input.tsx"
 import { useSkillsAnalysis } from "../hooks/useAnalysis"
@@ -157,6 +162,46 @@ export function SkillsAnalysis() {
     setOpenSkillPopover(false)
   }
 
+  // --- NOUVELLE FONCTION POUR LE TÉLÉCHARGEMENT EXCEL ---
+  const handleDownloadExcel = () => {
+    if (analysisResults.length === 0) {
+      return
+    }
+
+    // 1. Préparer les données pour la feuille de calcul
+    const dataToExport = analysisResults.map(result => {
+        // Crée un objet de base pour chaque ligne
+        const row: { [key: string]: any } = {
+            'Employé': result.employee.nom_complet,
+            'Email': result.employee.email,
+            'Poste': result.employee.poste,
+            'Département': result.employee.departement,
+        };
+
+        // Ajoute dynamiquement les colonnes pour chaque compétence sélectionnée
+        result.matchedSkills.forEach(skill => {
+            const requiredLevel = data?.jobRequirements[result.employee.poste]?.find((req: any) => req.name === skill.name)?.requiredLevel || "N/A";
+            const skillValue = skill.currentLevel 
+                ? `Acquis: ${skill.currentLevel} (Requis: ${requiredLevel})` 
+                : `Non acquise (Requis: ${requiredLevel})`;
+            
+            row[skill.name] = skillValue;
+        });
+
+        return row;
+    });
+
+    // 2. Créer une feuille de calcul à partir des données JSON
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+
+    // 3. Créer un classeur
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Résultats Analyse");
+
+    // 4. Déclencher le téléchargement du fichier
+    XLSX.writeFile(workbook, "analyse_competences.xlsx");
+  };
+  
   // Couleurs pour les niveaux et départements
   const getLevelColor = (level: number | null) => {
     if (!level) return "bg-gray-100 text-gray-800"
@@ -312,7 +357,16 @@ export function SkillsAnalysis() {
                 <CardTitle className="text-lg">Résultats de l'analyse</CardTitle>
                 <p className="text-sm text-gray-600">Employés correspondant à au moins un critère</p>
               </div>
-              <Badge variant="secondary">{analysisResults.length} résultat(s)</Badge>
+              {/* --- MODIFICATION ICI : AJOUT DU BOUTON TÉLÉCHARGER --- */}
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">{analysisResults.length} résultat(s)</Badge>
+                {analysisResults.length > 0 && (
+                  <Button variant="outline" size="sm" onClick={handleDownloadExcel}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Télécharger (Excel)
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent>
