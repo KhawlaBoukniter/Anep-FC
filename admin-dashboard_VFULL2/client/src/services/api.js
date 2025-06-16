@@ -52,6 +52,8 @@ export const employeeService = {
   update: (id, data) => api.put(`/employees/${id}`, data),
   delete: (id) => api.delete(`/employees/${id}`),
   createSkill: (data) => api.post("/skills", data),
+  archive: (id) => api.put(`/employees/${id}/archive`),
+  unarchive: (id) => api.put(`/employees/${id}/unarchive`),
 }
 
 // Services pour les emplois

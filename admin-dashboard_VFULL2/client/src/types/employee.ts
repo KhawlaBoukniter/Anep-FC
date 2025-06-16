@@ -25,6 +25,7 @@ interface Employee {
   date_naissance?: string;
   date_recrutement?: string;
   cin?: string;
+  archived: boolean;
   competences?: Competence[];
   emplois?: Emploi[];
 }

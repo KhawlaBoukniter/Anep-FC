@@ -151,3 +151,29 @@ export const useDeleteEmployee = () => {
     },
   })
 }
+
+export const useArchiveEmployee = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation((id) => employeeService.archive(id), {
+    onSuccess: () => {
+      queryClient.invalidateQueries(["employees"])
+    },
+    onError: (error) => {
+      console.error("Erreur lors de l'archivage de l'employé:", error)
+    },
+  })
+}
+
+export const useUnarchiveEmployee = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation((id) => employeeService.unarchive(id), {
+    onSuccess: () => {
+      queryClient.invalidateQueries(["employees"])
+    },
+    onError: (error) => {
+      console.error("Erreur lors du désarchivage de l'employé:", error)
+    },
+  })
+}

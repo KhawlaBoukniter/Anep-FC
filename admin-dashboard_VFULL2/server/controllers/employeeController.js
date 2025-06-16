@@ -3,12 +3,12 @@ const employeeModel = require("../models/employeeModel")
 
 async function getEmployees(req, res) {
     try {
-        const { search, role } = req.query
-        const employees = await employeeModel.getAllEmployees({ search, role })
+        const { search, role, archived = false } = req.query
+        const employees = await employeeModel.getAllEmployees({ search, role, archived: archived === 'true' }) // Coerce string to boolean
         res.json(employees)
     } catch (error) {
-        console.error(error)
-        res.status(500).json({ message: "Erreur serveur." })
+        console.error("Controller error:", error.stack)
+        res.status(500).json({ message: "Erreur serveur.", details: error.message })
     }
 }
 
@@ -76,6 +76,38 @@ async function updateEmployee(req, res) {
     }
 }
 
+async function archiveEmployee(req, res) {
+    try {
+        const id = parseInt(req.params.id)
+        if (isNaN(id)) return res.status(400).json({ message: "ID invalide." })
+
+        await employeeModel.archiveEmployee(id)
+        res.status(204).send()
+    } catch (error) {
+        console.error(error)
+        if (error.message === "NOT_FOUND") {
+            return res.status(404).json({ message: "Employé non trouvé." })
+        }
+        res.status(500).json({ message: "Erreur serveur." })
+    }
+}
+
+async function unarchiveEmployee(req, res) {
+    try {
+        const id = parseInt(req.params.id)
+        if (isNaN(id)) return res.status(400).json({ message: "ID invalide." })
+
+        await employeeModel.unarchiveEmployee(id)
+        res.status(204).send()
+    } catch (error) {
+        console.error(error)
+        if (error.message === "NOT_FOUND") {
+            return res.status(404).json({ message: "Employé non trouvé." })
+        }
+        res.status(500).json({ message: "Erreur serveur." })
+    }
+}
+
 async function deleteEmployee(req, res) {
     try {
         const id = parseInt(req.params.id)
@@ -112,6 +144,8 @@ module.exports = {
     getEmployee,
     createEmployee,
     updateEmployee,
+    archiveEmployee,
+    unarchiveEmployee,
     deleteEmployee,
     checkEmail,
 };

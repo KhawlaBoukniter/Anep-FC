@@ -1,65 +1,71 @@
 const pool = require("../config/database")
 
-async function getAllEmployees({ search, role }) {
+async function getAllEmployees({ search, role, archived }) {
+    const params = [archived !== undefined ? archived : false]; // Initialize params first
     let query = `
-    SELECT 
-      e.*,
-      (
-        SELECT json_agg(DISTINCT jsonb_build_object(
-          'id_emploi', em.id_emploi,
-          'nom_emploi', em.nom_emploi,
-          'codeemploi', em.codeemploi
-        ))
-        FROM emploi_employe ee
-        LEFT JOIN emploi em ON ee.id_emploi = em.id_emploi
-        WHERE ee.id_employe = e.id_employe
-      ) AS emplois,
-      (
-        SELECT json_agg(DISTINCT jsonb_build_object(
-          'id_competencea', ec.id_competencea,
-          'code_competencea', c.code_competencea,
-          'competencea', c.competencea,
-          'niveaua', ec.niveaua
-        ))
-        FROM employe_competencea ec
-        LEFT JOIN competencesa c ON ec.id_competencea = c.id_competencea
-        WHERE ec.id_employe = e.id_employe
-      ) AS competences
-    FROM employe e
-  `
+        SELECT 
+            e.*,
+            (
+                SELECT json_agg(DISTINCT jsonb_build_object(
+                    'id_emploi', em.id_emploi,
+                    'nom_emploi', em.nom_emploi,
+                    'codeemploi', em.codeemploi
+                ))
+                FROM emploi_employe ee
+                LEFT JOIN emploi em ON ee.id_emploi = em.id_emploi
+                WHERE ee.id_employe = e.id_employe
+            ) AS emplois,
+            (
+                SELECT json_agg(DISTINCT jsonb_build_object(
+                    'id_competencea', ec.id_competencea,
+                    'code_competencea', c.code_competencea,
+                    'competencea', c.competencea,
+                    'niveaua', ec.niveaua
+                ))
+                FROM employe_competencea ec
+                LEFT JOIN competencesa c ON ec.id_competencea = c.id_competencea
+                WHERE ec.id_employe = e.id_employe
+            ) AS competences
+        FROM employe e
+        WHERE e.archived = $1
+    `;
 
-    const conditions = []
-    const params = []
+    const conditions = [];
 
     if (search) {
-        conditions.push(`(e.nom_complet ILIKE $${params.length + 1} OR e.email ILIKE $${params.length + 1})`)
-        params.push(`%${search}%`)
+        conditions.push(`(e.nom_complet ILIKE $${params.length + 1} OR e.email ILIKE $${params.length + 1})`);
+        params.push(`%${search}%`);
     }
 
     if (role && role !== "all") {
-        conditions.push(`e.role = $${params.length + 1}`)
-        params.push(role)
+        conditions.push(`e.role = $${params.length + 1}`);
+        params.push(role);
     }
 
     if (conditions.length > 0) {
-        query += ` WHERE ${conditions.join(" AND ")}`
+        query += ` AND ${conditions.join(" AND ")}`;
     }
 
-    query += ` GROUP BY e.id_employe ORDER BY e.nom_complet`
+    query += ` GROUP BY e.id_employe ORDER BY e.nom_complet`;
 
-    const result = await pool.query(query, params)
-    return result.rows.map(row => ({
-        ...row,
-        id: row.id_employe.toString(),
-        emplois: (row.emplois || []).map(job => ({
-            ...job,
-            id_emploi: job.id_emploi.toString(),
-        })),
-        competences: (row.competences || []).map(skill => ({
-            ...skill,
-            id_competencea: skill.id_competencea.toString(),
-        })),
-    }))
+    try {
+        const result = await pool.query(query, params);
+        return result.rows.map(row => ({
+            ...row,
+            id: row.id_employe.toString(),
+            emplois: (row.emplois || []).map(job => ({
+                ...job,
+                id_emploi: job.id_emploi.toString(),
+            })),
+            competences: (row.competences || []).map(skill => ({
+                ...skill,
+                id_competencea: skill.id_competencea.toString(),
+            })),
+        }));
+    } catch (error) {
+        console.error("Database query error:", error.stack);
+        throw error;
+    }
 }
 
 async function getEmployeeById(id) {
@@ -122,8 +128,8 @@ async function createEmployee(employeeData) {
         const { emplois, competences, ...data } = employeeData
 
         const insertEmployeeQuery = `
-      INSERT INTO employe (nom_complet, email, adresse, telephone1, telephone2, categorie, specialite, experience_employe, role, date_naissance, date_recrutement, cin)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      INSERT INTO employe (nom_complet, email, adresse, telephone1, telephone2, categorie, specialite, experience_employe, role, date_naissance, date_recrutement, cin, archived)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
       RETURNING *
     `
         const employeeValues = [
@@ -139,6 +145,7 @@ async function createEmployee(employeeData) {
             data.date_naissance,
             data.date_recrutement,
             data.cin,
+            data.archived || false
         ]
 
         const employeeResult = await client.query(insertEmployeeQuery, employeeValues)
@@ -181,8 +188,8 @@ async function updateEmployee(id, employeeData) {
       UPDATE employe 
       SET nom_complet = $1, email = $2, adresse = $3, telephone1 = $4, telephone2 = $5, 
           categorie = $6, specialite = $7, experience_employe = $8, role = $9, 
-          date_naissance = $10, date_recrutement = $11, cin = $12
-      WHERE id_employe = $13
+          date_naissance = $10, date_recrutement = $11, cin = $12, archived = $13
+      WHERE id_employe = $14
       RETURNING *
     `
 
@@ -199,6 +206,7 @@ async function updateEmployee(id, employeeData) {
             data.date_naissance,
             data.date_recrutement,
             data.cin,
+            data.archived || false,
             id,
         ]
 
@@ -237,6 +245,48 @@ async function updateEmployee(id, employeeData) {
     }
 }
 
+async function archiveEmployee(id) {
+    const client = await pool.connect()
+    try {
+        await client.query("BEGIN")
+        const result = await client.query(
+            "UPDATE employe SET archived = true WHERE id_employe = $1 RETURNING *",
+            [id]
+        )
+        await client.query("COMMIT")
+        if (result.rows.length === 0) {
+            throw new Error("NOT_FOUND")
+        }
+        return true
+    } catch (error) {
+        await client.query("ROLLBACK")
+        throw error
+    } finally {
+        client.release()
+    }
+}
+
+async function unarchiveEmployee(id) {
+    const client = await pool.connect()
+    try {
+        await client.query("BEGIN")
+        const result = await client.query(
+            "UPDATE employe SET archived = false WHERE id_employe = $1 RETURNING *",
+            [id]
+        )
+        await client.query("COMMIT")
+        if (result.rows.length === 0) {
+            throw new Error("NOT_FOUND")
+        }
+        return true
+    } catch (error) {
+        await client.query("ROLLBACK")
+        throw error
+    } finally {
+        client.release()
+    }
+}
+
 async function deleteEmployee(id) {
     const client = await pool.connect()
     try {
@@ -263,7 +313,7 @@ async function deleteEmployee(id) {
 async function checkEmailExists(email) {
     const query = `
     SELECT EXISTS (
-      SELECT 1 FROM employe WHERE email = $1
+      SELECT 1 FROM employe WHERE email = $1 AND archived = false
     ) AS exists
   `;
     const result = await pool.query(query, [email]);
@@ -275,6 +325,8 @@ module.exports = {
     getEmployeeById,
     createEmployee,
     updateEmployee,
+    archiveEmployee,
+    unarchiveEmployee,
     deleteEmployee,
     checkEmailExists,
 };
