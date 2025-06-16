@@ -104,7 +104,7 @@ export function JobsList() {
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -128,20 +128,6 @@ export function JobsList() {
                 <div>
                   <p className="text-sm text-gray-600">Entités</p>
                   <p className="text-2xl font-bold">{stats.entites}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <Award className="h-5 w-5 text-orange-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Compétences</p>
-                  <p className="text-2xl font-bold">{stats.competencesTotal}</p>
                 </div>
               </div>
             </CardContent>
