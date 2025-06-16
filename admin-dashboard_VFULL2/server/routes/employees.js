@@ -8,5 +8,7 @@ router.post("/", employeeController.createEmployee)
 router.put("/:id", employeeController.updateEmployee)
 router.delete("/:id", employeeController.deleteEmployee)
 router.get("/check-email", employeeController.checkEmail)
+router.put('/:id/archive', employeeController.archiveEmployee)
+router.put('/:id/unarchive', employeeController.unarchiveEmployee)
 
 module.exports = router

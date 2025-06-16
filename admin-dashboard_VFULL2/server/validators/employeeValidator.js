@@ -13,6 +13,7 @@ const employeeSchema = Joi.object({
     date_naissance: Joi.date().allow(null),
     date_recrutement: Joi.date().required(),
     cin: Joi.string().max(50).required(),
+    archived: Joi.boolean().default(false),
     emplois: Joi.array().items(
         Joi.object({
             id_emploi: Joi.number().integer().positive().required(),

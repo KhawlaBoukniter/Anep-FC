@@ -1,16 +1,16 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useEmployees } from "../hooks/useEmployees.js";
+import { useEmployees, useArchiveEmployee, useUnarchiveEmployee } from "../hooks/useEmployees.js";
 import { useJobs } from "../hooks/useJobs.js";
 import { Button } from "./ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.tsx";
 import { Badge } from "./ui/badge.tsx";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog.tsx";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "./ui/dialog.tsx";
 import { Input } from "./ui/input.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.tsx";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table.tsx";
-import { Eye, Search, Filter, Users, Award, MapPin, User, Shield, X } from "lucide-react";
+import { Eye, Search, Filter, Users, MapPin, User, Shield, X, Archive, ArchiveRestore } from "lucide-react";
 import { AddEmployeeModal } from "./add-employee-modal.tsx";
 import { EditEmployeeModal } from "./edit-employee-modal.tsx";
 import { DeleteEmployeeModal } from "./delete-employee-modal.tsx";
@@ -18,7 +18,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/t
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command.tsx";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover.tsx";
 import { Employee, Emploi } from "../types/employee.ts";
-import { DialogTrigger } from "@radix-ui/react-dialog";
 import clsx from "clsx";
 import CompetencesByLevel from "./CompetencesByLevel.tsx";
 
@@ -26,12 +25,21 @@ export function EmployeesList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterEmploi, setFilterEmploi] = useState("");
   const [filterRole, setFilterRole] = useState("all");
+  const [showArchived, setShowArchived] = useState(false);
   const [openEmploiPopover, setOpenEmploiPopover] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  const [unarchiveDialogOpen, setUnarchiveDialogOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const employeesPerPage = 10;
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { data: employees = [], isLoading } = useEmployees({ search: searchTerm });
+  const { data: employees = [], isLoading } = useEmployees({ 
+    search: searchTerm,
+    archived: showArchived 
+  });
+  const { mutate: archiveEmployee } = useArchiveEmployee();
+  const { mutate: unarchiveEmployee } = useUnarchiveEmployee();
   const { data: availableJobs = [] } = useJobs();
 
   const filteredEmployees = employees.filter((employee: Employee) => {
@@ -80,7 +88,33 @@ export function EmployeesList() {
     emplois: new Set(employees.flatMap((e: Employee) => (e.emplois || []).map((j) => j.nom_emploi))).size,
     competencesTotal: employees.reduce((acc: number, emp: Employee) => acc + (emp.competences || []).length, 0),
   };
-  
+
+  const handleArchive = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setArchiveDialogOpen(true);
+  };
+
+  const handleUnarchive = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setUnarchiveDialogOpen(true);
+  };
+
+  const confirmArchive = () => {
+    if (selectedEmployee) {
+      archiveEmployee(selectedEmployee.id);
+      setArchiveDialogOpen(false);
+      setSelectedEmployee(null);
+    }
+  };
+
+  const confirmUnarchive = () => {
+    if (selectedEmployee) {
+      unarchiveEmployee(selectedEmployee.id);
+      setUnarchiveDialogOpen(false);
+      setSelectedEmployee(null);
+    }
+  };
+
   return (
     <TooltipProvider>
       <div className="space-y-6">
@@ -168,7 +202,6 @@ export function EmployeesList() {
                       </Command>
                     </PopoverContent>
                   </Popover>
-
                 </div>
                 <Select 
                   value={filterRole}
@@ -186,6 +219,15 @@ export function EmployeesList() {
                     <SelectItem value="user">User</SelectItem>
                   </SelectContent>
                 </Select>
+                <Button
+                  variant={showArchived ? "default" : "outline"}
+                  onClick={() => {
+                    setShowArchived(!showArchived);
+                    setCurrentPage(1);
+                  }}
+                >
+                  {showArchived ? "Voir Actifs" : "Voir Archivés"}
+                </Button>
                 <AddEmployeeModal />
               </div>
             </div>
@@ -205,7 +247,7 @@ export function EmployeesList() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-xl">Liste des Employés</CardTitle>
+              <CardTitle className="text-xl">{showArchived ? "Employés Archivés" : "Liste des Employés"}</CardTitle>
               <Badge variant="secondary">{filteredEmployees.length} résultat(s)</Badge>
             </div>
           </CardHeader>
@@ -285,68 +327,74 @@ export function EmployeesList() {
                                       <DialogTitle>{employee.nom_complet}</DialogTitle>
                                     </DialogHeader>
                                     <div className="pr-2">
-                                        <div className="grid grid-cols-2 gap-4 text-sm my-6">
-                                          <div>
-                                            <span className="font-medium text-gray-700">Emplois:</span>
-                                            <p className="text-gray-600">
-                                              {(employee.emplois || []).map((e) => e.nom_emploi).join(", ") || "-"}
-                                            </p>
-                                          </div>
-                                          <div>
-                                            <span className="font-medium text-gray-700">Email:</span>
-                                            <p className="text-gray-600">{employee.email || "-"}</p>
-                                          </div>
-                                          <div>
-                                            <span className="font-medium text-gray-700">Téléphone 1:</span>
-                                            <p className="text-gray-600">{employee.telephone1 || "-"}</p>
-                                          </div>
-                                          <div>
-                                            <span className="font-medium text-gray-700">Téléphone 2:</span>
-                                            <p className="text-gray-600">{employee.telephone2 || "-"}</p>
-                                          </div>
-                                          <div>
-                                            <span className="font-medium text-gray-700">Adresse:</span>
-                                            <p className="text-gray-600">{employee.adresse || "-"}</p>
-                                          </div>
-                                          <div>
-                                            <span className="font-medium text-gray-700">Date de Recrutement:</span>
-                                            <p className="text-gray-600">
-                                              {employee.date_recrutement
-                                                ? new Date(employee.date_recrutement).toLocaleDateString("fr-FR")
-                                                : "-"}
-                                            </p>
-                                          </div>
-                                          <div>
-                                            <span className="font-medium text-gray-700">Date de Naissance:</span>
-                                            <p className="text-gray-600">
-                                              {employee.date_naissance
-                                                ? new Date(employee.date_naissance).toLocaleDateString("fr-FR")
-                                                : "-"}
-                                            </p>
-                                          </div>
-                                          <div>
-                                            <span className="font-medium text-gray-700">CIN:</span>
-                                            <p className="text-gray-600">{employee.cin || "-"}</p>
-                                          </div>
-                                          <div>
-                                            <span className="font-medium text-gray-700">Rôle:</span>
-                                            <Badge className={getRoleColor(employee.role)} variant="secondary">
-                                              {employee.role}
-                                            </Badge>
-                                          </div>
-                                          <div>
-                                            <span className="font-medium text-gray-700">Catégorie:</span>
-                                            <p className="text-gray-600">{employee.categorie || "-"}</p>
-                                          </div>
-                                          <div>
-                                            <span className="font-medium text-gray-700">Spécialité:</span>
-                                            <p className="text-gray-600">{employee.specialite || "-"}</p>
-                                          </div>
-                                          <div>
-                                            <span className="font-medium text-gray-700">Expérience:</span>
-                                            <p className="text-gray-600">{employee.experience_employe || "-"} ans</p>
-                                          </div>
+                                      <div className="grid grid-cols-2 gap-4 text-sm my-6">
+                                        <div>
+                                          <span className="font-medium text-gray-700">Emplois:</span>
+                                          <p className="text-gray-600">
+                                            {(employee.emplois || []).map((e) => e.nom_emploi).join(", ") || "-"}
+                                          </p>
                                         </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Email:</span>
+                                          <p className="text-gray-600">{employee.email || "-"}</p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Téléphone 1:</span>
+                                          <p className="text-gray-600">{employee.telephone1 || "-"}</p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Téléphone 2:</span>
+                                          <p className="text-gray-600">{employee.telephone2 || "-"}</p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Adresse:</span>
+                                          <p className="text-gray-600">{employee.adresse || "-"}</p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Date de Recrutement:</span>
+                                          <p className="text-gray-600">
+                                            {employee.date_recrutement
+                                              ? new Date(employee.date_recrutement).toLocaleDateString("fr-FR")
+                                              : "-"}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Date de Naissance:</span>
+                                          <p className="text-gray-600">
+                                            {employee.date_naissance
+                                              ? new Date(employee.date_naissance).toLocaleDateString("fr-FR")
+                                              : "-"}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">CIN:</span>
+                                          <p className="text-gray-600">{employee.cin || "-"}</p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Rôle:</span>
+                                          <Badge className={getRoleColor(employee.role)} variant="secondary">
+                                            {employee.role}
+                                          </Badge>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Catégorie:</span>
+                                          <p className="text-gray-600">{employee.categorie || "-"}</p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Spécialité:</span>
+                                          <p className="text-gray-600">{employee.specialite || "-"}</p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Expérience:</span>
+                                          <p className="text-gray-600">{employee.experience_employe || "-"} ans</p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Statut:</span>
+                                          <Badge variant={employee.archived ? "destructive" : "success"}>
+                                            {employee.archived ? "Archivé" : "Actif"}
+                                          </Badge>
+                                        </div>
+                                      </div>
                                       <div className="mt-12">
                                         {(employee.competences && employee.competences.length > 0) ? (
                                           <CompetencesByLevel competences={employee.competences} />
@@ -354,7 +402,6 @@ export function EmployeesList() {
                                           <span className="text-gray-400 italic">Aucune compétence</span>
                                         )}
                                       </div>
-
                                     </div>
                                   </DialogContent>
                                 </Dialog>
@@ -363,25 +410,62 @@ export function EmployeesList() {
                                 <p>Voir les détails</p>
                               </TooltipContent>
                             </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <EditEmployeeModal employee={employee} />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Modifier l'employé</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <DeleteEmployeeModal
-                                  employeeId={employee.id}
-                                  employeeName={employee.nom_complet}
-                                />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Supprimer l'employé</p>
-                              </TooltipContent>
-                            </Tooltip>
+                            {!employee.archived && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <EditEmployeeModal employee={employee} />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Modifier l'employé</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                            {showArchived ? (
+                              <>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      onClick={() => handleUnarchive(employee)}
+                                    >
+                                      <ArchiveRestore className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Désarchiver l'employé</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <DeleteEmployeeModal
+                                      employeeId={employee.id}
+                                      employeeName={employee.nom_complet}
+                                    />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Supprimer définitivement</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </>
+                            ) : (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => handleArchive(employee)}
+                                  >
+                                    <Archive className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Archiver l'employé</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -428,7 +512,9 @@ export function EmployeesList() {
                     showPages.forEach((item, index) => {
                       if (typeof item === "string") {
                         pages.push(
-                          <span key={item + index} className="px-2 text-gray-500">…</span>
+                          <span key={item + index} className="px-2 text-gray-500">
+                            …
+                          </span>
                         );
                       } else {
                         pages.push(
@@ -444,7 +530,7 @@ export function EmployeesList() {
                       }
                     });
 
-                    return pages;
+                    return <>{pages}</>; 
                   })()}
 
                   <Button
@@ -462,7 +548,9 @@ export function EmployeesList() {
             {filteredEmployees.length === 0 && !isLoading && (
               <div className="text-center py-8">
                 <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun employé trouvé</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {showArchived ? "Aucun employé archivé trouvé" : "Aucun employé actif trouvé"}
+                </h3>
                 <p className="text-gray-600">
                   Essayez de modifier vos critères de recherche ou d'ajouter un nouvel employé.
                 </p>
@@ -470,6 +558,42 @@ export function EmployeesList() {
             )}
           </CardContent>
         </Card>
+
+        {/* Archive Confirmation Dialog */}
+        <Dialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirmer l'archivage</DialogTitle>
+            </DialogHeader>
+            <p>Voulez-vous vraiment archiver l'employé {selectedEmployee?.nom_complet} ?</p>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setArchiveDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button variant="destructive" onClick={confirmArchive}>
+                Archiver
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Unarchive Confirmation Dialog */}
+        <Dialog open={unarchiveDialogOpen} onOpenChange={setUnarchiveDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirmer le désarchivage</DialogTitle>
+            </DialogHeader>
+            <p>Voulez-vous vraiment désarchiver l'employé {selectedEmployee?.nom_complet} ?</p>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setUnarchiveDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button variant="default" onClick={confirmUnarchive}>
+                Désarchiver
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   );
