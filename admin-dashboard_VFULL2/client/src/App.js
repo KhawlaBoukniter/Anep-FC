@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "react-query"
-import { ReactQueryDevtools } from "react-query/devtools"
 import Dashboard from "./pages/Dashboard"
 import "./App.css"
 
@@ -31,8 +30,6 @@ function App() {
           </Routes>
         </div>
       </Router>
-      {/* Outils de développement React Query (seulement en dev) */}
-      {process.env.NODE_ENV === "development" && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   )
 }
