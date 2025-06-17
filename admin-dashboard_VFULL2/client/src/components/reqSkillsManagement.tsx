@@ -9,8 +9,10 @@ import {
   useCreateSkill,
   useUpdateSkill,
   useDeleteSkill,
-  useLatestSkillCode
+  useLatestSkillCode,
 } from "../hooks/useReqSkills";
+import { useEmployees } from "../hooks/useEmployees";
+import { useJobs } from "../hooks/useJobs";
 import {
   Card,
   CardContent,
@@ -22,10 +24,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Badge } from "./ui/badge.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog.tsx";
 import { Input } from "./ui/input.tsx";
-import { Eye, Search, Filter, BookOpen, X } from "lucide-react";
+import { Eye, Search, Filter, BookOpen, X, AlertTriangle, Users, UserX } from "lucide-react"; // Ajout de l'icône UserX
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip.tsx";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { Trash } from "lucide-react";
+
 export function ReqSkillsManagement() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -41,6 +44,8 @@ export function ReqSkillsManagement() {
   const skillsPerPage = 10;
 
   const { data: allSkills = [], isLoading: isSkillsLoading } = useSkills();
+  const { data: employees = [], isLoading: isEmployeesLoading } = useEmployees({ archived: false });
+  const { data: jobs = [], isLoading: isJobsLoading } = useJobs();
 
   const createSkill = useCreateSkill();
   const updateSkill = useUpdateSkill();
@@ -48,7 +53,6 @@ export function ReqSkillsManagement() {
   const { data: latestCode, isLoading: isLatestCodeLoading, error } = useLatestSkillCode();
 
   const filteredSkills = allSkills.filter((skill) => {
-    // Safeguard against undefined or missing properties
     if (!skill || typeof skill !== "object") return false;
     const code = skill.code_competencer || "";
     const competence = skill.competencer || "";
@@ -60,7 +64,6 @@ export function ReqSkillsManagement() {
 
   const generateNextCode = (latestCode) => {
     if (!latestCode || isNaN(parseInt(latestCode.replace("C", "")))) return "C1";
-
     const currentNumber = parseInt(latestCode.replace("C", ""));
     return `C${(currentNumber + 1).toString()}`;
   };
@@ -113,7 +116,7 @@ export function ReqSkillsManagement() {
             description: error.response?.data?.error || "Échec de la mise à jour de la compétence.",
           });
         },
-      },
+      }
     );
   };
 
@@ -144,28 +147,191 @@ export function ReqSkillsManagement() {
     }
   };
 
-  if (isSkillsLoading) return <div>Chargement des compétences...</div>;
+  // Calcul des compétences avec écart (comptées une seule fois)
+  const calculateSkillsWithGap = () => {
+    if (isEmployeesLoading || isJobsLoading || isSkillsLoading) return 0;
+
+    const skillsWithGap = new Set();
+
+    employees.forEach((employee) => {
+      const employeeJobs = (employee.emplois || []).map((e) => e.id_emploi);
+      const requiredSkills = jobs
+        .filter((job) => employeeJobs.includes(job.id_emploi))
+        .flatMap((job) => job.required_skills || [])
+        .map((skill) => ({
+          id_competencer: skill.id_competencer,
+          niveaur: skill.niveaur,
+        }));
+
+      const acquiredSkills = (employee.competences || []).map((skill) => ({
+        id_competencea: skill.id_competencea,
+        niveaua: skill.niveaua,
+      }));
+
+      requiredSkills.forEach((reqSkill) => {
+        const matchingAcquiredSkill = acquiredSkills.find(
+          (acqSkill) => acqSkill.id_competencea === reqSkill.id_competencer
+        );
+        const acquiredLevel = matchingAcquiredSkill ? matchingAcquiredSkill.niveaua : 0;
+        if (reqSkill.niveaur > acquiredLevel) {
+          skillsWithGap.add(reqSkill.id_competencer);
+        }
+      });
+    });
+
+    return skillsWithGap.size;
+  };
+
+  // Calcul des employés avec au moins un écart (comptés une seule fois)
+  const calculateEmployeesWithGap = () => {
+    if (isEmployeesLoading || isJobsLoading || isSkillsLoading) return 0;
+
+    const employeesWithGap = new Set();
+
+    employees.forEach((employee) => {
+      let hasGap = false;
+      const employeeJobs = (employee.emplois || []).map((e) => e.id_emploi);
+      const requiredSkills = jobs
+        .filter((job) => employeeJobs.includes(job.id_emploi))
+        .flatMap((job) => job.required_skills || [])
+        .map((skill) => ({
+          id_competencer: skill.id_competencer,
+          niveaur: skill.niveaur,
+        }));
+
+      const acquiredSkills = (employee.competences || []).map((skill) => ({
+        id_competencea: skill.id_competencea,
+        niveaua: skill.niveaua,
+      }));
+
+      requiredSkills.forEach((reqSkill) => {
+        const matchingAcquiredSkill = acquiredSkills.find(
+          (acqSkill) => acqSkill.id_competencea === reqSkill.id_competencer
+        );
+        const acquiredLevel = matchingAcquiredSkill ? matchingAcquiredSkill.niveaua : 0;
+        if (reqSkill.niveaur > acquiredLevel) {
+          hasGap = true;
+        }
+      });
+
+      if (hasGap) {
+        employeesWithGap.add(employee.id_employe);
+      }
+    });
+
+    return employeesWithGap.size;
+  };
+
+  // Calcul de la statistique : (Compétences uniques avec écart) * (Employés uniques avec au moins un écart)
+  const calculateSkillsEmployeesWithGap = () => {
+    if (isEmployeesLoading || isJobsLoading || isSkillsLoading) return 0;
+
+    const skillsWithGap = new Set();
+    const employeesWithGap = new Set();
+
+    employees.forEach((employee) => {
+      let hasGap = false;
+      const employeeJobs = (employee.emplois || []).map((e) => e.id_emploi);
+      const requiredSkills = jobs
+        .filter((job) => employeeJobs.includes(job.id_emploi))
+        .flatMap((job) => job.required_skills || [])
+        .map((skill) => ({
+          id_competencer: skill.id_competencer,
+          niveaur: skill.niveaur,
+        }));
+
+      const acquiredSkills = (employee.competences || []).map((skill) => ({
+        id_competencea: skill.id_competencea,
+        niveaua: skill.niveaua,
+      }));
+
+      requiredSkills.forEach((reqSkill) => {
+        const matchingAcquiredSkill = acquiredSkills.find(
+          (acqSkill) => acqSkill.id_competencea === reqSkill.id_competencer
+        );
+        const acquiredLevel = matchingAcquiredSkill ? matchingAcquiredSkill.niveaua : 0;
+        if (reqSkill.niveaur > acquiredLevel) {
+          skillsWithGap.add(reqSkill.id_competencer);
+          hasGap = true;
+        }
+      });
+
+      if (hasGap) {
+        employeesWithGap.add(employee.id_employe);
+      }
+    });
+
+    return skillsWithGap.size * employeesWithGap.size;
+  };
+
+  if (isSkillsLoading || isEmployeesLoading || isJobsLoading) {
+    return <div>Chargement des données...</div>;
+  }
 
   const stats = {
     total: allSkills.length,
+    gaps: calculateSkillsWithGap(),
+    employeesGaps: calculateEmployeesWithGap(),
+    skillsEmployeesGaps: calculateSkillsEmployeesWithGap(),
   };
 
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <BookOpen className="h-5 w-5 text-green-600" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"> {/* Changé à 4 colonnes */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <BookOpen className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Total Compétences</p>
+                  <p className="text-2xl font-bold">{stats.total}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Compétences</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Compétences avec Écart</p>
+                  <p className="text-2xl font-bold">{stats.gaps}</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <Users className="h-5 w-5 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Écart Compétences x Employés</p>
+                  <p className="text-2xl font-bold">{stats.skillsEmployeesGaps}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <UserX className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Employés avec Écart</p>
+                  <p className="text-2xl font-bold">{stats.employeesGaps}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         <Card>
           <CardContent className="p-4">
@@ -386,9 +552,13 @@ export function ReqSkillsManagement() {
                   value={newSkill.code_competencer}
                   onChange={(e) => setNewSkill({ ...newSkill, code_competencer: e.target.value })}
                   className="border p-2 w-full"
-                  disabled={isLatestCodeLoading || (latestCode && !error)} 
+                  disabled={isLatestCodeLoading || (latestCode && !error)}
                 />
-                {error && <p className="text-red-500 text-sm">Erreur lors du chargement du dernier code. Veuillez entrer un code manuellement (ex: C001).</p>}
+                {error && (
+                  <p className="text-red-500 text-sm">
+                    Erreur lors du chargement du dernier code. Veuillez entrer un code manuellement (ex: C001).
+                  </p>
+                )}
                 <Input
                   type="text"
                   placeholder="Compétence"
