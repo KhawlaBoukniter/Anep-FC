@@ -24,7 +24,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Badge } from "./ui/badge.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog.tsx";
 import { Input } from "./ui/input.tsx";
-import { Eye, Search, Filter, BookOpen, X, AlertTriangle, Users, UserX } from "lucide-react"; // Ajout de l'icône UserX
+import { Eye, Search, Filter, BookOpen, X, AlertTriangle, Users, UserX } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip.tsx";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { Trash } from "lucide-react";
@@ -63,25 +63,43 @@ export function ReqSkillsManagement() {
   });
 
   const generateNextCode = (latestCode) => {
-    if (!latestCode || isNaN(parseInt(latestCode.replace("C", "")))) return "C1";
-    const currentNumber = parseInt(latestCode.replace("C", ""));
-    return `C${(currentNumber + 1).toString()}`;
+    if (!latestCode) return "C1";
+    
+    const match = latestCode.match(/\d+/);
+    if (!match) return "C1";
+    
+    const currentNumber = parseInt(match[0]);
+    return `C${currentNumber + 1}`;
   };
 
   useEffect(() => {
-    if (isAddModalOpen && latestCode && !isLatestCodeLoading && !error) {
-      setNewSkill((prev) => ({
-        ...prev,
-        code_competencer: generateNextCode(latestCode),
-      }));
-    } else if (isAddModalOpen && !latestCode && !isLatestCodeLoading && error) {
-      setNewSkill((prev) => ({ ...prev, code_competencer: "C001" }));
-    } else if (!isAddModalOpen) {
-      setNewSkill((prev) => ({ ...prev, code_competencer: "" }));
+    if (isAddModalOpen) {
+      if (!isLatestCodeLoading && latestCode) {
+        setNewSkill(prev => ({
+          ...prev,
+          code_competencer: generateNextCode(latestCode)
+        }));
+      } else if (!isLatestCodeLoading && error) {
+        setNewSkill(prev => ({
+          ...prev,
+          code_competencer: ""
+        }));
+      }
+    } else {
+      setNewSkill({ code_competencer: "", competencer: "" });
     }
   }, [isAddModalOpen, latestCode, isLatestCodeLoading, error]);
 
   const handleAddSkill = () => {
+    if (!newSkill.code_competencer || !newSkill.competencer) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Veuillez remplir tous les champs.",
+      });
+      return;
+    }
+
     createSkill.mutate(newSkill, {
       onSuccess: () => {
         toast({ title: "Succès", description: "Compétence ajoutée avec succès." });
@@ -147,7 +165,6 @@ export function ReqSkillsManagement() {
     }
   };
 
-  // Calcul des compétences avec écart (comptées une seule fois)
   const calculateSkillsWithGap = () => {
     if (isEmployeesLoading || isJobsLoading || isSkillsLoading) return 0;
 
@@ -182,7 +199,6 @@ export function ReqSkillsManagement() {
     return skillsWithGap.size;
   };
 
-  // Calcul des employés avec au moins un écart (comptés une seule fois)
   const calculateEmployeesWithGap = () => {
     if (isEmployeesLoading || isJobsLoading || isSkillsLoading) return 0;
 
@@ -222,7 +238,6 @@ export function ReqSkillsManagement() {
     return employeesWithGap.size;
   };
 
-  // Calcul de la statistique : (Compétences uniques avec écart) * (Employés uniques avec au moins un écart)
   const calculateSkillsEmployeesWithGap = () => {
     if (isEmployeesLoading || isJobsLoading || isSkillsLoading) return 0;
 
@@ -278,7 +293,7 @@ export function ReqSkillsManagement() {
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"> {/* Changé à 4 colonnes */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -546,26 +561,35 @@ export function ReqSkillsManagement() {
                 <DialogTitle>Ajouter une compétence</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <Input
-                  type="text"
-                  placeholder="Code"
-                  value={newSkill.code_competencer}
-                  onChange={(e) => setNewSkill({ ...newSkill, code_competencer: e.target.value })}
-                  className="border p-2 w-full"
-                  disabled={isLatestCodeLoading || (latestCode && !error)}
-                />
-                {error && (
-                  <p className="text-red-500 text-sm">
-                    Erreur lors du chargement du dernier code. Veuillez entrer un code manuellement (ex: C001).
-                  </p>
-                )}
-                <Input
-                  type="text"
-                  placeholder="Compétence"
-                  value={newSkill.competencer}
-                  onChange={(e) => setNewSkill({ ...newSkill, competencer: e.target.value })}
-                  className="border p-2 w-full"
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
+                  <Input
+                    type="text"
+                    placeholder="Code (ex: C001)"
+                    value={newSkill.code_competencer}
+                    onChange={(e) => setNewSkill({ ...newSkill, code_competencer: e.target.value })}
+                    className="border p-2 w-full"
+                    disabled={isLatestCodeLoading}
+                  />
+                  {isLatestCodeLoading && (
+                    <p className="text-sm text-gray-500 mt-1">Chargement du dernier code...</p>
+                  )}
+                  {error && (
+                    <p className="text-red-500 text-sm mt-1">
+                      Erreur lors du chargement du dernier code. Veuillez entrer un code manuellement.
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Compétence</label>
+                  <Input
+                    type="text"
+                    placeholder="Nom de la compétence"
+                    value={newSkill.competencer}
+                    onChange={(e) => setNewSkill({ ...newSkill, competencer: e.target.value })}
+                    className="border p-2 w-full"
+                  />
+                </div>
                 <div className="flex justify-end gap-2">
                   <Button
                     variant="outline"
@@ -592,20 +616,26 @@ export function ReqSkillsManagement() {
                 <DialogTitle>Modifier une compétence</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <Input
-                  type="text"
-                  placeholder="Code"
-                  value={editSkill.code_competencer}
-                  onChange={(e) => setEditSkill({ ...editSkill, code_competencer: e.target.value })}
-                  className="border p-2 w-full"
-                />
-                <Input
-                  type="text"
-                  placeholder="Compétence"
-                  value={editSkill.competencer}
-                  onChange={(e) => setEditSkill({ ...editSkill, competencer: e.target.value })}
-                  className="border p-2 w-full"
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
+                  <Input
+                    type="text"
+                    placeholder="Code"
+                    value={editSkill.code_competencer}
+                    onChange={(e) => setEditSkill({ ...editSkill, code_competencer: e.target.value })}
+                    className="border p-2 w-full"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Compétence</label>
+                  <Input
+                    type="text"
+                    placeholder="Compétence"
+                    value={editSkill.competencer}
+                    onChange={(e) => setEditSkill({ ...editSkill, competencer: e.target.value })}
+                    className="border p-2 w-full"
+                  />
+                </div>
                 <div className="flex justify-end gap-2">
                   <Button
                     variant="outline"
