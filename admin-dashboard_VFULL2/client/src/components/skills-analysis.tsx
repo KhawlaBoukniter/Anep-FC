@@ -1,9 +1,6 @@
-// @/components/SkillsAnalysis.tsx
-
 "use client"
 
 import { useState, useRef } from "react"
-// Importation de la bibliothèque pour Excel
 import * as XLSX from "xlsx"
 import { Button } from "./ui/button.tsx"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.tsx"
@@ -11,13 +8,11 @@ import { Badge } from "./ui/badge.tsx"
 import { Label } from "./ui/label.tsx"
 import { Checkbox } from "./ui/checkbox.tsx"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table.tsx"
-// Importation de l'icône de téléchargement
 import { BarChart3, AlertTriangle, Download } from "lucide-react"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command.tsx"
 import { Input } from "./ui/input.tsx"
 import { useSkillsAnalysis } from "../hooks/useAnalysis"
 
-// Interface pour les employés
 interface Employee {
   id: string
   nom_complet: string
@@ -35,19 +30,18 @@ interface Employee {
   }>
 }
 
-// Interface pour une compétence sélectionnée
 interface SelectedSkill {
   name: string
   acquiredLevels: number[]
   requiredLevels: number[]
 }
 
-// Interface pour les résultats d'analyse
 interface AnalysisResult {
   employee: Employee
   matchedSkills: Array<{
     name: string
     currentLevel: number | null
+    requiredLevel: number | null
     matchesAcquired: boolean
     matchesRequired: boolean
   }>
@@ -59,12 +53,10 @@ export function SkillsAnalysis() {
   const [openSkillPopover, setOpenSkillPopover] = useState(false)
   const [analysisResults, setAnalysisResults] = useState<AnalysisResult[]>([])
   const [hasAnalyzed, setHasAnalyzed] = useState(false)
+  const [analysisType, setAnalysisType] = useState<"union" | "intersection">("union")
   const inputRef = useRef<HTMLInputElement>(null)
-
-  // Fetch data using the hook
   const { data, isLoading, error } = useSkillsAnalysis()
 
-  // Ajouter une compétence à la liste
   const addSkill = (skillName: string) => {
     if (!selectedSkills.some((s) => s.name === skillName)) {
       setSelectedSkills([...selectedSkills, { name: skillName, acquiredLevels: [], requiredLevels: [] }])
@@ -73,12 +65,10 @@ export function SkillsAnalysis() {
     }
   }
 
-  // Supprimer une compétence
   const removeSkill = (skillName: string) => {
     setSelectedSkills(selectedSkills.filter((s) => s.name !== skillName))
   }
 
-  // Mettre à jour les niveaux acquis pour une compétence
   const updateAcquiredLevels = (skillName: string, level: number, checked: boolean) => {
     setSelectedSkills(
       selectedSkills.map((s) =>
@@ -94,7 +84,6 @@ export function SkillsAnalysis() {
     )
   }
 
-  // Mettre à jour les niveaux requis pour une compétence
   const updateRequiredLevels = (skillName: string, level: number, checked: boolean) => {
     setSelectedSkills(
       selectedSkills.map((s) =>
@@ -110,7 +99,6 @@ export function SkillsAnalysis() {
     )
   }
 
-  // Analyser les compétences
   const analyzeSkills = () => {
     if (selectedSkills.length === 0 || selectedSkills.some((s) => s.acquiredLevels.length === 0 || s.requiredLevels.length === 0)) {
       return
@@ -126,20 +114,25 @@ export function SkillsAnalysis() {
           const employeeSkill = employee.skills.find((s) => s.name.toLowerCase() === selectedSkill.name.toLowerCase())
           const currentLevel = employeeSkill ? employeeSkill.level : null
           const jobReq = data.jobRequirements[employee.poste]?.find((req: any) => req.name.toLowerCase() === selectedSkill.name.toLowerCase())
-          const jobRequiredLevel = jobReq ? jobReq.requiredLevel : null
+          const requiredLevel = jobReq ? jobReq.requiredLevel : null
 
           const matchesAcquired = currentLevel !== null && selectedSkill.acquiredLevels.includes(currentLevel)
-          const matchesRequired = jobRequiredLevel !== null && selectedSkill.requiredLevels.includes(jobRequiredLevel)
+          const matchesRequired = requiredLevel !== null && selectedSkill.requiredLevels.includes(requiredLevel)
 
           return {
             name: selectedSkill.name,
             currentLevel,
+            requiredLevel,
             matchesAcquired,
             matchesRequired,
           }
         })
 
-        const allSkillsMatch = matchedSkills.some((s) => s.matchesAcquired && s.matchesRequired)
+        // Pour l'union: au moins une compétence doit correspondre
+        // Pour l'intersection: toutes les compétences doivent correspondre
+        const allSkillsMatch = analysisType === "union"
+          ? matchedSkills.some((s) => s.matchesAcquired && s.matchesRequired)
+          : matchedSkills.every((s) => s.matchesAcquired && s.matchesRequired)
 
         return {
           employee,
@@ -153,69 +146,52 @@ export function SkillsAnalysis() {
     setHasAnalyzed(true)
   }
 
-  // Réinitialiser
   const resetAnalysis = () => {
     setSelectedSkills([])
     setSearchSkill("")
     setAnalysisResults([])
     setHasAnalyzed(false)
     setOpenSkillPopover(false)
+    setAnalysisType("union")
   }
 
-  // --- NOUVELLE FONCTION POUR LE TÉLÉCHARGEMENT EXCEL ---
   const handleDownloadExcel = () => {
     if (analysisResults.length === 0) {
       return
     }
 
-    // 1. Préparer les données pour la feuille de calcul
     const dataToExport = analysisResults.map(result => {
-        // Crée un objet de base pour chaque ligne
-        const row: { [key: string]: any } = {
-            'Employé': result.employee.nom_complet,
-            'Email': result.employee.email,
-            'Poste': result.employee.poste,
-            'Département': result.employee.departement,
-        };
+      const row: { [key: string]: any } = {
+        'Employé': result.employee.nom_complet,
+        'Email': result.employee.email,
+        'Poste': result.employee.poste,
+        'Département': result.employee.departement,
+      }
 
-        // Ajoute dynamiquement les colonnes pour chaque compétence sélectionnée
-        result.matchedSkills.forEach(skill => {
-            const requiredLevel = data?.jobRequirements[result.employee.poste]?.find((req: any) => req.name === skill.name)?.requiredLevel || "N/A";
-            const skillValue = skill.currentLevel 
-                ? `Acquis: ${skill.currentLevel} (Requis: ${requiredLevel})` 
-                : `Non acquise (Requis: ${requiredLevel})`;
-            
-            row[skill.name] = skillValue;
-        });
+      result.matchedSkills.forEach(skill => {
+        const skillValue = skill.currentLevel 
+          ? `Acquis: ${skill.currentLevel} (Requis: ${skill.requiredLevel || "N/A"})` 
+          : `Non acquise (Requis: ${skill.requiredLevel || "N/A"})`
+        row[skill.name] = skillValue
+      })
 
-        return row;
-    });
+      return row
+    })
 
-    // 2. Créer une feuille de calcul à partir des données JSON
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Résultats Analyse")
+    XLSX.writeFile(workbook, `analyse_competences_${analysisType}.xlsx`)
+  }
 
-    // 3. Créer un classeur
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Résultats Analyse");
-
-    // 4. Déclencher le téléchargement du fichier
-    XLSX.writeFile(workbook, "analyse_competences.xlsx");
-  };
-  
-  // Couleurs pour les niveaux et départements
   const getLevelColor = (level: number | null) => {
     if (!level) return "bg-gray-100 text-gray-800"
     switch (level) {
-      case 1:
-        return "bg-red-100 text-red-800"
-      case 2:
-        return "bg-yellow-100 text-yellow-800"
-      case 3:
-        return "bg-blue-100 text-blue-800"
-      case 4:
-        return "bg-green-100 text-green-800"
-      default:
-        return "bg-gray-100 text-gray-800"
+      case 1: return "bg-red-100 text-red-800"
+      case 2: return "bg-yellow-100 text-yellow-800"
+      case 3: return "bg-blue-100 text-blue-800"
+      case 4: return "bg-green-100 text-green-800"
+      default: return "bg-gray-100 text-gray-800"
     }
   }
 
@@ -250,6 +226,26 @@ export function SkillsAnalysis() {
           <CardTitle className="text-lg">Paramètres d'Analyse</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label>Type d'analyse</Label>
+            <div className="flex gap-4">
+              <Button
+                variant={analysisType === "union" ? "default" : "outline"}
+                onClick={() => setAnalysisType("union")}
+                className={analysisType === "union" ? "bg-purple-600 hover:bg-purple-700" : ""}
+              >
+                Union
+              </Button>
+              <Button
+                variant={analysisType === "intersection" ? "default" : "outline"}
+                onClick={() => setAnalysisType("intersection")}
+                className={analysisType === "intersection" ? "bg-purple-600 hover:bg-purple-700" : ""}
+              >
+                Intersection
+              </Button>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label>Ajouter une compétence</Label>
             <div className="flex-1 relative">
@@ -354,10 +350,13 @@ export function SkillsAnalysis() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg">Résultats de l'analyse</CardTitle>
-                <p className="text-sm text-gray-600">Employés correspondant à au moins un critère</p>
+                <CardTitle className="text-lg">Résultats de l'analyse ({analysisType === "union" ? "Union" : "Intersection"})</CardTitle>
+                <p className="text-sm text-gray-600">
+                  {analysisType === "union" 
+                    ? "Employés correspondant à au moins une compétence sélectionnée" 
+                    : "Employés correspondant à toutes les compétences sélectionnées"}
+                </p>
               </div>
-              {/* --- MODIFICATION ICI : AJOUT DU BOUTON TÉLÉCHARGER --- */}
               <div className="flex items-center gap-2">
                 <Badge variant="secondary">{analysisResults.length} résultat(s)</Badge>
                 {analysisResults.length > 0 && (
@@ -403,8 +402,7 @@ export function SkillsAnalysis() {
                               </Badge>
                               <div>
                                 <span className="text-xs text-gray-600">
-                                  Requis (poste):{" "}
-                                  {data?.jobRequirements[result.employee.poste]?.find((req: any) => req.name === skill.name)?.requiredLevel || "N/A"}
+                                  Requis: {skill.requiredLevel || "N/A"}
                                 </span>
                               </div>
                             </div>
