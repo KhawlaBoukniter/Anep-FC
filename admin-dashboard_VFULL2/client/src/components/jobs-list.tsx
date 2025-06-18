@@ -105,7 +105,7 @@ export function JobsList() {
     <TooltipProvider>
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="border-l-4 border-yellow-400">
+          <Card className="border-l-4 border-yellow-400 shadow-lg shadow-yellow-600">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-yellow-100 rounded-lg">
@@ -119,7 +119,7 @@ export function JobsList() {
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-purple-900">
+          <Card className="border-l-4 border-purple-900 shadow-lg shadow-purple-900">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-purple-100 rounded-lg">
