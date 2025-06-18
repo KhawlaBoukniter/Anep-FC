@@ -294,7 +294,7 @@ export function ReqSkillsManagement() {
     <TooltipProvider>
       <div className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4">
-          <Card className="border-l-4 border-yellow-600">
+          <Card className="border-l-4 border-yellow-600 shadow-lg shadow-yellow-600 ">
             <CardContent className="p-4 ">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-yellow-100 rounded-lg">
@@ -307,7 +307,7 @@ export function ReqSkillsManagement() {
               </div>
             </CardContent>
           </Card>
-          <Card className="border-l-4 border-rose-600">
+          <Card className="border-l-4 border-rose-600 shadow-lg shadow-rose-600">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-red-100 rounded-lg">
@@ -320,7 +320,7 @@ export function ReqSkillsManagement() {
               </div>
             </CardContent>
           </Card>
-          <Card  style={{ borderColor: '#5784BA' }} className="border-l-4">
+          <Card  style={{ borderColor: '#5784BA' }} className="border-l-4 shadow-lg shadow-blue-800">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-100 rounded-lg">
@@ -333,7 +333,7 @@ export function ReqSkillsManagement() {
               </div>
             </CardContent>
           </Card>
-          <Card className="border-l-4 border-purple-800">
+          <Card className="border-l-4 border-purple-800 shadow-lg shadow-purple-800">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-purple-100 rounded-lg">
