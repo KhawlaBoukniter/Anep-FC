@@ -206,13 +206,13 @@ export function SkillsAnalysis() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
+        <CardHeader className="bg-gray-100">
+          <div className="flex items-center gap-3 ">
             <div className="p-2 bg-purple-100 rounded-lg">
               <BarChart3 className="h-6 w-6 text-purple-600" />
             </div>
             <div>
-              <CardTitle className="text-xl">Analyse des Compétences</CardTitle>
+              <CardTitle className="text-xl text-purple-900">Analyse des Compétences</CardTitle>
               <p className="text-sm text-gray-600">
                 Sélectionnez des compétences et leurs niveaux pour identifier les employés correspondants
               </p>
@@ -221,35 +221,17 @@ export function SkillsAnalysis() {
         </CardHeader>
       </Card>
 
-      <Card>
+      <Card className="bg-gray-100">
         <CardHeader>
-          <CardTitle className="text-lg">Paramètres d'Analyse</CardTitle>
+          <CardTitle className="text-lg text-purple-900">Paramètres d'Analyse</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label>Type d'analyse</Label>
-            <div className="flex gap-4">
-              <Button
-                variant={analysisType === "union" ? "default" : "outline"}
-                onClick={() => setAnalysisType("union")}
-                className={analysisType === "union" ? "bg-purple-600 hover:bg-purple-700" : ""}
-              >
-                Union
-              </Button>
-              <Button
-                variant={analysisType === "intersection" ? "default" : "outline"}
-                onClick={() => setAnalysisType("intersection")}
-                className={analysisType === "intersection" ? "bg-purple-600 hover:bg-purple-700" : ""}
-              >
-                Intersection
-              </Button>
-            </div>
-          </div>
-
-          <div className="space-y-2">
+          <div className="flex justify-center gap-2 ">
+            
+          <div className="space-y-2 w-full ">
             <Label>Ajouter une compétence</Label>
             <div className="flex-1 relative">
-              <Command className="rounded-lg border">
+              <Command className="rounded-lg border border-purple-800 bg-white">
                 <CommandInput
                   ref={inputRef}
                   placeholder="Saisissez ou recherchez une compétence..."
@@ -258,6 +240,7 @@ export function SkillsAnalysis() {
                     setSearchSkill(value)
                     setOpenSkillPopover(value.length > 0)
                   }}
+
                 />
                 {openSkillPopover && (
                   <CommandList className="absolute top-10 w-full border shadow-md bg-white z-10">
@@ -280,26 +263,50 @@ export function SkillsAnalysis() {
               </Command>
             </div>
           </div>
+           <div className="space-y-2 w-full">
+            <Label>Type d'analyse</Label>
+            <div className="flex gap-4">
+              <Button 
+                variant={analysisType === "union" ? "default" : "outline"}
+                onClick={() => setAnalysisType("union")}
+                className={analysisType === "union" ? "bg-purple-600 w-full  py-[22px] hover:bg-purple-700 " : "w-full bg-yellow-500 py-[22px]"} 
+                
+              >
+                Union
+              </Button>
+              <Button
+                variant={analysisType === "intersection" ? "default" : "outline"}
+                onClick={() => setAnalysisType("intersection")}
+                className={analysisType === "intersection" ? "bg-purple-600 w-full  py-[22px] hover:bg-purple-700" : "w-full bg-yellow-500  py-[22px]"}
+              >
+                Intersection
+              </Button>
+            </div>
+          </div>
+
+          </div>
+          
 
           {selectedSkills.length > 0 && (
-            <div className="space-y-4">
+            <div className="space-y-4 ">
               <Label>Compétences sélectionnées</Label>
               {selectedSkills.map((skill) => (
-                <Card key={skill.name} className="p-4">
+                <Card key={skill.name} className="p-4 bg-white">
                   <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{skill.name}</span>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => removeSkill(skill.name)}>
+                    <Button className="text-yellow-400" variant="ghost" size="sm" onClick={() => removeSkill(skill.name)}>
                       Supprimer
                     </Button>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="mb-2 block">Niveaux acquis</Label>
+                      <Label className="mb-2 block text-purple-800">Niveaux acquis</Label>
                       {[1, 2, 3, 4].map((level) => (
                         <div key={level} className="flex items-center space-x-2 mb-2">
                           <Checkbox
+                            className="border border-yellow-500"
                             id={`${skill.name}-acquired-${level}`}
                             checked={skill.acquiredLevels.includes(level)}
                             onCheckedChange={(checked) => updateAcquiredLevels(skill.name, level, checked as boolean)}
@@ -309,10 +316,11 @@ export function SkillsAnalysis() {
                       ))}
                     </div>
                     <div>
-                      <Label className="mb-2 block">Niveaux requis</Label>
+                      <Label className="mb-2 block text-purple-800">Niveaux requis</Label>
                       {[1, 2, 3, 4].map((level) => (
-                        <div key={level} className="flex items-center space-x-2 mb-2">
-                          <Checkbox
+                        <div key={level} className="flex items-center space-x-2 mb-2 ">
+                          <Checkbox 
+                            className="border border-yellow-500"
                             id={`${skill.name}-required-${level}`}
                             checked={skill.requiredLevels.includes(level)}
                             onCheckedChange={(checked) => updateRequiredLevels(skill.name, level, checked as boolean)}
@@ -331,13 +339,13 @@ export function SkillsAnalysis() {
             <Button
               onClick={analyzeSkills}
               disabled={selectedSkills.length === 0 || selectedSkills.some((s) => s.acquiredLevels.length === 0 || s.requiredLevels.length === 0)}
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-purple-600 hover:bg-purple-700 text-white"
             >
-              <BarChart3 className="h-4 w-4 mr-2" />
+              <BarChart3 className="h-4 w-4 mr-2 text-yellow-400" />
               Analyser
             </Button>
             {hasAnalyzed && (
-              <Button variant="outline" onClick={resetAnalysis}>
+              <Button variant="outline" onClick={resetAnalysis} className="bg-yellow-500">
                 Réinitialiser
               </Button>
             )}
@@ -346,11 +354,11 @@ export function SkillsAnalysis() {
       </Card>
 
       {hasAnalyzed && (
-        <Card>
-          <CardHeader>
+        <Card  className="bg-gray-100">
+          <CardHeader >
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg">Résultats de l'analyse ({analysisType === "union" ? "Union" : "Intersection"})</CardTitle>
+                <CardTitle className="text-lg text-yellow-500">Résultats de l'analyse ({analysisType === "union" ? "Union" : "Intersection"})</CardTitle>
                 <p className="text-sm text-gray-600">
                   {analysisType === "union" 
                     ? "Employés correspondant à au moins une compétence sélectionnée" 
@@ -358,10 +366,10 @@ export function SkillsAnalysis() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="secondary">{analysisResults.length} résultat(s)</Badge>
+                <Badge variant="secondary"  className="text-purple-800">{analysisResults.length} résultat(s)</Badge>
                 {analysisResults.length > 0 && (
-                  <Button variant="outline" size="sm" onClick={handleDownloadExcel}>
-                    <Download className="h-4 w-4 mr-2" />
+                  <Button className="bg-purple-800 text-white" variant="outline" size="sm" onClick={handleDownloadExcel}>
+                    <Download className="h-4 w-4 mr-2 text-yellow-300" />
                     Télécharger (Excel)
                   </Button>
                 )}
@@ -371,14 +379,14 @@ export function SkillsAnalysis() {
           <CardContent>
             {analysisResults.length > 0 ? (
               <div className="rounded-md border">
-                <Table>
+                <Table  className="bg-white">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Employé</TableHead>
-                      <TableHead>Poste</TableHead>
-                      <TableHead>Département</TableHead>
+                      <TableHead className="text-purple-800">Employé</TableHead>
+                      <TableHead className="text-purple-800">Poste</TableHead>
+                      <TableHead className="text-purple-800">Département</TableHead>
                       {selectedSkills.map((skill) => (
-                        <TableHead key={skill.name}>{skill.name}</TableHead>
+                        <TableHead className="text-yellow-500"key={skill.name}>{skill.name}</TableHead>
                       ))}
                     </TableRow>
                   </TableHeader>

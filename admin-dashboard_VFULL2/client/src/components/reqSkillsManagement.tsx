@@ -293,54 +293,54 @@ export function ReqSkillsManagement() {
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4">
+          <Card className="border-l-4 border-yellow-600 shadow-lg shadow-yellow-600 ">
+            <CardContent className="p-4 ">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <BookOpen className="h-5 w-5 text-green-600" />
+                <div className="p-2 bg-yellow-100 rounded-lg">
+                  <BookOpen className="h-5 w-5 text-yellow-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Total Compétences</p>
+                  <p className="text-sm text-yellow-600">Total Compétences</p>
                   <p className="text-2xl font-bold">{stats.total}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-l-4 border-rose-600 shadow-lg shadow-rose-600">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-red-100 rounded-lg">
-                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                  <BookOpen className="h-5 w-5 text-rose-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Compétences avec Écart</p>
+                  <p className="text-sm text-rose-600">Compétences avec Écart</p>
                   <p className="text-2xl font-bold">{stats.gaps}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card  style={{ borderColor: '#5784BA' }} className="border-l-4 shadow-lg shadow-blue-800">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <Users className="h-5 w-5 text-orange-600" />
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Users style={{ color: '#5784BA' }} className="h-5 w-5 " />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Écart Compétences x Employés</p>
+                  <p style={{ color: '#5784BA' }} className="text-sm">Écart Compétences x Employés</p>
                   <p className="text-2xl font-bold">{stats.skillsEmployeesGaps}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-l-4 border-purple-800 shadow-lg shadow-purple-800">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <UserX className="h-5 w-5 text-blue-600" />
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <UserX className="h-5 w-5 text-purple-900" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Employés avec Écart</p>
+                  <p className="text-sm text-purple-800">Employés avec Écart</p>
                   <p className="text-2xl font-bold">{stats.employeesGaps}</p>
                 </div>
               </div>
@@ -348,11 +348,11 @@ export function ReqSkillsManagement() {
           </Card>
         </div>
 
-        <Card>
+        <Card className="bg-gray-100">
           <CardContent className="p-4">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-900" />
                 <Input
                   placeholder="Rechercher par code ou compétence..."
                   value={searchTerm}
@@ -360,12 +360,14 @@ export function ReqSkillsManagement() {
                     setSearchTerm(e.target.value);
                     setCurrentPage(1);
                   }}
+                  style={{ borderColor: '#007198' }}
                   className="pl-10"
                 />
               </div>
               <Button
                 onClick={() => setIsAddModalOpen(true)}
-                className="bg-green-500 text-white"
+                style={{ backgroundColor: '#007198' }}
+                className=" text-white"
               >
                 Ajouter une compétence
               </Button>
@@ -373,24 +375,24 @@ export function ReqSkillsManagement() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gray-100">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between" style={{ color: '#007198' }}>
               <CardTitle className="text-xl">Liste des Compétences</CardTitle>
               <Badge variant="secondary">{filteredSkills.length} résultat(s)</Badge>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent >
             {isSkillsLoading ? (
               <p>Chargement...</p>
             ) : (
               <div className="rounded-md border">
-                <Table>
+                <Table className="bg-white">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-1/6 text-center">Code</TableHead>
-                      <TableHead className="w-1/2 text-center">Compétence</TableHead>
-                      <TableHead className="w-1/6 text-center">Actions</TableHead>
+                      <TableHead className="w-1/6 text-center" style={{ color: '#003C57' }}>Code</TableHead>
+                      <TableHead className="w-1/2 text-center" style={{ color: '#003C57' }}>Compétence</TableHead>
+                      <TableHead className="w-1/6 text-center" style={{ color: '#003C57' }}>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -450,7 +452,8 @@ export function ReqSkillsManagement() {
                                     viewBox="0 0 24 24"
                                     strokeWidth="1.5"
                                     stroke="currentColor"
-                                    className="h-4 w-4"
+                                    className="h-4 w-4 "
+                                    style={{ color: '#007198' }}
                                   >
                                     <path
                                       strokeLinecap="round"
@@ -494,12 +497,14 @@ export function ReqSkillsManagement() {
                   Affichage de {indexOfFirstSkill + 1} à{" "}
                   {Math.min(indexOfLastSkill, filteredSkills.length)} sur {filteredSkills.length} compétences
                 </div>
-                <div className="flex flex-wrap justify-center gap-1 md:gap-2">
+                <div className="flex flex-wrap justify-center gap-1 md:gap-2 ">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
+                    style={{ backgroundColor: '#007198' }}
+                    className="text-white"
                   >
                     Précédent
                   </Button>
@@ -535,6 +540,8 @@ export function ReqSkillsManagement() {
                     size="sm"
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
+                    style={{ backgroundColor: '#007198' }}
+                    className="text-white"
                   >
                     Suivant
                   </Button>
