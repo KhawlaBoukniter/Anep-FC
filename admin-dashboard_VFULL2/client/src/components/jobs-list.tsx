@@ -4,15 +4,15 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "./ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.tsx";
 import { Badge } from "./ui/badge.tsx";
-import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogTrigger,} from "./ui/dialog.tsx";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, } from "./ui/dialog.tsx";
 import { Input } from "./ui/input.tsx";
-import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue,} from "./ui/select.tsx";
-import {Table,TableBody,TableCell,TableHead,TableHeader,TableRow,} from "./ui/table.tsx";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "./ui/select.tsx";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "./ui/table.tsx";
 import { Eye, Search, Filter, Briefcase, TrendingUp, Award } from "lucide-react";
 import { AddJobModal } from "./add-job-modal.tsx";
 import { EditJobModal } from "./edit-job-modal.tsx";
 import { DeleteJobModal } from "./delete-job-modal.tsx";
-import {Tooltip,TooltipContent,TooltipProvider,TooltipTrigger,} from "./ui/tooltip.tsx";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, } from "./ui/tooltip.tsx";
 import { useJobs } from "../hooks/useJobs";
 import { Job, Competence } from "../types/job.ts";
 import clsx from "clsx";
@@ -52,7 +52,7 @@ export function JobsList() {
   const uniqueEntites = useMemo(() => {
     if (!jobs) return [];
     const entites = jobs.map(job => job.entite);
-    return [...new Set(entites)].sort()as string[];
+    return [...new Set(entites)].sort() as string[];
   }, [jobs]);
 
 
@@ -105,28 +105,28 @@ export function JobsList() {
     <TooltipProvider>
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
+          <Card className="border-l-4 border-yellow-400">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Briefcase className="h-5 w-5 text-blue-600" />
+                <div className="p-2 bg-yellow-100 rounded-lg">
+                  <Briefcase className="h-5 w-5 text-yellow-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Total Emplois</p>
+                  <p className="text-sm text-yellow-500">Total Emplois</p>
                   <p className="text-2xl font-bold">{stats.total}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-l-4 border-purple-900">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-green-600" />
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-purple-900" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Entités</p>
+                  <p className="text-sm text-purple-700">Entités</p>
                   <p className="text-2xl font-bold">{stats.entites}</p>
                 </div>
               </div>
@@ -134,22 +134,23 @@ export function JobsList() {
           </Card>
         </div>
 
+
         <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4">
+          <CardContent className="p-4 bg-gray-100">
+            <div className="flex flex-col md:flex-row gap-4 bg-gray-50 ">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-900" />
                 <Input
                   placeholder="Rechercher par entité, code ou formation..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 border-l border-gray-800"
                 />
               </div>
 
               <div className="flex gap-2">
                 <Select value={filterEntite} onValueChange={(value) => setFilterEntite(value)}>
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-40  border-l border-gray-800">
                     <Filter className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Entité" />
                   </SelectTrigger>
@@ -169,10 +170,10 @@ export function JobsList() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gray-100">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl">Liste des Emplois</CardTitle>
+            <div className="flex items-center justify-between text-green-600">
+              <CardTitle className="text-xl ">Liste des Emplois</CardTitle>
               <Badge variant="secondary">{filteredJobs.length} résultat(s)</Badge>
             </div>
           </CardHeader>
@@ -181,17 +182,17 @@ export function JobsList() {
               <p>Chargement...</p>
             ) : (
               <>
-                <div className="rounded-md border">
+                <div className="rounded-md border bg-white">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-1/7 text-center">Code</TableHead>
-                        <TableHead className="w-1/4 text-center pr-12">Emploi</TableHead>
-                        <TableHead className="w-1/6 text-center ">Entité</TableHead>
-                        <TableHead className="w-1/6 text-center">Formation</TableHead>
-                        <TableHead className="w-1/6 text-center">Expérience</TableHead>
-                        <TableHead className="w-1/4 text-center">Poids emploi</TableHead>
-                        <TableHead className="text-center">Actions</TableHead>
+                        <TableHead className="w-1/7 text-center text-green-800">Code</TableHead>
+                        <TableHead className="w-1/4 text-center pr-12 text-green-800">Emploi</TableHead>
+                        <TableHead className="w-1/6 text-center text-green-800">Entité</TableHead>
+                        <TableHead className="w-1/6 text-center text-green-800">Formation</TableHead>
+                        <TableHead className="w-1/6 text-center text-green-800">Expérience</TableHead>
+                        <TableHead className="w-1/4 text-center text-green-800">Poids emploi</TableHead>
+                        <TableHead className="text-center text-green-800">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -328,12 +329,14 @@ export function JobsList() {
                       {Math.min(indexOfLastJob, filteredJobs.length)} sur {filteredJobs.length} emplois
                     </div>
 
-                    <div className="flex flex-wrap justify-center gap-1 md:gap-2">
+                    <div className="flex flex-wrap justify-center gap-1 md:gap-2 ">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
+                        className="bg-green-600 text-white"
+
                       >
                         Précédent
                       </Button>
@@ -381,6 +384,7 @@ export function JobsList() {
                         size="sm"
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
+                        className="bg-green-600 text-white"
                       >
                         Suivant
                       </Button>
