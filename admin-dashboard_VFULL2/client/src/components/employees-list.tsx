@@ -8,9 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.tsx";
 import { Badge } from "./ui/badge.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "./ui/dialog.tsx";
 import { Input } from "./ui/input.tsx";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.tsx";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "./ui/command.tsx";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table.tsx";
-import { Eye, Search, Filter, Users, MapPin, User, Shield, X, Archive, ArchiveRestore } from "lucide-react";
+import { Eye, Search, Filter, Users, MapPin, User, Shield, X, Archive, ArchiveRestore, XCircle, Plus } from "lucide-react";
 import { AddEmployeeModal } from "./add-employee-modal.tsx";
 import { EditEmployeeModal } from "./edit-employee-modal.tsx";
 import { DeleteEmployeeModal } from "./delete-employee-modal.tsx";
@@ -24,19 +24,30 @@ interface ExtendedEmployee extends Employee {
   profile: Profile | null;
 }
 
+interface Filter {
+  type: string;
+  values: string[];
+}
+
+interface FilterOption {
+  value: string;
+  label: string;
+  options: string[];
+}
+
 export function EmployeesList() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterEmploi, setFilterEmploi] = useState("");
-  const [filterVille, setFilterVille] = useState("");
-  const [filterDepartement, setFilterDepartement] = useState("");
-  const [filterRegion, setFilterRegion] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
-  const [filterRole, setFilterRole] = useState("all");
+  const [filters, setFilters] = useState<Filter[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [unarchiveDialogOpen, setUnarchiveDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [newFilterType, setNewFilterType] = useState("");
+  const [newFilterValues, setNewFilterValues] = useState<string[]>([]);
+  const [searchValue, setSearchValue] = useState("");
+  const [openPopover, setOpenPopover] = useState(false);
   const employeesPerPage = 10;
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -72,12 +83,10 @@ export function EmployeesList() {
     search: searchTerm,
     archived: showArchived,
   });
-  console.log("Employees data from hook:", employeesData, "Loading:", isLoading, "Error:", error);
   const { mutate: archiveEmployee } = useArchiveEmployee();
   const { mutate: unarchiveEmployee } = useUnarchiveEmployee();
   const { data: availableJobs = [] } = useJobs();
 
-  // Handle potential undefined or malformed data
   const enrichedEmployees: ExtendedEmployee[] = employeesData
     .map((data: Partial<Employee> = {}) => ({
       ...data,
@@ -86,40 +95,31 @@ export function EmployeesList() {
       competences: data.competences || [],
     }))
     .filter((e): e is ExtendedEmployee => e !== null && e.id_employe !== undefined);
-  console.log("Enriched employees:", enrichedEmployees);
 
   const filteredEmployees: ExtendedEmployee[] = enrichedEmployees.filter((employee: ExtendedEmployee) => {
     const nomComplet = employee.nom_complet || "";
     const email = employee.email || "";
     const emplois = employee.emplois || [];
-    const cin = employee.cin || ""; // Recherche par CIN
+    const cin = employee.cin || "";
 
     const matchesSearch =
+      !searchTerm ||
       nomComplet.toLowerCase().includes(searchTerm.toLowerCase()) ||
       email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       emplois.some((e) => e?.nom_emploi?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
       cin.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesEmploi =
-      !filterEmploi ||
-      emplois.some((e) => e?.nom_emploi?.toLowerCase().includes(filterEmploi.toLowerCase()) || false);
-    const matchesVille =
-      !filterVille ||
-      (employee.profile?.LIBELLE_LOC?.toLowerCase().includes(filterVille.toLowerCase()) || false);
-    const matchesDepartement =
-      !filterDepartement ||
-      emplois.some((e) => e?.entite?.toLowerCase().includes(filterDepartement.toLowerCase()) || false);
-    const matchesRegion =
-      !filterRegion ||
-      (employee.profile?.LIBELLE_REGION?.toLowerCase().includes(filterRegion.toLowerCase()) || false);
-    const matchesStatus =
-      !filterStatus ||
-      (employee.profile?.STATUT?.toLowerCase() === filterStatus.toLowerCase() || false);
-    const matchesRole = filterRole === "all" || employee.role === filterRole;
+    const matchesFilters = filters.every((filter) => {
+      if (filter.type === "Emploi") return filter.values.some((val) => emplois.some((e) => e?.nom_emploi?.toLowerCase().includes(val.toLowerCase())));
+      if (filter.type === "Ville") return filter.values.some((val) => employee.profile?.LIBELLE_LOC?.toLowerCase().includes(val.toLowerCase()));
+      if (filter.type === "Département") return filter.values.some((val) => emplois.some((e) => e?.entite?.toLowerCase().includes(val.toLowerCase())));
+      if (filter.type === "Région") return filter.values.some((val) => employee.profile?.LIBELLE_REGION?.toLowerCase().includes(val.toLowerCase()));
+      if (filter.type === "Statut") return filter.values.some((val) => employee.profile?.STATUT?.toLowerCase() === val.toLowerCase());
+      return true;
+    });
 
-    return matchesSearch && matchesEmploi && matchesVille && matchesDepartement && matchesRegion && matchesStatus && matchesRole;
+    return matchesSearch && matchesFilters;
   });
-  console.log("Filtered employees:", filteredEmployees);
 
   const totalPages = Math.ceil(filteredEmployees.length / employeesPerPage);
   const indexOfLastEmployee = currentPage * employeesPerPage;
@@ -127,18 +127,47 @@ export function EmployeesList() {
   const currentEmployees = filteredEmployees.slice(indexOfFirstEmployee, indexOfLastEmployee);
 
   const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
+    if (page >= 1 && page <= totalPages) setCurrentPage(page);
+  };
+
+  const clearFilter = (filterType: string, value?: string) => {
+    if (value) {
+      setFilters((prev) =>
+        prev.map((f) =>
+          f.type === filterType ? { ...f, values: f.values.filter((v) => v !== value) } : f
+        ).filter((f) => f.values.length > 0)
+      );
+    } else {
+      setFilters((prev) => prev.filter((f) => f.type !== filterType));
+    }
+    setCurrentPage(1);
+  };
+
+  const addFilter = () => {
+    if (newFilterType && newFilterValues.length > 0) {
+      setFilters((prev) => {
+        const existingFilter = prev.find((f) => f.type === newFilterType);
+        if (existingFilter) {
+          return prev.map((f) =>
+            f.type === newFilterType ? { ...f, values: [...f.values, ...newFilterValues.filter((v) => !f.values.includes(v))] } : f
+          );
+        }
+        return [...prev, { type: newFilterType, values: newFilterValues }];
+      });
+      setNewFilterType("");
+      setNewFilterValues([]);
+      setSearchValue("");
+      setFilterDialogOpen(false);
+      setCurrentPage(1);
     }
   };
 
-  const clearFilter = (filterType: string) => {
-    if (filterType === "emploi") setFilterEmploi("");
-    if (filterType === "ville") setFilterVille("");
-    if (filterType === "departement") setFilterDepartement("");
-    if (filterType === "region") setFilterRegion("");
-    if (filterType === "status") setFilterStatus("");
-    setCurrentPage(1);
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && searchValue.trim() && !newFilterValues.includes(searchValue)) {
+      setNewFilterValues((prev) => [...prev, searchValue]);
+      setSearchValue("");
+      setOpenPopover(false);
+    }
   };
 
   const getRoleColor = (role: "user" | "admin") => {
@@ -178,11 +207,38 @@ export function EmployeesList() {
     }
   };
 
-  // Get unique values for filters
-  const uniqueVilles: string[] = Array.from(new Set(enrichedEmployees.map((e) => e.profile?.LIBELLE_LOC).filter(Boolean) as string[]));
-  const uniqueDepartements: string[] = Array.from(new Set(availableJobs.map((j: Emploi) => j.entite).filter(Boolean)));
-  const uniqueRegions: string[] = Array.from(new Set(enrichedEmployees.map((e) => e.profile?.LIBELLE_REGION).filter(Boolean) as string[]));
-  const uniqueStatuses: string[] = Array.from(new Set(enrichedEmployees.map((e) => e.profile?.STATUT).filter(Boolean) as string[]));
+  const uniqueVilles = Array.from(new Set(enrichedEmployees.map((e) => e.profile?.LIBELLE_LOC).filter(Boolean) as string[])).sort();
+  const uniqueDepartements = Array.from(new Set(availableJobs.map((j: Emploi) => j.entite).filter(Boolean))).sort();
+  const uniqueRegions = Array.from(new Set(enrichedEmployees.map((e) => e.profile?.LIBELLE_REGION).filter(Boolean) as string[])).sort();
+  const uniqueStatuses = Array.from(new Set(enrichedEmployees.map((e) => e.profile?.STATUT).filter(Boolean) as string[])).sort();
+  const uniqueJobs = Array.from(new Set(availableJobs.map((j: Emploi) => j.nom_emploi).filter(Boolean))).sort();
+
+  const filterOptions: FilterOption[] = [
+    { label: "Emploi", value: "Emploi", options: uniqueJobs },
+    { label: "Ville", value: "Ville", options: uniqueVilles },
+    { label: "Département", value: "Département", options: uniqueDepartements },
+    { label: "Région", value: "Région", options: uniqueRegions },
+    { label: "Statut", value: "Statut", options: uniqueStatuses },
+  ];
+
+  const availableOptions = filterOptions.find((opt) => opt.value === newFilterType)?.options || [];
+
+  const getFilterColor = (type: string) => {
+    switch (type) {
+      case "Emploi":
+        return "bg-blue-50 text-blue-700 border-blue-200";
+      case "Ville":
+        return "bg-green-50 text-green-700 border-green-200";
+      case "Département":
+        return "bg-yellow-50 text-yellow-700 border-yellow-200";
+      case "Région":
+        return "bg-purple-50 text-purple-700 border-purple-200";
+      case "Statut":
+        return "bg-red-50 text-red-700 border-red-200";
+      default:
+        return "bg-gray-50 text-gray-700 border-gray-200";
+    }
+  };
 
   return (
     <TooltipProvider>
@@ -221,7 +277,7 @@ export function EmployeesList() {
         <Card>
           <CardContent className="p-4">
             <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Rechercher par nom, email, CIN ou emploi..."
@@ -230,81 +286,167 @@ export function EmployeesList() {
                     setSearchTerm(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="pl-10"
+                  className="pl-10 pr-10 rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 transition-all"
+                  aria-label="Rechercher"
                 />
+                {searchTerm && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
+                    onClick={() => clearFilter("search")}
+                  >
+                    <XCircle className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                  </Button>
+                )}
               </div>
-              <div className="flex gap-2 flex-wrap">
-                <Select onValueChange={(value) => { setFilterEmploi(value); setCurrentPage(1); }}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Filtrer par emploi..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableJobs.map((job: Emploi) => (
-                      <SelectItem key={job.id_emploi} value={job.nom_emploi}>
-                        {job.nom_emploi}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select onValueChange={(value) => { setFilterVille(value); setCurrentPage(1); }}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Filtrer par ville..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {uniqueVilles.map((ville) => (
-                      <SelectItem key={ville} value={ville}>
-                        {ville}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select onValueChange={(value) => { setFilterDepartement(value); setCurrentPage(1); }}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Filtrer par département..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {uniqueDepartements.map((dep) => (
-                      <SelectItem key={dep} value={dep}>
-                        {dep}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select onValueChange={(value) => { setFilterRegion(value); setCurrentPage(1); }}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Filtrer par région..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {uniqueRegions.map((region) => (
-                      <SelectItem key={region} value={region}>
-                        {region}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select onValueChange={(value) => { setFilterStatus(value); setCurrentPage(1); }}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Filtrer par statut..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {uniqueStatuses.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {status}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex gap-2 w-full md:w-auto">
                 <Button
-                  variant={showArchived ? "default" : "outline"}
+                  variant="outline"
+                  className="flex items-center gap-2 rounded-lg border-gray-300 hover:bg-gray-100 transition-all"
                   onClick={() => {
                     setShowArchived(!showArchived);
                     setCurrentPage(1);
                   }}
                 >
                   {showArchived ? <User className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                  {showArchived ? "Afficher Actifs" : "Afficher Archivés"}
                 </Button>
-                <Button variant="default" onClick={handleSyncProfiles}>
-                  Synchroniser les profils
+                <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="flex items-center gap-2 rounded-lg border-gray-300 hover:bg-gray-100 transition-all"
+                    >
+                      <Filter className="h-4 w-4" /> Ajouter Filtre
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md rounded-xl bg-white shadow-2xl border border-gray-200 animate-in fade-in duration-200">
+                    <DialogHeader className="border-b border-gray-100 p-4">
+                      <DialogTitle className="text-xl font-bold text-gray-900">Ajouter un filtre</DialogTitle>
+                    </DialogHeader>
+                    <div className="p-6 space-y-6">
+                      <div className="relative">
+                        <select
+                          value={newFilterType}
+                          onChange={(e) => {
+                            setNewFilterType(e.target.value);
+                            setNewFilterValues([]);
+                            setSearchValue("");
+                          }}
+                          className="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-700 bg-white appearance-none"
+                          aria-label="Sélectionner le type de filtre"
+                        >
+                          <option value="">Choisir un type de filtre</option>
+                          {filterOptions.map((option) => (
+                            <option
+                              key={option.value}
+                              value={option.value}
+                              disabled={filters.some((f) => f.type === option.value)}
+                            >
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                          </svg>
+                        </div>
+                      </div>
+                      {newFilterType && (
+                        <div className="space-y-4">
+                          <Input
+                            ref={inputRef}
+                            placeholder={`Saisir ou rechercher ${newFilterType.toLowerCase()}...`}
+                            value={searchValue}
+                            onChange={(e) => {
+                              setSearchValue(e.target.value);
+                              setOpenPopover(e.target.value.length > 0);
+                            }}
+                            onKeyDown={handleKeyDown}
+                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all"
+                            aria-label={`Rechercher ${newFilterType.toLowerCase()}`}
+                          />
+                          {openPopover && (
+                            <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                              {availableOptions
+                                .filter((option) => option.toLowerCase().includes(searchValue.toLowerCase()))
+                                .map((option) => (
+                                  <div
+                                    key={option}
+                                    onClick={() => {
+                                      if (!newFilterValues.includes(option)) {
+                                        setNewFilterValues((prev) => [...prev, option]);
+                                        setSearchValue("");
+                                        setOpenPopover(false);
+                                      }
+                                    }}
+                                    className={clsx(
+                                      "p-2 cursor-pointer hover:bg-gray-100 transition-colors",
+                                      newFilterValues.includes(option) && "opacity-50 cursor-not-allowed"
+                                    )}
+                                  >
+                                    {option}
+                                  </div>
+                                ))}
+                              {availableOptions.filter((option) => option.toLowerCase().includes(searchValue.toLowerCase())).length === 0 && (
+                                <div className="p-2 text-gray-500">Aucun résultat. Appuyez sur Entrée pour ajouter.</div>
+                              )}
+                            </div>
+                          )}
+                          {newFilterValues.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {newFilterValues.map((value) => (
+                                <Badge
+                                  key={value}
+                                  variant="secondary"
+                                  className={clsx(
+                                    "flex items-center gap-1 p-1 text-sm font-medium rounded-full transition-all",
+                                    getFilterColor(newFilterType)
+                                  )}
+                                >
+                                  {value}
+                                  <X
+                                    className="h-3 w-3 cursor-pointer hover:bg-gray-300 rounded-full p-0.5"
+                                    onClick={() => setNewFilterValues((prev) => prev.filter((v) => v !== value))}
+                                    aria-label={`Supprimer ${value}`}
+                                  />
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter className="border-t border-gray-100 p-4 flex justify-end gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => setFilterDialogOpen(false)}
+                        className="rounded-lg border-gray-300 hover:bg-gray-100 text-gray-700 px-4 py-2 transition-all"
+                      >
+                        Annuler
+                      </Button>
+                      <Button
+                        variant="default"
+                        onClick={() => {
+                          addFilter();
+                          setFilterDialogOpen(false);
+                        }}
+                        disabled={!newFilterType || newFilterValues.length === 0}
+                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow-md transition-all"
+                      >
+                        Ajouter
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                <Button
+                  variant="default"
+                  onClick={handleSyncProfiles}
+                  className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all"
+                >
+                  Synchroniser
                 </Button>
                 <AddEmployeeModal />
               </div>
@@ -314,38 +456,43 @@ export function EmployeesList() {
                 {syncStatus}
               </div>
             )}
-            <div className="mt-3 flex items-center gap-2 flex-wrap">
-              {filterEmploi && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Emploi: {filterEmploi}
-                  <X className="h-3 w-3 cursor-pointer hover:bg-gray-300 rounded" onClick={() => clearFilter("emploi")} />
-                </Badge>
-              )}
-              {filterVille && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Ville: {filterVille}
-                  <X className="h-3 w-3 cursor-pointer hover:bg-gray-300 rounded" onClick={() => clearFilter("ville")} />
-                </Badge>
-              )}
-              {filterDepartement && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Département: {filterDepartement}
-                  <X className="h-3 w-3 cursor-pointer hover:bg-gray-300 rounded" onClick={() => clearFilter("departement")} />
-                </Badge>
-              )}
-              {filterRegion && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Région: {filterRegion}
-                  <X className="h-3 w-3 cursor-pointer hover:bg-gray-300 rounded" onClick={() => clearFilter("region")} />
-                </Badge>
-              )}
-              {filterStatus && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Statut: {filterStatus}
-                  <X className="h-3 w-3 cursor-pointer hover:bg-gray-300 rounded" onClick={() => clearFilter("status")} />
-                </Badge>
-              )}
-            </div>
+            {filters.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {filters.map((filter) =>
+                  filter.values.map((value) => (
+                    <Badge
+                      key={`${filter.type}-${value}`}
+                      variant="secondary"
+                      className={clsx("flex items-center gap-1", {
+                        "bg-blue-50 text-blue-700 border-blue-200": filter.type === "Emploi",
+                        "bg-green-50 text-green-700 border-green-200": filter.type === "Ville",
+                        "bg-yellow-50 text-yellow-700 border-yellow-200": filter.type === "Département",
+                        "bg-purple-50 text-purple-700 border-purple-200": filter.type === "Région",
+                        "bg-red-50 text-red-700 border-red-200": filter.type === "Statut",
+                      })}
+                    >
+                      {filter.type}: {value}
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:bg-gray-300 rounded"
+                        onClick={() => clearFilter(filter.type, value)}
+                        aria-label={`Supprimer filtre ${filter.type} ${value}`}
+                      />
+                    </Badge>
+                  ))
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 rounded-lg border-gray-300 hover:bg-gray-100 transition-all"
+                  onClick={() => {
+                    setFilters([]);
+                    setCurrentPage(1);
+                  }}
+                >
+                  Effacer tous les filtres
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -382,7 +529,6 @@ export function EmployeesList() {
                           <div className="flex flex-col gap-1">
                             {(employee.emplois || []).map((emploi) => {
                               const isTooLong = emploi.nom_emploi?.length > 20 || false;
-
                               return (
                                 <Badge
                                   key={emploi.id_emploi}
@@ -652,7 +798,6 @@ export function EmployeesList() {
                   Affichage de {indexOfFirstEmployee + 1} à{" "}
                   {Math.min(indexOfLastEmployee, filteredEmployees.length)} sur {filteredEmployees.length} employés
                 </div>
-
                 <div className="flex flex-wrap justify-center gap-1 md:gap-2">
                   <Button
                     variant="outline"
@@ -662,24 +807,15 @@ export function EmployeesList() {
                   >
                     Précédent
                   </Button>
-
                   {(() => {
                     const pages: React.ReactNode[] = [];
-
                     const showPages: (number | "start-ellipsis" | "end-ellipsis")[] = [1];
-
                     if (currentPage > 3) showPages.push("start-ellipsis");
-
                     for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-                      if (i > 1 && i < totalPages) {
-                        showPages.push(i);
-                      }
+                      if (i > 1 && i < totalPages) showPages.push(i);
                     }
-
                     if (currentPage < totalPages - 2) showPages.push("end-ellipsis");
-
                     if (totalPages > 1) showPages.push(totalPages);
-
                     showPages.forEach((item, index) => {
                       if (typeof item === "string") {
                         pages.push(
@@ -700,10 +836,8 @@ export function EmployeesList() {
                         );
                       }
                     });
-
                     return <>{pages}</>;
                   })()}
-
                   <Button
                     variant="outline"
                     size="sm"
