@@ -8,23 +8,42 @@ CREATE TABLE emploi (
     poidsemploi INTEGER DEFAULT 0      
 );
 
+CREATE TABLE profile (
+    id_profile SERIAL PRIMARY KEY,
+    profile_id INTEGER REFERENCES profile(id_profile);
+    "NOM PRENOM" VARCHAR(255),
+    "ADRESSE" VARCHAR(255) NULL,
+    "DATE NAISS" DATE NULL,
+    "DAT_REC" DATE NULL,
+    "CIN" VARCHAR(20) NULL,
+    "DETACHE" detache_enum,
+    "SEXE" sexe_enum,
+    "SIT_F_AG" situation_familiale_enum,
+    "STATUT" statut_enum,
+    "DAT_POS" DATE NULL,
+    "LIBELLE GRADE" VARCHAR(200) NULL,
+    "GRADE ASSIMILE" VARCHAR(200) NULL,
+    "LIBELLE FONCTION" VARCHAR(200) NULL,
+    "DAT_FCT" DATE NULL,
+    "LIBELLE LOC" VARCHAR(200) NULL,
+    "LIBELLE REGION" VARCHAR(200) NULL
+);
+
 CREATE TABLE employe (
     id_employe SERIAL PRIMARY KEY,
     nom_complet VARCHAR(100) NOT NULL,
     email VARCHAR(150) UNIQUE,
-    adresse VARCHAR(255),
     telephone1 VARCHAR(20),
     telephone2 VARCHAR(20),
     categorie VARCHAR(50),
     specialite VARCHAR(100),
-    experience_employe int,
+    experience_employe int
 );
 
 CREATE TABLE emploi_employe (
     id SERIAL PRIMARY KEY,
     id_emploi int not null,
     id_employe int not null
-
 );
 
 CREATE TABLE competencesR (
@@ -61,6 +80,7 @@ ALTER TABLE employe ADD COLUMN cin varchar(50);
 ALTER TABLE employe ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE employe ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE employe ADD COLUMN archived BOOLEAN DEFAULT FALSE;
+ALTER TABLE employe ADD COLUMN profile_id INTEGER REFERENCES profile(id_profile);
 
 ALTER TABLE employe_competencea ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE employe_competencea ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
@@ -104,7 +124,7 @@ FOREIGN KEY (id_competencea) REFERENCES competencesa(id_competencea) ON DELETE C
 
 
 \copy emploi(entite, formation, experience, codeemploi, poidsemploi, nom_emploi) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_emploi.csv' DELIMITER ';' CSV HEADER;
-\copy employe(nom_complet, email, adresse, telephone1, telephone2, categorie, specialite, experience_employe) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_employe.csv' DELIMITER ';' CSV HEADER;
+\copy employe(nom_complet, email, telephone1, telephone2, categorie, specialite, experience_employe) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_employe1.csv' DELIMITER ';' CSV HEADER;
 \copy emploi_employe(id_emploi, id_employe) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_emploi_employe.csv' DELIMITER ';' CSV HEADER;
 \copy competencesr(code_competencer, competencer) FROM 'C:\xampp\htdocs\Anep-FC\csv\competencer.csv' DELIMITER ';' CSV HEADER;
 \copy competencesa(code_competencea, competencea) FROM 'C:\xampp\htdocs\Anep-FC\csv\competencea.csv' DELIMITER ';' CSV HEADER;
@@ -118,24 +138,7 @@ CREATE TYPE sexe_enum AS ENUM ('F', 'M');
 CREATE TYPE situation_familiale_enum AS ENUM ('M', 'C', 'D');
 CREATE TYPE statut_enum AS ENUM ('activite', 'sortie de service');
 
-CREATE TABLE profile (
-    "NOM PRENOM" VARCHAR(255),
-    "ADRESSE" VARCHAR(255) NULL,
-    "DATE NAISS" DATE NULL,
-    "DAT_REC" DATE NULL,
-    "CIN" VARCHAR(20) NULL,
-    "DETACHE" detache_enum,
-    "SEXE" sexe_enum,
-    "SIT_F_AG" situation_familiale_enum,
-    "STATUT" statut_enum,
-    "DAT_POS" DATE NULL,
-    "LIBELLE GRADE" VARCHAR(200) NULL,
-    "GRADE ASSIMILE" VARCHAR(200) NULL,
-    "LIBELLE FONCTION" VARCHAR(200) NULL,
-    "DAT_FCT" DATE NULL,
-    "LIBELLE LOC" VARCHAR(200) NULL,
-    "LIBELLE REGION" VARCHAR(200) NULL
-);
+
 
 
 \copy profile("CIN", "NOM PRENOM", "DATE NAISS", "DETACHE", "SEXE", "SIT_F_AG", "DAT_REC", "STATUT", "DAT_POS", "LIBELLE GRADE", "GRADE ASSIMILE", "LIBELLE FONCTION", "DAT_FCT", "LIBELLE LOC", "LIBELLE REGION", "ADRESSE") FROM 'C:\xampp\htdocs\Anep-FC\csv\profile.csv' DELIMITER ';' CSV HEADER;
