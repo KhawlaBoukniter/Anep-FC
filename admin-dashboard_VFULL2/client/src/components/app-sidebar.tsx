@@ -55,10 +55,10 @@ export function AppSidebar({ activeSection, setActiveSection }: AppSidebarProps)
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
-                <SidebarMenuItem key={item.id}>
+                <SidebarMenuItem className="rounded-full shadow-lg py-2 px-4 border-l-4"  style={{ borderColor: '#06668C' }}    key={item.id}>
                   <SidebarMenuButton isActive={activeSection === item.id} onClick={() => setActiveSection(item.id)}>
-                    <item.icon />
-                    <span>{item.title}</span>
+                    <item.icon   style={{ color: '#06668C' }} />
+                    <span className="font-bold"  style={{ color: '#06668C' }} >{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
