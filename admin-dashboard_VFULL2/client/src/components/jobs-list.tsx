@@ -144,13 +144,13 @@ export function JobsList() {
                   placeholder="Rechercher par entité, code ou formation..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 border-l border-gray-800"
+                  className="pl-10 border-l border-green-600"
                 />
               </div>
 
               <div className="flex gap-2">
                 <Select value={filterEntite} onValueChange={(value) => setFilterEntite(value)}>
-                  <SelectTrigger className="w-40  border-l border-gray-800">
+                  <SelectTrigger className="w-40  border-l border-green-600">
                     <Filter className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Entité" />
                   </SelectTrigger>
