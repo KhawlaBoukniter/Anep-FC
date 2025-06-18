@@ -10,6 +10,7 @@ const jobRoutes = require("./routes/jobs")
 const skillRoutes = require("./routes/skills")
 const reqSkillRoutes = require("./routes/reqSkills")
 const analysisRoutes = require("./routes/analysis")
+const syncRoutes = require('./routes/syncRoutes');
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -42,6 +43,7 @@ app.use("/api/jobs", jobRoutes)
 app.use("/api/skills", skillRoutes)
 app.use("/api/req-skills", reqSkillRoutes)
 app.use("/api/analysis", analysisRoutes)
+app.use('/api', syncRoutes);
 
 // Route de santé
 app.get("/api/health", (req, res) => {
