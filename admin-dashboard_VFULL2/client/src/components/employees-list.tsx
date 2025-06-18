@@ -15,18 +15,24 @@ import { AddEmployeeModal } from "./add-employee-modal.tsx";
 import { EditEmployeeModal } from "./edit-employee-modal.tsx";
 import { DeleteEmployeeModal } from "./delete-employee-modal.tsx";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip.tsx";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command.tsx";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover.tsx";
-import { Employee, Emploi } from "../types/employee.ts";
+import { Employee, Emploi, Profile, Competence } from "../types/employee.ts";
 import clsx from "clsx";
 import CompetencesByLevel from "./CompetencesByLevel.tsx";
+
+// Extended interface to include profile
+interface ExtendedEmployee extends Employee {
+  profile: Profile | null;
+}
 
 export function EmployeesList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterEmploi, setFilterEmploi] = useState("");
+  const [filterVille, setFilterVille] = useState("");
+  const [filterDepartement, setFilterDepartement] = useState("");
+  const [filterRegion, setFilterRegion] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
   const [filterRole, setFilterRole] = useState("all");
   const [showArchived, setShowArchived] = useState(false);
-  const [openEmploiPopover, setOpenEmploiPopover] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [unarchiveDialogOpen, setUnarchiveDialogOpen] = useState(false);
@@ -34,27 +40,86 @@ export function EmployeesList() {
   const employeesPerPage = 10;
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { data: employees = [], isLoading } = useEmployees({ 
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
+
+  const handleSyncProfiles = async () => {
+    try {
+      const response = await fetch("/api/sync-profiles", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await response.json();
+      console.log("Sync response:", data);
+      if (response.ok) {
+        setSyncStatus(
+          `Synchronisation terminée à ${new Date().toLocaleTimeString("fr-FR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}. Mis à jour: ${data.updated}, Inséré: ${data.inserted}`
+        );
+      } else {
+        setSyncStatus(`Erreur lors de la synchronisation: ${data.message || "Vérifiez le serveur."}`);
+      }
+    } catch (error) {
+      console.error("Sync error:", error);
+      setSyncStatus(`Erreur lors de la synchronisation: ${error.message || "Problème de connexion."}`);
+    }
+  };
+
+  const { data: employeesData = [], isLoading, error } = useEmployees({
     search: searchTerm,
-    archived: showArchived 
+    archived: showArchived,
   });
+  console.log("Employees data from hook:", employeesData, "Loading:", isLoading, "Error:", error);
   const { mutate: archiveEmployee } = useArchiveEmployee();
   const { mutate: unarchiveEmployee } = useUnarchiveEmployee();
   const { data: availableJobs = [] } = useJobs();
 
-  const filteredEmployees = employees.filter((employee: Employee) => {
+  // Handle potential undefined or malformed data
+  const enrichedEmployees: ExtendedEmployee[] = employeesData
+    .map((data: Partial<Employee> = {}) => ({
+      ...data,
+      profile: data.profile || null,
+      emplois: data.emplois || [],
+      competences: data.competences || [],
+    }))
+    .filter((e): e is ExtendedEmployee => e !== null && e.id_employe !== undefined);
+  console.log("Enriched employees:", enrichedEmployees);
+
+  const filteredEmployees: ExtendedEmployee[] = enrichedEmployees.filter((employee: ExtendedEmployee) => {
+    const nomComplet = employee.nom_complet || "";
+    const email = employee.email || "";
+    const emplois = employee.emplois || [];
+    const cin = employee.cin || ""; // Recherche par CIN
+
     const matchesSearch =
-      employee.nom_complet.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (employee.emplois || []).some((e) => e.nom_emploi.toLowerCase().includes(searchTerm.toLowerCase()));
+      nomComplet.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emplois.some((e) => e?.nom_emploi?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+      cin.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesEmploi =
       !filterEmploi ||
-      (employee.emplois || []).some((e) => e.nom_emploi.toLowerCase().includes(filterEmploi.toLowerCase()));
+      emplois.some((e) => e?.nom_emploi?.toLowerCase().includes(filterEmploi.toLowerCase()) || false);
+    const matchesVille =
+      !filterVille ||
+      (employee.profile?.LIBELLE_LOC?.toLowerCase().includes(filterVille.toLowerCase()) || false);
+    const matchesDepartement =
+      !filterDepartement ||
+      emplois.some((e) => e?.entite?.toLowerCase().includes(filterDepartement.toLowerCase()) || false);
+    const matchesRegion =
+      !filterRegion ||
+      (employee.profile?.LIBELLE_REGION?.toLowerCase().includes(filterRegion.toLowerCase()) || false);
+    const matchesStatus =
+      !filterStatus ||
+      (employee.profile?.STATUT?.toLowerCase() === filterStatus.toLowerCase() || false);
     const matchesRole = filterRole === "all" || employee.role === filterRole;
 
-    return matchesSearch && matchesEmploi && matchesRole;
+    return matchesSearch && matchesEmploi && matchesVille && matchesDepartement && matchesRegion && matchesStatus && matchesRole;
   });
+  console.log("Filtered employees:", filteredEmployees);
 
   const totalPages = Math.ceil(filteredEmployees.length / employeesPerPage);
   const indexOfLastEmployee = currentPage * employeesPerPage;
@@ -67,26 +132,24 @@ export function EmployeesList() {
     }
   };
 
-  const selectEmploi = (emploi: string) => {
-    setFilterEmploi(emploi);
-    setOpenEmploiPopover(false);
+  const clearFilter = (filterType: string) => {
+    if (filterType === "emploi") setFilterEmploi("");
+    if (filterType === "ville") setFilterVille("");
+    if (filterType === "departement") setFilterDepartement("");
+    if (filterType === "region") setFilterRegion("");
+    if (filterType === "status") setFilterStatus("");
     setCurrentPage(1);
   };
 
-  const clearEmploiFilter = () => {
-    setFilterEmploi("");
-    setCurrentPage(1);
-  };
-
-  const getRoleColor = (role: string) => {
+  const getRoleColor = (role: "user" | "admin") => {
     return role === "admin" ? "bg-purple-100 text-purple-800" : "bg-gray-100 text-gray-800";
   };
 
   const stats = {
-    total: employees.length,
-    admins: employees.filter((e: Employee) => e.role === "admin").length,
-    emplois: new Set(employees.flatMap((e: Employee) => (e.emplois || []).map((j) => j.nom_emploi))).size,
-    competencesTotal: employees.reduce((acc: number, emp: Employee) => acc + (emp.competences || []).length, 0),
+    total: enrichedEmployees.length,
+    admins: enrichedEmployees.filter((e: Employee) => e.role === "admin").length,
+    emplois: new Set(enrichedEmployees.flatMap((e: Employee) => (e.emplois || []).map((j) => j.nom_emploi))).size,
+    competencesTotal: enrichedEmployees.reduce((acc: number, emp: Employee) => acc + (emp.competences || []).length, 0),
   };
 
   const handleArchive = (employee: Employee) => {
@@ -101,7 +164,7 @@ export function EmployeesList() {
 
   const confirmArchive = () => {
     if (selectedEmployee) {
-      archiveEmployee(selectedEmployee.id);
+      archiveEmployee({ id_employe: selectedEmployee.id_employe });
       setArchiveDialogOpen(false);
       setSelectedEmployee(null);
     }
@@ -109,11 +172,17 @@ export function EmployeesList() {
 
   const confirmUnarchive = () => {
     if (selectedEmployee) {
-      unarchiveEmployee(selectedEmployee.id);
+      unarchiveEmployee({ id_employe: selectedEmployee.id_employe });
       setUnarchiveDialogOpen(false);
       setSelectedEmployee(null);
     }
   };
+
+  // Get unique values for filters
+  const uniqueVilles: string[] = Array.from(new Set(enrichedEmployees.map((e) => e.profile?.LIBELLE_LOC).filter(Boolean) as string[]));
+  const uniqueDepartements: string[] = Array.from(new Set(availableJobs.map((j: Emploi) => j.entite).filter(Boolean)));
+  const uniqueRegions: string[] = Array.from(new Set(enrichedEmployees.map((e) => e.profile?.LIBELLE_REGION).filter(Boolean) as string[]));
+  const uniqueStatuses: string[] = Array.from(new Set(enrichedEmployees.map((e) => e.profile?.STATUT).filter(Boolean) as string[]));
 
   return (
     <TooltipProvider>
@@ -155,7 +224,7 @@ export function EmployeesList() {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Rechercher par nom, email ou emploi..."
+                  placeholder="Rechercher par nom, email, CIN ou emploi..."
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
@@ -164,59 +233,65 @@ export function EmployeesList() {
                   className="pl-10"
                 />
               </div>
-              <div className="flex gap-2">
-                <div className="relative">
-                  <Popover open={openEmploiPopover} onOpenChange={setOpenEmploiPopover}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-48 justify-start text-left overflow-hidden text-ellipsis whitespace-nowrap"
-                        role="combobox"
-                      >
-                        <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
-                        <span className="truncate">{filterEmploi || "Filtrer par emploi..."}</span>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="p-0 w-64" align="start" side="bottom" sideOffset={5}>
-                      <Command>
-                        <CommandInput placeholder="Rechercher un emploi..." />
-                        <CommandList>
-                          <CommandEmpty>Aucun emploi trouvé.</CommandEmpty>
-                          <CommandGroup>
-                            {availableJobs.map((job: Emploi) => (
-                              <CommandItem
-                                key={job.id_emploi}
-                                value={job.nom_emploi}
-                                onSelect={() => {
-                                  selectEmploi(job.nom_emploi);
-                                }}
-                              >
-                                <div className="flex flex-col">
-                                  <span className="font-medium">{job.nom_emploi}</span>
-                                  <span className="text-sm text-muted-foreground">{job.codeemploi}</span>
-                                </div>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <Select 
-                  value={filterRole}
-                  onValueChange={(value) => {
-                    setFilterRole(value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="Rôle" />
+              <div className="flex gap-2 flex-wrap">
+                <Select onValueChange={(value) => { setFilterEmploi(value); setCurrentPage(1); }}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Filtrer par emploi..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tous les rôles</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="user">User</SelectItem>
+                    {availableJobs.map((job: Emploi) => (
+                      <SelectItem key={job.id_emploi} value={job.nom_emploi}>
+                        {job.nom_emploi}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select onValueChange={(value) => { setFilterVille(value); setCurrentPage(1); }}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Filtrer par ville..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {uniqueVilles.map((ville) => (
+                      <SelectItem key={ville} value={ville}>
+                        {ville}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select onValueChange={(value) => { setFilterDepartement(value); setCurrentPage(1); }}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Filtrer par département..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {uniqueDepartements.map((dep) => (
+                      <SelectItem key={dep} value={dep}>
+                        {dep}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select onValueChange={(value) => { setFilterRegion(value); setCurrentPage(1); }}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Filtrer par région..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {uniqueRegions.map((region) => (
+                      <SelectItem key={region} value={region}>
+                        {region}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select onValueChange={(value) => { setFilterStatus(value); setCurrentPage(1); }}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Filtrer par statut..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {uniqueStatuses.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Button
@@ -226,20 +301,51 @@ export function EmployeesList() {
                     setCurrentPage(1);
                   }}
                 >
-                  {showArchived ? "Voir Actifs" : "Voir Archivés"}
+                  {showArchived ? <User className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                </Button>
+                <Button variant="default" onClick={handleSyncProfiles}>
+                  Synchroniser les profils
                 </Button>
                 <AddEmployeeModal />
               </div>
             </div>
-            {filterEmploi && (
-              <div className="mt-3 flex items-center gap-2">
-                <span className="text-sm text-gray-600">Filtre actif:</span>
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  {filterEmploi}
-                  <X className="h-3 w-3 cursor-pointer hover:bg-gray-300 rounded" onClick={clearEmploiFilter} />
-                </Badge>
+            {syncStatus && (
+              <div className="mt-2 p-2 text-sm text-center bg-green-100 text-green-800 rounded-md" role="alert">
+                {syncStatus}
               </div>
             )}
+            <div className="mt-3 flex items-center gap-2 flex-wrap">
+              {filterEmploi && (
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  Emploi: {filterEmploi}
+                  <X className="h-3 w-3 cursor-pointer hover:bg-gray-300 rounded" onClick={() => clearFilter("emploi")} />
+                </Badge>
+              )}
+              {filterVille && (
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  Ville: {filterVille}
+                  <X className="h-3 w-3 cursor-pointer hover:bg-gray-300 rounded" onClick={() => clearFilter("ville")} />
+                </Badge>
+              )}
+              {filterDepartement && (
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  Département: {filterDepartement}
+                  <X className="h-3 w-3 cursor-pointer hover:bg-gray-300 rounded" onClick={() => clearFilter("departement")} />
+                </Badge>
+              )}
+              {filterRegion && (
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  Région: {filterRegion}
+                  <X className="h-3 w-3 cursor-pointer hover:bg-gray-300 rounded" onClick={() => clearFilter("region")} />
+                </Badge>
+              )}
+              {filterStatus && (
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  Statut: {filterStatus}
+                  <X className="h-3 w-3 cursor-pointer hover:bg-gray-300 rounded" onClick={() => clearFilter("status")} />
+                </Badge>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -254,6 +360,8 @@ export function EmployeesList() {
           <CardContent>
             {isLoading ? (
               <p>Chargement...</p>
+            ) : error ? (
+              <p className="text-red-600">Erreur: {error.message}</p>
             ) : (
               <div className="rounded-md border">
                 <Table>
@@ -267,17 +375,18 @@ export function EmployeesList() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {currentEmployees.map((employee: Employee) => (
-                      <TableRow key={employee.id} className="hover:bg-gray-50">
-                        <TableCell className="font-medium text-sm text-start">{employee.nom_complet}</TableCell>
+                    {currentEmployees.map((employee: ExtendedEmployee) => (
+                      <TableRow key={employee.id_employe} className="hover:bg-gray-50">
+                        <TableCell className="font-medium text-sm text-start">{employee.nom_complet || "-"}</TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
                             {(employee.emplois || []).map((emploi) => {
-                              const isTooLong = emploi.nom_emploi.length > 20;
+                              const isTooLong = emploi.nom_emploi?.length > 20 || false;
 
                               return (
                                 <Badge
                                   key={emploi.id_emploi}
+                                  variant="secondary"
                                   className={clsx(
                                     "relative overflow-hidden whitespace-nowrap max-w-[160px] px-2",
                                     isTooLong && "animate-scrollText"
@@ -289,14 +398,14 @@ export function EmployeesList() {
                                       isTooLong && "will-change-transform animate-scrollContent"
                                     )}
                                   >
-                                    {emploi.nom_emploi}
+                                    {emploi.nom_emploi || "-"}
                                   </span>
                                 </Badge>
                               );
                             })}
                           </div>
                         </TableCell>
-                        <TableCell className="text-gray-600">{employee.email}</TableCell>
+                        <TableCell className="text-gray-600">{employee.email || "-"}</TableCell>
                         <TableCell>
                           <Badge className={getRoleColor(employee.role)} variant="secondary">
                             {employee.role === "admin" ? (
@@ -324,7 +433,7 @@ export function EmployeesList() {
                                   </DialogTrigger>
                                   <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
                                     <DialogHeader>
-                                      <DialogTitle>{employee.nom_complet}</DialogTitle>
+                                      <DialogTitle>{employee.nom_complet || "-"}</DialogTitle>
                                     </DialogHeader>
                                     <div className="pr-2">
                                       <div className="grid grid-cols-2 gap-4 text-sm my-6">
@@ -339,6 +448,28 @@ export function EmployeesList() {
                                           <p className="text-gray-600">{employee.email || "-"}</p>
                                         </div>
                                         <div>
+                                          <span className="font-medium text-gray-700">CIN:</span>
+                                          <p className="text-gray-600">{employee.cin || "-"}</p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Ville:</span>
+                                          <p className="text-gray-600">{employee.profile?.LIBELLE_LOC || "-"}</p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Région:</span>
+                                          <p className="text-gray-600">{employee.profile?.LIBELLE_REGION || "-"}</p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Statut:</span>
+                                          <p className="text-gray-600">{employee.profile?.STATUT || "-"}</p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Département:</span>
+                                          <p className="text-gray-600">
+                                            {(employee.emplois || []).map((e) => e.entite).join(", ") || "-"}
+                                          </p>
+                                        </div>
+                                        <div>
                                           <span className="font-medium text-gray-700">Téléphone 1:</span>
                                           <p className="text-gray-600">{employee.telephone1 || "-"}</p>
                                         </div>
@@ -348,27 +479,23 @@ export function EmployeesList() {
                                         </div>
                                         <div>
                                           <span className="font-medium text-gray-700">Adresse:</span>
-                                          <p className="text-gray-600">{employee.adresse || "-"}</p>
+                                          <p className="text-gray-600">{employee.profile?.ADRESSE || "-"}</p>
                                         </div>
                                         <div>
                                           <span className="font-medium text-gray-700">Date de Recrutement:</span>
                                           <p className="text-gray-600">
-                                            {employee.date_recrutement
-                                              ? new Date(employee.date_recrutement).toLocaleDateString("fr-FR")
+                                            {employee.profile?.DAT_REC
+                                              ? new Date(employee.profile.DAT_REC).toLocaleDateString("fr-FR")
                                               : "-"}
                                           </p>
                                         </div>
                                         <div>
                                           <span className="font-medium text-gray-700">Date de Naissance:</span>
                                           <p className="text-gray-600">
-                                            {employee.date_naissance
-                                              ? new Date(employee.date_naissance).toLocaleDateString("fr-FR")
+                                            {employee.profile?.DATE_NAISS
+                                              ? new Date(employee.profile.DATE_NAISS).toLocaleDateString("fr-FR")
                                               : "-"}
                                           </p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">CIN:</span>
-                                          <p className="text-gray-600">{employee.cin || "-"}</p>
                                         </div>
                                         <div>
                                           <span className="font-medium text-gray-700">Rôle:</span>
@@ -389,8 +516,52 @@ export function EmployeesList() {
                                           <p className="text-gray-600">{employee.experience_employe || "-"} ans</p>
                                         </div>
                                         <div>
-                                          <span className="font-medium text-gray-700">Statut:</span>
-                                          <Badge variant={employee.archived ? "destructive" : "success"}>
+                                          <span className="font-medium text-gray-700">Détaché:</span>
+                                          <p className="text-gray-600">{employee.profile?.DETACHE || "-"}</p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Sexe:</span>
+                                          <p className="text-gray-600">{employee.profile?.SEXE || "-"}</p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Situation Familiale:</span>
+                                          <p className="text-gray-600">{employee.profile?.SIT_F_AG || "-"}</p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Grade:</span>
+                                          <p className="text-gray-600">{employee.profile?.LIBELLE_GRADE || "-"}</p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Grade Assimilé:</span>
+                                          <p className="text-gray-600">{employee.profile?.GRADE_ASSIMILE || "-"}</p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Fonction:</span>
+                                          <p className="text-gray-600">{employee.profile?.LIBELLE_FONCTION || "-"}</p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Date de Fonction:</span>
+                                          <p className="text-gray-600">
+                                            {employee.profile?.DAT_FCT
+                                              ? new Date(employee.profile.DAT_FCT).toLocaleDateString("fr-FR")
+                                              : "-"}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Créé le:</span>
+                                          <p className="text-gray-600">
+                                            {employee.created_at ? new Date(employee.created_at).toLocaleDateString("fr-FR") : "-"}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Mis à jour le:</span>
+                                          <p className="text-gray-600">
+                                            {employee.updated_at ? new Date(employee.updated_at).toLocaleDateString("fr-FR") : "-"}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium text-gray-700">Statut Employé:</span>
+                                          <Badge variant={employee.archived ? "destructive" : "secondary"}>
                                             {employee.archived ? "Archivé" : "Actif"}
                                           </Badge>
                                         </div>
@@ -440,7 +611,7 @@ export function EmployeesList() {
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <DeleteEmployeeModal
-                                      employeeId={employee.id}
+                                      employeeId={employee.id_employe}
                                       employeeName={employee.nom_complet}
                                     />
                                   </TooltipTrigger>
@@ -530,7 +701,7 @@ export function EmployeesList() {
                       }
                     });
 
-                    return <>{pages}</>; 
+                    return <>{pages}</>;
                   })()}
 
                   <Button
@@ -545,7 +716,7 @@ export function EmployeesList() {
               </div>
             )}
 
-            {filteredEmployees.length === 0 && !isLoading && (
+            {filteredEmployees.length === 0 && !isLoading && !error && (
               <div className="text-center py-8">
                 <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -565,7 +736,7 @@ export function EmployeesList() {
             <DialogHeader>
               <DialogTitle>Confirmer l'archivage</DialogTitle>
             </DialogHeader>
-            <p>Voulez-vous vraiment archiver l'employé {selectedEmployee?.nom_complet} ?</p>
+            <p>Voulez-vous vraiment archiver l'employé {selectedEmployee?.nom_complet || "-"} ?</p>
             <DialogFooter>
               <Button variant="outline" onClick={() => setArchiveDialogOpen(false)}>
                 Annuler
@@ -583,7 +754,7 @@ export function EmployeesList() {
             <DialogHeader>
               <DialogTitle>Confirmer le désarchivage</DialogTitle>
             </DialogHeader>
-            <p>Voulez-vous vraiment désarchiver l'employé {selectedEmployee?.nom_complet} ?</p>
+            <p>Voulez-vous vraiment désarchiver l'employé {selectedEmployee?.nom_complet || "-"} ?</p>
             <DialogFooter>
               <Button variant="outline" onClick={() => setUnarchiveDialogOpen(false)}>
                 Annuler
