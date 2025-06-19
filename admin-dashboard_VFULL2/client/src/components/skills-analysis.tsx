@@ -54,6 +54,8 @@ export function SkillsAnalysis() {
   const [analysisResults, setAnalysisResults] = useState<AnalysisResult[]>([])
   const [hasAnalyzed, setHasAnalyzed] = useState(false)
   const [analysisType, setAnalysisType] = useState<"union" | "intersection">("union")
+  const [currentPage, setCurrentPage] = useState(1)
+  const resultsPerPage = 10
   const inputRef = useRef<HTMLInputElement>(null)
   const { data, isLoading, error } = useSkillsAnalysis()
 
@@ -128,8 +130,6 @@ export function SkillsAnalysis() {
           }
         })
 
-        // Pour l'union: au moins une compétence doit correspondre
-        // Pour l'intersection: toutes les compétences doivent correspondre
         const allSkillsMatch = analysisType === "union"
           ? matchedSkills.some((s) => s.matchesAcquired && s.matchesRequired)
           : matchedSkills.every((s) => s.matchesAcquired && s.matchesRequired)
@@ -144,6 +144,7 @@ export function SkillsAnalysis() {
 
     setAnalysisResults(results)
     setHasAnalyzed(true)
+    setCurrentPage(1)
   }
 
   const resetAnalysis = () => {
@@ -153,6 +154,7 @@ export function SkillsAnalysis() {
     setHasAnalyzed(false)
     setOpenSkillPopover(false)
     setAnalysisType("union")
+    setCurrentPage(1)
   }
 
   const handleDownloadExcel = () => {
@@ -193,6 +195,15 @@ export function SkillsAnalysis() {
       case 4: return "bg-green-100 text-green-800"
       default: return "bg-gray-100 text-gray-800"
     }
+  }
+
+  const totalPages = Math.ceil(analysisResults.length / resultsPerPage)
+  const indexOfLastResult = currentPage * resultsPerPage
+  const indexOfFirstResult = indexOfLastResult - resultsPerPage
+  const currentResults = analysisResults.slice(indexOfFirstResult, indexOfLastResult)
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) setCurrentPage(page)
   }
 
   if (isLoading) {
@@ -286,7 +297,6 @@ export function SkillsAnalysis() {
 
           </div>
           
-
           {selectedSkills.length > 0 && (
             <div className="space-y-4 ">
               <Label>Compétences sélectionnées</Label>
@@ -354,8 +364,8 @@ export function SkillsAnalysis() {
       </Card>
 
       {hasAnalyzed && (
-        <Card  className="bg-gray-100">
-          <CardHeader >
+        <Card className="bg-gray-100">
+          <CardHeader>
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-lg text-yellow-500">Résultats de l'analyse ({analysisType === "union" ? "Union" : "Intersection"})</CardTitle>
@@ -366,7 +376,7 @@ export function SkillsAnalysis() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="secondary"  className="text-purple-800">{analysisResults.length} résultat(s)</Badge>
+                <Badge variant="secondary" className="text-purple-800">{analysisResults.length} résultat(s)</Badge>
                 {analysisResults.length > 0 && (
                   <Button className="bg-purple-800 text-white" variant="outline" size="sm" onClick={handleDownloadExcel}>
                     <Download className="h-4 w-4 mr-2 text-yellow-300" />
@@ -378,20 +388,20 @@ export function SkillsAnalysis() {
           </CardHeader>
           <CardContent>
             {analysisResults.length > 0 ? (
-              <div className="rounded-md border">
-                <Table  className="bg-white">
+              <div className="rounded-md border overflow-x-auto">
+                <Table className="bg-white w-full">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-purple-800">Employé</TableHead>
                       <TableHead className="text-purple-800">Poste</TableHead>
                       <TableHead className="text-purple-800">Département</TableHead>
                       {selectedSkills.map((skill) => (
-                        <TableHead className="text-yellow-500"key={skill.name}>{skill.name}</TableHead>
+                        <TableHead className="text-yellow-500" key={skill.name}>{skill.name}</TableHead>
                       ))}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {analysisResults.map((result) => (
+                    {currentResults.map((result) => (
                       <TableRow key={result.employee.id} className="hover:bg-gray-50">
                         <TableCell className="font-medium">
                           {result.employee.nom_complet}
@@ -420,6 +430,63 @@ export function SkillsAnalysis() {
                     ))}
                   </TableBody>
                 </Table>
+                {totalPages > 1 && (
+                  <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div className="text-sm text-gray-600 text-center md:text-left">
+                      Affichage de {indexOfFirstResult + 1} à{" "}
+                      {Math.min(indexOfLastResult, analysisResults.length)} sur {analysisResults.length} résultats
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-1 md:gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                      >
+                        Précédent
+                      </Button>
+                      {(() => {
+                        const pages: React.ReactNode[] = [];
+                        const showPages: (number | "start-ellipsis" | "end-ellipsis")[] = [1];
+                        if (currentPage > 3) showPages.push("start-ellipsis");
+                        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+                          if (i > 1 && i < totalPages) showPages.push(i);
+                        }
+                        if (currentPage < totalPages - 2) showPages.push("end-ellipsis");
+                        if (totalPages > 1) showPages.push(totalPages);
+                        showPages.forEach((item, index) => {
+                          if (typeof item === "string") {
+                            pages.push(
+                              <span key={item + index} className="px-2 text-gray-500">
+                                …
+                              </span>
+                            );
+                          } else {
+                            pages.push(
+                              <Button
+                                key={item}
+                                variant={currentPage === item ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => handlePageChange(item)}
+                              >
+                                {item}
+                              </Button>
+                            );
+                          }
+                        });
+                        return <>{pages}</>;
+                      })()}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                      >
+                        Suivant
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-8">

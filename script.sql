@@ -10,7 +10,7 @@ CREATE TABLE emploi (
 
 CREATE TABLE profile (
     id_profile SERIAL PRIMARY KEY,
-    profile_id INTEGER REFERENCES profile(id_profile);
+    profile_id INTEGER REFERENCES profile(id_profile),
     "NOM PRENOM" VARCHAR(255),
     "ADRESSE" VARCHAR(255) NULL,
     "DATE NAISS" DATE NULL,
@@ -74,8 +74,8 @@ CREATE TABLE employe_competencea (
 
 
 ALTER TABLE employe ADD COLUMN role varchar(50) not null check (role in ('user', 'admin')) DEFAULT 'user';
-ALTER TABLE employe ADD COLUMN date_naissance DATE ;
-ALTER TABLE employe ADD COLUMN date_recrutement DATE;
+-- ALTER TABLE employe ADD COLUMN date_naissance DATE ;
+-- ALTER TABLE employe ADD COLUMN date_recrutement DATE;
 ALTER TABLE employe ADD COLUMN cin varchar(50);
 ALTER TABLE employe ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE employe ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
