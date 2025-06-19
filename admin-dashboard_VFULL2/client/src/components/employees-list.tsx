@@ -192,16 +192,19 @@ export function EmployeesList() {
   };
 
   const confirmArchive = () => {
-    if (selectedEmployee) {
-      archiveEmployee({ id_employe: selectedEmployee.id_employe });
+    if (selectedEmployee && selectedEmployee.id_employe && !isNaN(Number(selectedEmployee.id_employe))) {
+      archiveEmployee(selectedEmployee.id_employe);
       setArchiveDialogOpen(false);
       setSelectedEmployee(null);
+    } else {
+      console.error("ID de l'employé invalide ou manquant:", selectedEmployee);
+      alert("Veuillez sélectionner un employé valide avant d'archiver.");
     }
   };
 
   const confirmUnarchive = () => {
     if (selectedEmployee) {
-      unarchiveEmployee({ id_employe: selectedEmployee.id_employe });
+      unarchiveEmployee(selectedEmployee.id_employe);
       setUnarchiveDialogOpen(false);
       setSelectedEmployee(null);
     }

@@ -78,7 +78,7 @@ export const useUpdateEmployee = () => {
       const finalData = {
         ...data,
         competences: existingSkills,
-        profile_id: data.profile_id, // Include profile_id
+        profile_id: data.profile_id,
       };
 
       return employeeService.update(id, finalData);
