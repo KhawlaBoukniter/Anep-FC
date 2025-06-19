@@ -245,27 +245,27 @@ export function EmployeesList() {
       <div className="space-y-6">
         {/* Header with stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
+          <Card className="border-l-4 border-blue-800 shadow-lg shadow-blue-800">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Users className="h-5 w-5 text-blue-600" />
+                <div className="p-2 bg-blue-200 rounded-lg">
+                  <Users className="h-5 w-5 text-blue-800" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Total Employés</p>
+                  <p className="text-sm text-blue-800">Total Employés</p>
                   <p className="text-2xl font-bold">{stats.total}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-l-4 border-green-700 shadow-lg shadow-green-700">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-100 rounded-lg">
-                  <MapPin className="h-5 w-5 text-green-600" />
+                  <MapPin className="h-5 w-5 text-green-700" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Emplois</p>
+                  <p className="text-sm text-green-700">Emplois</p>
                   <p className="text-2xl font-bold">{stats.emplois}</p>
                 </div>
               </div>
@@ -274,11 +274,11 @@ export function EmployeesList() {
         </div>
 
         {/* Search and filters */}
-        <Card>
+        <Card className="bg-gray-100">
           <CardContent className="p-4">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-900" />
                 <Input
                   placeholder="Rechercher par nom, email, CIN ou emploi..."
                   value={searchTerm}
@@ -286,14 +286,14 @@ export function EmployeesList() {
                     setSearchTerm(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="pl-10 pr-10 rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 transition-all"
+                  className="pl-10 pr-10 rounded-lg border-blue-700 bg-white focus:ring-2 focus:ring-blue-500 transition-all"
                   aria-label="Rechercher"
                 />
                 {searchTerm && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
+                    className="absolute  right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
                     onClick={() => clearFilter("search")}
                   >
                     <XCircle className="h-4 w-4 text-gray-400 hover:text-gray-600" />
@@ -303,7 +303,7 @@ export function EmployeesList() {
               <div className="flex gap-2 w-full md:w-auto">
                 <Button
                   variant="outline"
-                  className="flex items-center gap-2 rounded-lg border-gray-300 hover:bg-gray-100 transition-all"
+                  className="flex items-center bg-white gap-2 rounded-lg border-blue-700 hover:bg-gray-100 transition-all"
                   onClick={() => {
                     setShowArchived(!showArchived);
                     setCurrentPage(1);
@@ -316,7 +316,7 @@ export function EmployeesList() {
                   <DialogTrigger asChild>
                     <Button
                       variant="outline"
-                      className="flex items-center gap-2 rounded-lg border-gray-300 hover:bg-gray-100 transition-all"
+                      className="flex items-center gap-2 bg-white rounded-lg border-blue-700 hover:bg-gray-100 transition-all"
                     >
                       <Filter className="h-4 w-4" /> Ajouter Filtre
                     </Button>
@@ -444,7 +444,7 @@ export function EmployeesList() {
                 <Button
                   variant="default"
                   onClick={handleSyncProfiles}
-                  className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all"
+                  className="rounded-lg bg-blue-900 hover:bg-blue-800 text-white shadow-md transition-all"
                 >
                   Synchroniser
                 </Button>
@@ -497,10 +497,10 @@ export function EmployeesList() {
         </Card>
 
         {/* Employees table */}
-        <Card>
+        <Card className="bg-gray-100">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl">{showArchived ? "Employés Archivés" : "Liste des Employés"}</CardTitle>
+            <div className="flex items-center justify-between text-blue-900">
+              <CardTitle className="text-xl ">{showArchived ? "Employés Archivés" : "Liste des Employés"}</CardTitle>
               <Badge variant="secondary">{filteredEmployees.length} résultat(s)</Badge>
             </div>
           </CardHeader>
@@ -511,14 +511,14 @@ export function EmployeesList() {
               <p className="text-red-600">Erreur: {error.message}</p>
             ) : (
               <div className="rounded-md border">
-                <Table>
+                <Table className="bg-white">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-1/4 text-center">Nom Complet</TableHead>
-                      <TableHead className="w-1/4 text-center pr-12">Emploi</TableHead>
-                      <TableHead className="w-1/4 text-center pr-12">Email</TableHead>
-                      <TableHead className="w-1/6 text-center">Rôle</TableHead>
-                      <TableHead className="w-1/6 text-center">Actions</TableHead>
+                      <TableHead className="w-1/4 text-blue-900 text-center">Nom Complet</TableHead>
+                      <TableHead className="w-1/4 text-blue-900 text-center pr-12">Emploi</TableHead>
+                      <TableHead className="w-1/4 text-blue-900 text-center pr-12">Email</TableHead>
+                      <TableHead className="w-1/6 text-blue-900 text-center">Rôle</TableHead>
+                      <TableHead className="w-1/6 text-blue-900 text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -574,7 +574,7 @@ export function EmployeesList() {
                                 <Dialog>
                                   <DialogTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">
-                                      <Eye className="h-4 w-4" />
+                                      <Eye className="h-4 w-4 text-green-600" />
                                     </Button>
                                   </DialogTrigger>
                                   <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
@@ -744,7 +744,7 @@ export function EmployeesList() {
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-8 w-8"
+                                      className="h-8 w-8 text-green-600"
                                       onClick={() => handleUnarchive(employee)}
                                     >
                                       <ArchiveRestore className="h-4 w-4" />
@@ -772,7 +772,7 @@ export function EmployeesList() {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8"
+                                    className="h-8 w-8 text-yellow-600"
                                     onClick={() => handleArchive(employee)}
                                   >
                                     <Archive className="h-4 w-4" />
@@ -798,12 +798,13 @@ export function EmployeesList() {
                   Affichage de {indexOfFirstEmployee + 1} à{" "}
                   {Math.min(indexOfLastEmployee, filteredEmployees.length)} sur {filteredEmployees.length} employés
                 </div>
-                <div className="flex flex-wrap justify-center gap-1 md:gap-2">
+                <div className="flex flex-wrap justify-center text- gap-1 md:gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
+                    className="bg-blue-900 text-white"
                   >
                     Précédent
                   </Button>
@@ -843,6 +844,7 @@ export function EmployeesList() {
                     size="sm"
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
+                    className="bg-blue-900 text-white"
                   >
                     Suivant
                   </Button>
