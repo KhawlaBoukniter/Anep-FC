@@ -407,7 +407,7 @@ export function ReqSkillsManagement() {
                                 <Dialog>
                                   <DialogTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">
-                                      <Eye className="h-4 w-4" />
+                                      <Eye className="h-4 w-4 text-green-600" />
                                     </Button>
                                   </DialogTrigger>
                                   <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
