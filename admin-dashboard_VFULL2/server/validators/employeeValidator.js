@@ -2,14 +2,14 @@ const Joi = require("joi");
 
 const employeeSchema = Joi.object({
     nom_complet: Joi.string().min(2).max(100).required(),
-    email: Joi.string().email().required(),
+    email: Joi.string().email().allow(null),
     telephone1: Joi.string().max(20).allow(null),
     telephone2: Joi.string().max(20).allow(null),
     categorie: Joi.string().max(50).allow(null),
     specialite: Joi.string().max(100).allow(null),
     experience_employe: Joi.number().integer().min(0).allow(null),
     role: Joi.string().valid("user", "admin").default("user"),
-    cin: Joi.string().max(50).required(),
+    cin: Joi.string().max(50).allow(null),
     archived: Joi.boolean().default(false),
     emplois: Joi.array()
         .items(
@@ -29,11 +29,11 @@ const employeeSchema = Joi.object({
     profile: Joi.object({
         "NOM PRENOM": Joi.string().min(2).max(255).required(),
         ADRESSE: Joi.string().max(255).allow(null),
-        DATE_NAISS: Joi.date().required(),
-        DAT_REC: Joi.date().required(),
-        CIN: Joi.string().pattern(/^[A-Z]{1,2}[0-9]{5,6}$/).required(),
+        DATE_NAISS: Joi.date().allow(null),
+        DAT_REC: Joi.date().allow(null),
+        CIN: Joi.string().pattern(/^[A-Z]{1,2}[0-9]{5,6}$/).allow(null),
         DETACHE: Joi.string().valid("O", "N").allow(null),
-        SEXE: Joi.string().valid("F", "M").required(),
+        SEXE: Joi.string().valid("F", "M").allow(null),
         SIT_F_AG: Joi.string().valid("M", "C", "D").allow(null),
         STATUT: Joi.string().valid("activite", "sortie de service").allow(null),
         DAT_POS: Joi.date().allow(null),

@@ -65,7 +65,7 @@ export const useCreateEmployee = () => {
           LIBELLE_REGION: data.profile.LIBELLE_REGION || null,
         },
       };
-      console.log("Mutation data received:", finalData);
+      console.log("Mutation final data received:", finalData);
 
       return employeeService.create(finalData);
     },

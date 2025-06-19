@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, type KeyboardEvent } from "react";
+import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import { Button } from "./ui/button.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog.tsx";
 import { Input } from "./ui/input.tsx";
@@ -20,36 +20,38 @@ import api from "../services/api.js";
 export function AddEmployeeModal() {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<Partial<Employee>>({
-    nom_complet: "",
-    email: "",
-    telephone1: "",
-    telephone2: "",
-    categorie: "",
-    specialite: "",
-    experience_employe: 0,
-    role: "user",
-    cin: "",
-    emplois: [],
-    competences: [],
-  });
+
   const [profileData, setProfileData] = useState<Partial<Profile>>({
     "NOM PRENOM": "",
-    ADRESSE: "",
-    DATE_NAISS: "",
-    DAT_REC: "",
-    CIN: "",
+    ADRESSE: null,
+    DATE_NAISS: null,
+    DAT_REC: null,
+    CIN: null,
     DETACHE: null, 
     SEXE: null, 
     SIT_F_AG: null, 
     STATUT: null, 
-    DAT_POS: "",
-    LIBELLE_GRADE: "",
-    GRADE_ASSIMILE: "",
-    LIBELLE_FONCTION: "",
-    DAT_FCT: "",
-    LIBELLE_LOC: "",
-    LIBELLE_REGION: "",
+    DAT_POS: null,
+    LIBELLE_GRADE: null,
+    GRADE_ASSIMILE: null,
+    LIBELLE_FONCTION: null,
+    DAT_FCT: null,
+    LIBELLE_LOC: null,
+    LIBELLE_REGION: null,
+  });
+
+  const [formData, setFormData] = useState<Partial<Employee>>({
+    nom_complet: "",
+    email: null,
+    telephone1: null,
+    telephone2: null,
+    categorie: null,
+    specialite: null,
+    experience_employe: 0,
+    role: "user",
+    cin: null,
+    emplois: [],
+    competences: [],
   });
 
   const [competences, setCompetences] = useState<Competence[]>([]);
@@ -64,6 +66,10 @@ export function AddEmployeeModal() {
   const { data: jobs = [] } = useJobs();
   const { data: availableCompetences = [] } = useSkills();
   const { toast } = useToast();
+
+  useEffect(() => {
+    setFormData((prev) => ({ ...prev, nom_complet: profileData["NOM PRENOM"] || "" }));
+  }, [profileData["NOM PRENOM"]]);
 
   const emailExists = async (email) => {
   try {
@@ -87,88 +93,88 @@ export function AddEmployeeModal() {
   }
 };
 
-  const validatePersonalInfo = async () => {
-    if (!profileData["NOM PRENOM"]?.trim() || profileData["NOM PRENOM"].length <= 2) {
-      toast({ variant: "destructive", title: "Erreur", description: "Le nom complet doit contenir au moins trois caractères." });
-      return false;
-    }
-    if (!profileData.DATE_NAISS) {
-      toast({ variant: "destructive", title: "Erreur", description: "La date de naissance est requise." });
-      return false;
-    }
-    const naissance = new Date(profileData.DATE_NAISS);
-    const now = new Date();
-    const age = now.getFullYear() - naissance.getFullYear();
-    const moisDiff = now.getMonth() - naissance.getMonth();
-    const jourDiff = now.getDate() - naissance.getDate();
-    const ageExact = (moisDiff < 0 || (moisDiff === 0 && jourDiff < 0)) ? age - 1 : age;
-    if (isNaN(naissance.getTime()) || naissance > now) {
-      toast({ variant: "destructive", title: "Erreur", description: "La date de naissance ne peut pas être dans le futur." });
-      return false;
-    }
-    if (ageExact < 18) {
-      toast({ variant: "destructive", title: "Erreur", description: "L’employé doit avoir au moins 18 ans." });
-      return false;
-    }
-    if (!profileData.CIN?.trim() || !/^[A-Z]{1,2}[0-9]{5,6}$/.test(profileData.CIN)) {
-      toast({ variant: "destructive", title: "Erreur", description: "Le CIN doit suivre le format valide (1-2 lettres suivies de 6-8 chiffres)." });
-      return false;
-    }
+  // const validatePersonalInfo = async () => {
+  //   if (!profileData["NOM PRENOM"]?.trim() || profileData["NOM PRENOM"].length <= 2) {
+  //     toast({ variant: "destructive", title: "Erreur", description: "Le nom complet doit contenir au moins trois caractères." });
+  //     return false;
+  //   }
+  //   if (!profileData.DATE_NAISS) {
+  //     toast({ variant: "destructive", title: "Erreur", description: "La date de naissance est requise." });
+  //     return false;
+  //   }
+  //   const naissance = new Date(profileData.DATE_NAISS);
+  //   const now = new Date();
+  //   const age = now.getFullYear() - naissance.getFullYear();
+  //   const moisDiff = now.getMonth() - naissance.getMonth();
+  //   const jourDiff = now.getDate() - naissance.getDate();
+  //   const ageExact = (moisDiff < 0 || (moisDiff === 0 && jourDiff < 0)) ? age - 1 : age;
+  //   if (isNaN(naissance.getTime()) || naissance > now) {
+  //     toast({ variant: "destructive", title: "Erreur", description: "La date de naissance ne peut pas être dans le futur." });
+  //     return false;
+  //   }
+  //   if (ageExact < 18) {
+  //     toast({ variant: "destructive", title: "Erreur", description: "L’employé doit avoir au moins 18 ans." });
+  //     return false;
+  //   }
+  //   if (!profileData.CIN?.trim() || !/^[A-Z]{1,2}[0-9]{5,6}$/.test(profileData.CIN)) {
+  //     toast({ variant: "destructive", title: "Erreur", description: "Le CIN doit suivre le format valide (1-2 lettres suivies de 6-8 chiffres)." });
+  //     return false;
+  //   }
     
-    if (!profileData.SEXE) {
-      toast({ variant: "destructive", title: "Erreur", description: "Le sexe est requis." });
-      return false;
-    }
-    return true;
-  };
+  //   if (!profileData.SEXE) {
+  //     toast({ variant: "destructive", title: "Erreur", description: "Le sexe est requis." });
+  //     return false;
+  //   }
+  //   return true;
+  // };
 
-  const validateProfessionalInfo = async () => {
-    console.log("Validating professional info:", { formData, selectedJobs });
-    if (!formData.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      toast({ variant: "destructive", title: "Erreur", description: "Un email valide est requis." });
-      return false;
-    }
-    const exists = await emailExists(formData.email);
-    if (exists) {
-      toast({ variant: "destructive", title: "Erreur", description: "Cet email est déjà utilisé." });
-      return false;
-    }
-    if (!formData.telephone1?.trim() || !/^\+?\d{10,15}$/.test(formData.telephone1)) {
-      toast({ variant: "destructive", title: "Erreur", description: "Un numéro de téléphone principal valide est requis (10-15 chiffres)." });
-      return false;
-    }
-    if (formData.telephone2 && !/^\+?\d{10,15}$/.test(formData.telephone2)) {
-      toast({ variant: "destructive", title: "Erreur", description: "Le numéro de téléphone secondaire doit être valide (10-15 chiffres)." });
-      return false;
-    }
-    if (!formData.categorie?.trim()) {
-      toast({ variant: "destructive", title: "Erreur", description: "La catégorie est requise." });
-      return false;
-    }
-    if (!formData.role) {
-      toast({ variant: "destructive", title: "Erreur", description: "Le rôle est requis." });
-      return false;
-    }
-    if (!profileData.DAT_REC) {
-      toast({ variant: "destructive", title: "Erreur", description: "La date de recrutement est requise." });
-      return false;
-    }
-    const dateRecrutement = new Date(profileData.DAT_REC);
-    const now = new Date();
-    if (isNaN(dateRecrutement.getTime()) || dateRecrutement > now) {
-      toast({ variant: "destructive", title: "Erreur", description: "La date de recrutement ne peut pas être dans le futur." });
-      return false;
-    }
-    if (selectedJobs.length === 0) {
-      toast({ variant: "destructive", title: "Erreur", description: "Au moins un emploi doit être sélectionné." });
-      return false;
-    }
-    if (formData.experience_employe && formData.experience_employe < 0) {
-      toast({ variant: "destructive", title: "Erreur", description: "L'expérience ne peut pas être négative." });
-      return false;
-    }
-    return true;
-  };
+  // const validateProfessionalInfo = async () => {
+  //   console.log("Validating professional info:", { formData, selectedJobs });
+  //   if (!formData.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+  //     toast({ variant: "destructive", title: "Erreur", description: "Un email valide est requis." });
+  //     return false;
+  //   }
+  //   const exists = await emailExists(formData.email);
+  //   if (exists) {
+  //     toast({ variant: "destructive", title: "Erreur", description: "Cet email est déjà utilisé." });
+  //     return false;
+  //   }
+  //   if (!formData.telephone1?.trim() || !/^\+?\d{10,15}$/.test(formData.telephone1)) {
+  //     toast({ variant: "destructive", title: "Erreur", description: "Un numéro de téléphone principal valide est requis (10-15 chiffres)." });
+  //     return false;
+  //   }
+  //   if (formData.telephone2 && !/^\+?\d{10,15}$/.test(formData.telephone2)) {
+  //     toast({ variant: "destructive", title: "Erreur", description: "Le numéro de téléphone secondaire doit être valide (10-15 chiffres)." });
+  //     return false;
+  //   }
+  //   if (!formData.categorie?.trim()) {
+  //     toast({ variant: "destructive", title: "Erreur", description: "La catégorie est requise." });
+  //     return false;
+  //   }
+  //   if (!formData.role) {
+  //     toast({ variant: "destructive", title: "Erreur", description: "Le rôle est requis." });
+  //     return false;
+  //   }
+  //   if (!profileData.DAT_REC) {
+  //     toast({ variant: "destructive", title: "Erreur", description: "La date de recrutement est requise." });
+  //     return false;
+  //   }
+  //   const dateRecrutement = new Date(profileData.DAT_REC);
+  //   const now = new Date();
+  //   if (isNaN(dateRecrutement.getTime()) || dateRecrutement > now) {
+  //     toast({ variant: "destructive", title: "Erreur", description: "La date de recrutement ne peut pas être dans le futur." });
+  //     return false;
+  //   }
+  //   if (selectedJobs.length === 0) {
+  //     toast({ variant: "destructive", title: "Erreur", description: "Au moins un emploi doit être sélectionné." });
+  //     return false;
+  //   }
+  //   if (formData.experience_employe && formData.experience_employe < 0) {
+  //     toast({ variant: "destructive", title: "Erreur", description: "L'expérience ne peut pas être négative." });
+  //     return false;
+  //   }
+  //   return true;
+  // };
 
   const handleProfileInputChange = (field: keyof Profile, value: string | number | null) => {
     setProfileData((prev) => ({ ...prev, [field]: value }));
@@ -218,7 +224,7 @@ export function AddEmployeeModal() {
   };
 
   const handleSubmit = async () => {
-    if (!(await validatePersonalInfo()) || !(await validateProfessionalInfo())) return;
+    // if (!(await validatePersonalInfo()) || !(await validateProfessionalInfo())) return;
 
     const finalData = {
       ...formData,
@@ -339,8 +345,8 @@ export function AddEmployeeModal() {
   };
 
   const handleNextStep = async () => {
-    if (currentStep === 1 && !(await validatePersonalInfo())) return;
-    if (currentStep === 2 && !(await validateProfessionalInfo())) return;
+    // if (currentStep === 1 && !(await validatePersonalInfo())) return;
+    // if (currentStep === 2 && !(await validateProfessionalInfo())) return;
     setCurrentStep((prev) => prev + 1);
   };
 

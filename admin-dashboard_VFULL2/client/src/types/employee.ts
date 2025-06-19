@@ -23,11 +23,11 @@ interface Employee {
   id_employe: number;
   profile: Profile | null;
   nom_complet: string;
-  email: string;
-  telephone1?: string;
-  telephone2?: string;
-  categorie?: string;
-  specialite?: string;
+  email: string | null;
+  telephone1?: string | null;
+  telephone2?: string | null;
+  categorie?: string | null;
+  specialite?: string | null;
   experience_employe?: number;
   role: "user" | "admin";
   archived: boolean;
