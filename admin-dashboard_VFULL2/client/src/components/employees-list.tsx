@@ -277,8 +277,8 @@ export function EmployeesList() {
         <Card className="bg-gray-100">
           <CardContent className="p-4">
             <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-900" />
                 <Input
                   placeholder="Rechercher par nom, email, CIN ou emploi..."
                   value={searchTerm}
@@ -286,18 +286,167 @@ export function EmployeesList() {
                     setSearchTerm(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="pl-10"
+                  className="pl-10 pr-10 rounded-lg border-blue-700 bg-white focus:ring-2 focus:ring-blue-500 transition-all"
+                  aria-label="Rechercher"
                 />
+                {searchTerm && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute  right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
+                    onClick={() => clearFilter("search")}
+                  >
+                    <XCircle className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                  </Button>
+                )}
               </div>
               <div className="flex gap-2 w-full md:w-auto">
                 <Button
-                  variant={showArchived ? "default" : "outline"}
+                  variant="outline"
+                  className="flex items-center bg-white gap-2 rounded-lg border-blue-700 hover:bg-gray-100 transition-all"
                   onClick={() => {
                     setShowArchived(!showArchived);
                     setCurrentPage(1);
                   }}
                 >
-                  {showArchived ? "Voir Actifs" : "Voir Archivés"}
+                  {showArchived ? <User className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                  {showArchived ? "Afficher Actifs" : "Afficher Archivés"}
+                </Button>
+                <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="flex items-center gap-2 bg-white rounded-lg border-blue-700 hover:bg-gray-100 transition-all"
+                    >
+                      <Filter className="h-4 w-4" /> Ajouter Filtre
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md rounded-xl bg-white shadow-2xl border border-gray-200 animate-in fade-in duration-200">
+                    <DialogHeader className="border-b border-gray-100 p-4">
+                      <DialogTitle className="text-xl font-bold text-gray-900">Ajouter un filtre</DialogTitle>
+                    </DialogHeader>
+                    <div className="p-6 space-y-6">
+                      <div className="relative">
+                        <select
+                          value={newFilterType}
+                          onChange={(e) => {
+                            setNewFilterType(e.target.value);
+                            setNewFilterValues([]);
+                            setSearchValue("");
+                          }}
+                          className="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-700 bg-white appearance-none"
+                          aria-label="Sélectionner le type de filtre"
+                        >
+                          <option value="">Choisir un type de filtre</option>
+                          {filterOptions.map((option) => (
+                            <option
+                              key={option.value}
+                              value={option.value}
+                              disabled={filters.some((f) => f.type === option.value)}
+                            >
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                          </svg>
+                        </div>
+                      </div>
+                      {newFilterType && (
+                        <div className="space-y-4">
+                          <Input
+                            ref={inputRef}
+                            placeholder={`Saisir ou rechercher ${newFilterType.toLowerCase()}...`}
+                            value={searchValue}
+                            onChange={(e) => {
+                              setSearchValue(e.target.value);
+                              setOpenPopover(e.target.value.length > 0);
+                            }}
+                            onKeyDown={handleKeyDown}
+                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all"
+                            aria-label={`Rechercher ${newFilterType.toLowerCase()}`}
+                          />
+                          {openPopover && (
+                            <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                              {availableOptions
+                                .filter((option) => option.toLowerCase().includes(searchValue.toLowerCase()))
+                                .map((option) => (
+                                  <div
+                                    key={option}
+                                    onClick={() => {
+                                      if (!newFilterValues.includes(option)) {
+                                        setNewFilterValues((prev) => [...prev, option]);
+                                        setSearchValue("");
+                                        setOpenPopover(false);
+                                      }
+                                    }}
+                                    className={clsx(
+                                      "p-2 cursor-pointer hover:bg-gray-100 transition-colors",
+                                      newFilterValues.includes(option) && "opacity-50 cursor-not-allowed"
+                                    )}
+                                  >
+                                    {option}
+                                  </div>
+                                ))}
+                              {availableOptions.filter((option) => option.toLowerCase().includes(searchValue.toLowerCase())).length === 0 && (
+                                <div className="p-2 text-gray-500">Aucun résultat. Appuyez sur Entrée pour ajouter.</div>
+                              )}
+                            </div>
+                          )}
+                          {newFilterValues.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {newFilterValues.map((value) => (
+                                <Badge
+                                  key={value}
+                                  variant="secondary"
+                                  className={clsx(
+                                    "flex items-center gap-1 p-1 text-sm font-medium rounded-full transition-all",
+                                    getFilterColor(newFilterType)
+                                  )}
+                                >
+                                  {value}
+                                  <X
+                                    className="h-3 w-3 cursor-pointer hover:bg-gray-300 rounded-full p-0.5"
+                                    onClick={() => setNewFilterValues((prev) => prev.filter((v) => v !== value))}
+                                    aria-label={`Supprimer ${value}`}
+                                  />
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter className="border-t border-gray-100 p-4 flex justify-end gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => setFilterDialogOpen(false)}
+                        className="rounded-lg border-gray-300 hover:bg-gray-100 text-gray-700 px-4 py-2 transition-all"
+                      >
+                        Annuler
+                      </Button>
+                      <Button
+                        variant="default"
+                        onClick={() => {
+                          addFilter();
+                          setFilterDialogOpen(false);
+                        }}
+                        disabled={!newFilterType || newFilterValues.length === 0}
+                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow-md transition-all"
+                      >
+                        Ajouter
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                <Button
+                  variant="default"
+                  onClick={handleSyncProfiles}
+                  className="rounded-lg bg-blue-900 hover:bg-blue-800 text-white shadow-md transition-all"
+                >
+                  Synchroniser
                 </Button>
                 <AddEmployeeModal />
               </div>
@@ -649,8 +798,7 @@ export function EmployeesList() {
                   Affichage de {indexOfFirstEmployee + 1} à{" "}
                   {Math.min(indexOfLastEmployee, filteredEmployees.length)} sur {filteredEmployees.length} employés
                 </div>
-
-                <div className="flex flex-wrap justify-center gap-1 md:gap-2">
+                <div className="flex flex-wrap justify-center text- gap-1 md:gap-2">
                   <Button
                     variant="outline"
                     size="sm"
