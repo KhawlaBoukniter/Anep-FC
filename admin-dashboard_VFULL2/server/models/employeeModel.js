@@ -260,46 +260,84 @@ async function createEmployee(employeeData) {
     const client = await pool.connect();
     try {
         await client.query("BEGIN");
+        console.log("Creating employee with data:", employeeData);
 
-        const { emplois, competences, profile_id, ...data } = employeeData;
+        const { profile, emplois, competences, ...employeeFields } = employeeData;
+
+        const insertProfileQuery = `
+      INSERT INTO profile (
+        "NOM PRENOM", "ADRESSE", "DATE NAISS", "DAT_REC", "CIN", 
+        "DETACHE", "SEXE", "SIT_F_AG", "STATUT", "DAT_POS", 
+        "LIBELLE GRADE", "GRADE ASSIMILE", "LIBELLE FONCTION", 
+        "DAT_FCT", "LIBELLE LOC", "LIBELLE REGION"
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      RETURNING id_profile
+    `;
+        const profileValues = [
+            profile["NOM PRENOM"],
+            profile.ADRESSE || null,
+            profile.DATE_NAISS,
+            profile.DAT_REC,
+            profile.CIN,
+            profile.DETACHE || null,
+            profile.SEXE,
+            profile.SIT_F_AG || null,
+            profile.STATUT || null,
+            profile.DAT_POS || null,
+            profile.LIBELLE_GRADE || null,
+            profile.GRADE_ASSIMILE || null,
+            profile.LIBELLE_FONCTION || null,
+            profile.DAT_FCT || null,
+            profile.LIBELLE_LOC || null,
+            profile.LIBELLE_REGION || null,
+        ];
+        console.log("Profile query values:", profileValues);
+
+        const profileResult = await client.query(insertProfileQuery, profileValues);
+        const profileId = profileResult.rows[0].id_profile;
 
         const insertEmployeeQuery = `
-            INSERT INTO employe (nom_complet, email, telephone1, telephone2, categorie, specialite, experience_employe, archived, profile_id, cin)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            RETURNING *
-        `;
+      INSERT INTO employe (
+        nom_complet, email, telephone1, telephone2, categorie, 
+        specialite, experience_employe, role, archived, profile_id, cin
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING *
+    `;
         const employeeValues = [
-            data.nom_complet,
-            data.email,
-            data.telephone1 || null,
-            data.telephone2 || null,
-            data.categorie || null,
-            data.specialite || null,
-            data.experience_employe || null,
-            data.archived || false,
-            profile_id || null,
-            data.cin || null,
+            employeeFields.nom_complet,
+            employeeFields.email,
+            employeeFields.telephone1 || null,
+            employeeFields.telephone2 || null,
+            employeeFields.categorie || null,
+            employeeFields.specialite || null,
+            employeeFields.experience_employe || null,
+            employeeFields.role || 'user',
+            employeeFields.archived || false,
+            profileId,
+            employeeFields.cin || null,
         ];
+        console.log("Employee query values:", employeeValues);
 
         const employeeResult = await client.query(insertEmployeeQuery, employeeValues);
         const newEmployee = employeeResult.rows[0];
 
         if (emplois && emplois.length > 0) {
             for (const job of emplois) {
-                await client.query("INSERT INTO emploi_employe (id_emploi, id_employe) VALUES ($1, $2) ON CONFLICT DO NOTHING", [
-                    job.id_emploi,
-                    newEmployee.id_employe,
-                ]);
+                console.log("Employee query values:", employeeValues);
+                await client.query(
+                    "INSERT INTO emploi_employe (id_emploi, id_employe) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                    [job.id_emploi, newEmployee.id_employe]
+                );
             }
         }
 
         if (competences && competences.length > 0) {
             for (const skill of competences) {
-                await client.query("INSERT INTO employe_competencea (id_employe, id_competencea, niveaua) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING", [
-                    newEmployee.id_employe,
-                    skill.id_competencea,
-                    skill.niveaua,
-                ]);
+                console.log("Inserting skill:", skill);
+                await client.query(
+                    "INSERT INTO employe_competencea (id_employe, id_competencea, niveaua) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
+                    [newEmployee.id_employe, skill.id_competencea, skill.niveaua]
+                );
             }
         }
 
@@ -307,7 +345,7 @@ async function createEmployee(employeeData) {
         return await getEmployeeById(newEmployee.id_employe);
     } catch (error) {
         await client.query("ROLLBACK");
-        console.error("Create employee error:", error.stack);
+        console.error("Create employee error:", error.stack, "Data:", employeeData);
         throw error;
     } finally {
         client.release();
@@ -453,12 +491,24 @@ async function deleteEmployee(id) {
 
 async function checkEmailExists(email) {
     const query = `
-        SELECT EXISTS (
-            SELECT 1 FROM employe WHERE email = $1 AND archived = false
-        ) AS exists
-    `;
-    const result = await pool.query(query, [email]);
-    return result.rows[0].exists;
+    SELECT EXISTS (
+      SELECT 1 FROM employe WHERE email = $1 AND archived = false
+    ) AS exists
+  `;
+    try {
+        console.log("Executing query with email:", email);
+        const result = await pool.query(query, [email]);
+        console.log("Database response:", result.rows[0]);
+        return result.rows[0].exists;
+    } catch (error) {
+        console.error("Database error:", {
+            message: error.message,
+            stack: error.stack,
+            query: query,
+            params: [email],
+        });
+        throw error;
+    }
 }
 
 module.exports = {

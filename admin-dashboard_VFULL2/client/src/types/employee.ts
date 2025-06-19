@@ -40,23 +40,23 @@ interface Employee {
 }
 
 interface Profile {
-  id_profile: number;
+  id_profile?: number;
   "NOM PRENOM": string;
-  ADRESSE?: string;
-  DATE_NAISS?: string;
-  DAT_REC?: string;
-  CIN?: string;
-  DETACHE: "O" | "N";
-  SEXE: "F" | "M";
-  SIT_F_AG: "M" | "C" | "D";
-  STATUT: "activite" | "sortie de service";
-  DAT_POS?: string;
-  LIBELLE_GRADE?: string;
-  GRADE_ASSIMILE?: string;
-  LIBELLE_FONCTION?: string;
-  DAT_FCT?: string;
-  LIBELLE_LOC?: string;
-  LIBELLE_REGION?: string;
+  ADRESSE?: string | null;
+  DATE_NAISS?: string | null;
+  DAT_REC?: string | null;
+  CIN?: string | null;
+  DETACHE?: 'O' | 'N' | null;
+  SEXE?: 'F' | 'M' | null;
+  SIT_F_AG?: 'M' | 'C' | 'D' | null;
+  STATUT?: 'activite' | 'sortie de service' | null;
+  DAT_POS?: string | null;
+  LIBELLE_GRADE?: string | null;
+  GRADE_ASSIMILE?: string | null;
+  LIBELLE_FONCTION?: string | null;
+  DAT_FCT?: string | null;
+  LIBELLE_LOC?: string | null;
+  LIBELLE_REGION?: string | null;
 }
 
 

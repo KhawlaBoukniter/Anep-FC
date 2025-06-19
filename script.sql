@@ -10,7 +10,6 @@ CREATE TABLE emploi (
 
 CREATE TABLE profile (
     id_profile SERIAL PRIMARY KEY,
-    profile_id INTEGER REFERENCES profile(id_profile),
     "NOM PRENOM" VARCHAR(255),
     "ADRESSE" VARCHAR(255) NULL,
     "DATE NAISS" DATE NULL,

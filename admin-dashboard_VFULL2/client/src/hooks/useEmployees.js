@@ -35,16 +35,37 @@ export const useCreateEmployee = () => {
 
   return useMutation({
     mutationFn: async (data) => {
-      const existingSkills = data.competences.filter((skill) => skill.id_competencea >= 0).map((skill) => ({
-        id_competencea: skill.id_competencea,
-        niveaua: skill.niveaua,
-      }));
+      console.log("Mutation data received:", data);
+      const existingSkills = data.competences
+        .filter((skill) => skill.id_competencea >= 0)
+        .map((skill) => ({
+          id_competencea: skill.id_competencea,
+          niveaua: skill.niveaua,
+        }));
 
       const finalData = {
         ...data,
         competences: existingSkills,
-        profile_id: data.profile_id, // Include profile_id
+        profile: {
+          "NOM PRENOM": data.profile["NOM PRENOM"],
+          ADRESSE: data.profile.ADRESSE || null,
+          DATE_NAISS: data.profile.DATE_NAISS,
+          DAT_REC: data.profile.DAT_REC,
+          CIN: data.profile.CIN,
+          DETACHE: data.profile.DETACHE || null,
+          SEXE: data.profile.SEXE,
+          SIT_F_AG: data.profile.SIT_F_AG || null,
+          STATUT: data.profile.STATUT || null,
+          DAT_POS: data.profile.DAT_POS || null,
+          LIBELLE_GRADE: data.profile.LIBELLE_GRADE || null,
+          GRADE_ASSIMILE: data.profile.GRADE_ASSIMILE || null,
+          LIBELLE_FONCTION: data.profile.LIBELLE_FONCTION || null,
+          DAT_FCT: data.profile.DAT_FCT || null,
+          LIBELLE_LOC: data.profile.LIBELLE_LOC || null,
+          LIBELLE_REGION: data.profile.LIBELLE_REGION || null,
+        },
       };
+      console.log("Mutation data received:", finalData);
 
       return employeeService.create(finalData);
     },
@@ -52,7 +73,7 @@ export const useCreateEmployee = () => {
       queryClient.invalidateQueries(["employees"]);
     },
     onError: (error) => {
-      console.error("Erreur lors de la création de l'employé:", error);
+      console.error("Erreur lors de la création de l'employé:", error.response?.data || error.message);
     },
   });
 };
