@@ -50,7 +50,7 @@ async function createEmployee(req, res) {
     } catch (error) {
         console.error("Controller error in createEmployee:", error.stack);
         if (error.code === "23505") {
-            return res.status(400).json({ message: "Cet email est déjà utilisé." });
+            return res.status(400).json({ message: "Cet email ou CIN est déjà utilisé." });
         }
         res.status(500).json({ message: "Erreur serveur.", details: error.message });
     }
@@ -148,17 +148,18 @@ async function deleteEmployee(req, res) {
 
 async function checkEmail(req, res) {
     try {
-        console.log("Check email request:", req.query);
+        console.log("Received check email request:", req.query);
         const { email } = req.query;
         if (!email) {
+            console.log("Email parameter is missing or empty");
             return res.status(400).json({ message: "Email requis." });
         }
-
+        console.log("Checking existence of email:", email);
         const exists = await employeeModel.checkEmailExists(email);
-        console.log("Email exists:", exists);
+        console.log("Email existence result:", exists);
         res.json({ exists });
     } catch (error) {
-        console.error("Controller error in checkEmail:", error.stack);
+        console.error("Controller error:", error.stack);
         res.status(500).json({ message: "Erreur serveur.", details: error.message });
     }
 }

@@ -12,9 +12,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover.tsx";
 import { useCreateEmployee } from "../hooks/useEmployees";
 import { useJobs } from "../hooks/useJobs";
 import { useSkills } from "../hooks/useSkills";
-import { Employee, Competence, Emploi } from "../types/employee";
+import { Employee, Competence, Emploi, Profile } from "../types/employee";
 import { useToast } from "../hooks/use-toast.ts";
 import axios from "axios";
+import api from "../services/api.js";
 
 export function AddEmployeeModal() {
   const [open, setOpen] = useState(false);
@@ -22,19 +23,35 @@ export function AddEmployeeModal() {
   const [formData, setFormData] = useState<Partial<Employee>>({
     nom_complet: "",
     email: "",
-    adresse: "",
     telephone1: "",
     telephone2: "",
     categorie: "",
     specialite: "",
     experience_employe: 0,
     role: "user",
-    date_naissance: "",
-    date_recrutement: "",
     cin: "",
     emplois: [],
     competences: [],
   });
+  const [profileData, setProfileData] = useState<Partial<Profile>>({
+    "NOM PRENOM": "",
+    ADRESSE: "",
+    DATE_NAISS: "",
+    DAT_REC: "",
+    CIN: "",
+    DETACHE: null, 
+    SEXE: null, 
+    SIT_F_AG: null, 
+    STATUT: null, 
+    DAT_POS: "",
+    LIBELLE_GRADE: "",
+    GRADE_ASSIMILE: "",
+    LIBELLE_FONCTION: "",
+    DAT_FCT: "",
+    LIBELLE_LOC: "",
+    LIBELLE_REGION: "",
+  });
+
   const [competences, setCompetences] = useState<Competence[]>([]);
   const [selectedJobs, setSelectedJobs] = useState<Emploi[]>([]);
   const [openSkillPopover, setOpenSkillPopover] = useState(false);
@@ -49,106 +66,115 @@ export function AddEmployeeModal() {
   const { toast } = useToast();
 
   const emailExists = async (email) => {
-    try {
-      const response = await axios.get(`/employees/check-email`, {
-        params: { email },
-      });
-      return response.data.exists;
-    } catch (error) {
-      console.error("Erreur lors de la vérification de l'email :", error);
-      return false;
-    }
-  };
+  try {
+    console.log("Sending request to check email:", {
+      url: `/employees/check-email`,
+      params: { email },
+    });
+    const response = await api.get(`/employees/check-email`, {
+      params: { email },
+    });
+    console.log("API response:", response.data);
+    return response.data.exists;
+  } catch (error) {
+    console.error("Error during email verification:", {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      config: error.config,
+    });
+    return false;
+  }
+};
 
-  const validateForm = async () => {
-    if (!formData.nom_complet?.trim() || formData.nom_complet.length <= 2) {
+  const validatePersonalInfo = async () => {
+    if (!profileData["NOM PRENOM"]?.trim() || profileData["NOM PRENOM"].length <= 2) {
       toast({ variant: "destructive", title: "Erreur", description: "Le nom complet doit contenir au moins trois caractères." });
       return false;
     }
+    if (!profileData.DATE_NAISS) {
+      toast({ variant: "destructive", title: "Erreur", description: "La date de naissance est requise." });
+      return false;
+    }
+    const naissance = new Date(profileData.DATE_NAISS);
+    const now = new Date();
+    const age = now.getFullYear() - naissance.getFullYear();
+    const moisDiff = now.getMonth() - naissance.getMonth();
+    const jourDiff = now.getDate() - naissance.getDate();
+    const ageExact = (moisDiff < 0 || (moisDiff === 0 && jourDiff < 0)) ? age - 1 : age;
+    if (isNaN(naissance.getTime()) || naissance > now) {
+      toast({ variant: "destructive", title: "Erreur", description: "La date de naissance ne peut pas être dans le futur." });
+      return false;
+    }
+    if (ageExact < 18) {
+      toast({ variant: "destructive", title: "Erreur", description: "L’employé doit avoir au moins 18 ans." });
+      return false;
+    }
+    if (!profileData.CIN?.trim() || !/^[A-Z]{1,2}[0-9]{5,6}$/.test(profileData.CIN)) {
+      toast({ variant: "destructive", title: "Erreur", description: "Le CIN doit suivre le format valide (1-2 lettres suivies de 6-8 chiffres)." });
+      return false;
+    }
+    
+    if (!profileData.SEXE) {
+      toast({ variant: "destructive", title: "Erreur", description: "Le sexe est requis." });
+      return false;
+    }
+    return true;
+  };
 
+  const validateProfessionalInfo = async () => {
+    console.log("Validating professional info:", { formData, selectedJobs });
     if (!formData.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       toast({ variant: "destructive", title: "Erreur", description: "Un email valide est requis." });
       return false;
     }
-
     const exists = await emailExists(formData.email);
     if (exists) {
       toast({ variant: "destructive", title: "Erreur", description: "Cet email est déjà utilisé." });
       return false;
     }
-
     if (!formData.telephone1?.trim() || !/^\+?\d{10,15}$/.test(formData.telephone1)) {
       toast({ variant: "destructive", title: "Erreur", description: "Un numéro de téléphone principal valide est requis (10-15 chiffres)." });
       return false;
     }
-
     if (formData.telephone2 && !/^\+?\d{10,15}$/.test(formData.telephone2)) {
       toast({ variant: "destructive", title: "Erreur", description: "Le numéro de téléphone secondaire doit être valide (10-15 chiffres)." });
       return false;
     }
-
     if (!formData.categorie?.trim()) {
       toast({ variant: "destructive", title: "Erreur", description: "La catégorie est requise." });
       return false;
     }
-
     if (!formData.role) {
       toast({ variant: "destructive", title: "Erreur", description: "Le rôle est requis." });
       return false;
     }
-
-    if (!formData.date_recrutement) {
+    if (!profileData.DAT_REC) {
       toast({ variant: "destructive", title: "Erreur", description: "La date de recrutement est requise." });
       return false;
     }
-
-    const dateRecrutement = new Date(formData.date_recrutement);
+    const dateRecrutement = new Date(profileData.DAT_REC);
     const now = new Date();
     if (isNaN(dateRecrutement.getTime()) || dateRecrutement > now) {
       toast({ variant: "destructive", title: "Erreur", description: "La date de recrutement ne peut pas être dans le futur." });
       return false;
     }
-
-    if (!formData.date_naissance) {
-      toast({ variant: "destructive", title: "Erreur", description: "La date de naissance est requise." });
-      return false;
-    }
-
-    const naissance = new Date(formData.date_naissance);
-    const age = now.getFullYear() - naissance.getFullYear();
-    const moisDiff = now.getMonth() - naissance.getMonth();
-    const jourDiff = now.getDate() - naissance.getDate();
-    const ageExact = (moisDiff < 0 || (moisDiff === 0 && jourDiff < 0)) ? age - 1 : age;
-
-    if (isNaN(naissance.getTime()) || naissance > now) {
-      toast({ variant: "destructive", title: "Erreur", description: "La date de naissance ne peut pas être dans le futur." });
-      return false;
-    }
-
-    if (ageExact < 18) {
-      toast({ variant: "destructive", title: "Erreur", description: "L’employé doit avoir au moins 18 ans." });
-      return false;
-    }
-
-    if (!formData.cin?.trim() || !/^[A-Z]{1,2}[0-9]{5,6}$/.test(formData.cin)) {
-      toast({ variant: "destructive", title: "Erreur", description: "Le CIN doit suivre le format valide (1-2 lettres suivies de 6-8 chiffres)." });
-      return false;
-    }
-
     if (selectedJobs.length === 0) {
       toast({ variant: "destructive", title: "Erreur", description: "Au moins un emploi doit être sélectionné." });
       return false;
     }
-
     if (formData.experience_employe && formData.experience_employe < 0) {
       toast({ variant: "destructive", title: "Erreur", description: "L'expérience ne peut pas être négative." });
       return false;
     }
-
     return true;
   };
 
-  const handleInputChange = (field: keyof Employee, value: string | number) => {
+  const handleProfileInputChange = (field: keyof Profile, value: string | number | null) => {
+    setProfileData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEmployeeInputChange = (field: keyof Employee, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -173,14 +199,12 @@ export function AddEmployeeModal() {
   const addSkill = (id_competencea: number) => {
     const skill = availableCompetences.find((s: Competence) => s.id_competencea === id_competencea);
     if (!skill || competences.some((s) => s.id_competencea === id_competencea)) return;
-
     const newSkillItem: Competence = {
-      id_competencea: id_competencea,
+      id_competencea,
       code_competencea: skill.code_competencea,
       competencea: skill.competencea,
       niveaua: 1,
     };
-
     setCompetences((prev) => [...prev, newSkillItem]);
     setSearchSkill("");
     setOpenSkillPopover(false);
@@ -194,16 +218,37 @@ export function AddEmployeeModal() {
   };
 
   const handleSubmit = async () => {
-    if (!(await validateForm())) return;
+    if (!(await validatePersonalInfo()) || !(await validateProfessionalInfo())) return;
 
     const finalData = {
       ...formData,
+      cin: profileData.CIN || undefined,
       emplois: selectedJobs.map((job) => ({ id_emploi: job.id_emploi })),
       competences: competences.map(({ id_competencea, niveaua }) => ({
         id_competencea,
         niveaua,
       })),
+      profile: {
+        "NOM PRENOM": profileData["NOM PRENOM"] || undefined,
+        ADRESSE: profileData.ADRESSE || null,
+        DATE_NAISS: profileData.DATE_NAISS || undefined,
+        DAT_REC: profileData.DAT_REC || undefined,
+        CIN: profileData.CIN || undefined,
+        DETACHE: profileData.DETACHE || null,
+        SEXE: profileData.SEXE || undefined,
+        SIT_F_AG: profileData.SIT_F_AG || null,
+        STATUT: profileData.STATUT || null,
+        DAT_POS: profileData.DAT_POS || null,
+        LIBELLE_GRADE: profileData.LIBELLE_GRADE || null,
+        GRADE_ASSIMILE: profileData.GRADE_ASSIMILE || null,
+        LIBELLE_FONCTION: profileData.LIBELLE_FONCTION || null,
+        DAT_FCT: profileData.DAT_FCT || null,
+        LIBELLE_LOC: profileData.LIBELLE_LOC || null,
+        LIBELLE_REGION: profileData.LIBELLE_REGION || null,
+      },
     };
+
+    console.log("Final data to send:", finalData);
 
     createEmployee(finalData, {
       onSuccess: () => {
@@ -212,18 +257,33 @@ export function AddEmployeeModal() {
         setFormData({
           nom_complet: "",
           email: "",
-          adresse: "",
           telephone1: "",
           telephone2: "",
           categorie: "",
           specialite: "",
           experience_employe: 0,
           role: "user",
-          date_naissance: "",
-          date_recrutement: "",
           cin: "",
           emplois: [],
           competences: [],
+        });
+        setProfileData({
+          "NOM PRENOM": "",
+          ADRESSE: "",
+          DATE_NAISS: "",
+          DAT_REC: "",
+          CIN: "",
+          DETACHE: null,
+          SEXE: null,
+          SIT_F_AG: null,
+          STATUT: null,
+          DAT_POS: "",
+          LIBELLE_GRADE: "",
+          GRADE_ASSIMILE: "",
+          LIBELLE_FONCTION: "",
+          DAT_FCT: "",
+          LIBELLE_LOC: "",
+          LIBELLE_REGION: "",
         });
         setCompetences([]);
         setSelectedJobs([]);
@@ -235,6 +295,7 @@ export function AddEmployeeModal() {
           title: "Erreur",
           description: error.response?.data?.message || "Échec de la création de l'employé.",
         });
+        console.error("Error details:", error.response?.data);
       },
     });
   };
@@ -244,22 +305,47 @@ export function AddEmployeeModal() {
     setFormData({
       nom_complet: "",
       email: "",
-      adresse: "",
       telephone1: "",
       telephone2: "",
       categorie: "",
       specialite: "",
       experience_employe: 0,
       role: "user",
-      date_naissance: "",
-      date_recrutement: "",
       cin: "",
       emplois: [],
       competences: [],
     });
+    setProfileData({
+      "NOM PRENOM": "",
+      ADRESSE: "",
+      DATE_NAISS: "",
+      DAT_REC: "",
+      CIN: "",
+      DETACHE: null,
+      SEXE: null,
+      SIT_F_AG: null,
+      STATUT: null,
+      DAT_POS: "",
+      LIBELLE_GRADE: "",
+      GRADE_ASSIMILE: "",
+      LIBELLE_FONCTION: "",
+      DAT_FCT: "",
+      LIBELLE_LOC: "",
+      LIBELLE_REGION: "",
+    });
     setCompetences([]);
     setSelectedJobs([]);
     setOpen(false);
+  };
+
+  const handleNextStep = async () => {
+    if (currentStep === 1 && !(await validatePersonalInfo())) return;
+    if (currentStep === 2 && !(await validateProfessionalInfo())) return;
+    setCurrentStep((prev) => prev + 1);
+  };
+
+  const handlePreviousStep = () => {
+    setCurrentStep((prev) => prev - 1);
   };
 
   return (
@@ -285,7 +371,7 @@ export function AddEmployeeModal() {
               >
                 1
               </div>
-              <span className="text-sm text-gray-600">Données Employé</span>
+              <span className="text-sm text-gray-600">Infos Personnelles</span>
             </div>
             <div className="w-16 h-0.5 bg-gray-200"></div>
             <div className="justify-items-center">
@@ -296,6 +382,17 @@ export function AddEmployeeModal() {
               >
                 2
               </div>
+              <span className="text-sm text-gray-600">Infos Professionnelles</span>
+            </div>
+            <div className="w-16 h-0.5 bg-gray-200"></div>
+            <div className="justify-items-center">
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${
+                  currentStep === 3 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
+                }`}
+              >
+                3
+              </div>
               <span className="text-sm text-gray-600">Compétences</span>
             </div>
           </div>
@@ -304,14 +401,76 @@ export function AddEmployeeModal() {
           {currentStep === 1 && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="nom_complet">Nom complet *</Label>
+                <Label htmlFor="nom_prenom">Nom complet *</Label>
                 <Input
-                  id="nom_complet"
+                  id="nom_prenom"
                   placeholder="Entrez le nom complet"
-                  value={formData.nom_complet || ""}
-                  onChange={(e) => handleInputChange("nom_complet", e.target.value)}
+                  value={profileData["NOM PRENOM"] || ""}
+                  onChange={(e) => handleProfileInputChange("NOM PRENOM", e.target.value)}
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="adresse">Adresse</Label>
+                <Input
+                  id="adresse"
+                  placeholder="Entrez l'adresse"
+                  value={profileData.ADRESSE || ""}
+                  onChange={(e) => handleProfileInputChange("ADRESSE", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="date_naissance">Date de naissance *</Label>
+                <Input
+                  id="date_naissance"
+                  type="date"
+                  value={profileData.DATE_NAISS || ""}
+                  onChange={(e) => handleProfileInputChange("DATE_NAISS", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cin">CIN *</Label>
+                <Input
+                  id="cin"
+                  placeholder="Entrez le numéro CIN"
+                  value={profileData.CIN || ""}
+                  onChange={(e) => handleProfileInputChange("CIN", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sexe">Sexe *</Label>
+                <Select
+                  value={profileData.SEXE || ""}
+                  onValueChange={(value) => handleProfileInputChange("SEXE", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner le sexe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="M">Masculin</SelectItem>
+                    <SelectItem value="F">Féminin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sit_f_ag">Situation familiale</Label>
+                <Select
+                  value={profileData.SIT_F_AG || ""}
+                  onValueChange={(value) => handleProfileInputChange("SIT_F_AG", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner la situation familiale" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="C">Célibataire</SelectItem>
+                    <SelectItem value="M">Marié(e)</SelectItem>
+                    <SelectItem value="D">Divorcé(e)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          {currentStep === 2 && (
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
                 <Input
@@ -319,18 +478,8 @@ export function AddEmployeeModal() {
                   type="email"
                   placeholder="Entrez l'adresse email"
                   value={formData.email || ""}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  onChange={(e) => handleEmployeeInputChange("email", e.target.value)}
                 />
-              </div>
-              
-              <div className="space-y-2">
-                  <Label htmlFor="adresse">Adresse</Label>
-                  <Input
-                    id="adresse"
-                    placeholder="Entrez l'adresse"
-                    value={formData.adresse || ""}
-                    onChange={(e) => handleInputChange("adresse", e.target.value)}
-                  />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -340,7 +489,7 @@ export function AddEmployeeModal() {
                     type="tel"
                     placeholder="Entrez le numéro principal"
                     value={formData.telephone1 || ""}
-                    onChange={(e) => handleInputChange("telephone1", e.target.value)}
+                    onChange={(e) => handleEmployeeInputChange("telephone1", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -350,7 +499,7 @@ export function AddEmployeeModal() {
                     type="tel"
                     placeholder="Entrez le numéro secondaire"
                     value={formData.telephone2 || ""}
-                    onChange={(e) => handleInputChange("telephone2", e.target.value)}
+                    onChange={(e) => handleEmployeeInputChange("telephone2", e.target.value)}
                   />
                 </div>
               </div>
@@ -361,7 +510,7 @@ export function AddEmployeeModal() {
                     id="categorie"
                     placeholder="Entrez la catégorie"
                     value={formData.categorie || ""}
-                    onChange={(e) => handleInputChange("categorie", e.target.value)}
+                    onChange={(e) => handleEmployeeInputChange("categorie", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -370,7 +519,7 @@ export function AddEmployeeModal() {
                     id="specialite"
                     placeholder="Entrez la spécialité"
                     value={formData.specialite || ""}
-                    onChange={(e) => handleInputChange("specialite", e.target.value)}
+                    onChange={(e) => handleEmployeeInputChange("specialite", e.target.value)}
                   />
                 </div>
               </div>
@@ -382,14 +531,14 @@ export function AddEmployeeModal() {
                     type="number"
                     placeholder="Entrez les années d'expérience"
                     value={formData.experience_employe || ""}
-                    onChange={(e) => handleInputChange("experience_employe", Number(e.target.value))}
+                    onChange={(e) => handleEmployeeInputChange("experience_employe", Number(e.target.value))}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Rôle *</Label>
                   <Select
-                    value={formData.role}
-                    onValueChange={(value) => handleInputChange("role", value)}
+                    value={formData.role || ""}
+                    onValueChange={(value) => handleEmployeeInputChange("role", value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner un rôle" />
@@ -401,33 +550,13 @@ export function AddEmployeeModal() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="date_naissance">Date de naissance</Label>
-                  <Input
-                    id="date_naissance"
-                    type="date"
-                    value={formData.date_naissance || ""}
-                    onChange={(e) => handleInputChange("date_naissance", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="date_recrutement">Date de recrutement *</Label>
-                  <Input
-                    id="date_recrutement"
-                    type="date"
-                    value={formData.date_recrutement || ""}
-                    onChange={(e) => handleInputChange("date_recrutement", e.target.value)}
-                  />
-                </div>
-              </div>
               <div className="space-y-2">
-                <Label htmlFor="cin">CIN *</Label>
+                <Label htmlFor="dat_rec">Date de recrutement *</Label>
                 <Input
-                  id="cin"
-                  placeholder="Entrez le numéro CIN"
-                  value={formData.cin || ""}
-                  onChange={(e) => handleInputChange("cin", e.target.value)}
+                  id="dat_rec"
+                  type="date"
+                  value={profileData.DAT_REC || ""}
+                  onChange={(e) => handleProfileInputChange("DAT_REC", e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -448,10 +577,7 @@ export function AddEmployeeModal() {
                   </PopoverTrigger>
                   <PopoverContent className="w-[400px] p-0">
                     <Command>
-                      <CommandInput
-                        ref={jobInputRef}
-                        placeholder="Rechercher un emploi..."
-                      />
+                      <CommandInput ref={jobInputRef} placeholder="Rechercher un emploi..." />
                       <CommandList>
                         <CommandEmpty>Aucun emploi trouvé.</CommandEmpty>
                         <CommandGroup>
@@ -468,7 +594,9 @@ export function AddEmployeeModal() {
                                     : "opacity-0"
                                 }`}
                               />
-                              <div className="w-full"><span className="font-bold">{job.codeemploi} : </span> {job.nom_emploi}</div>
+                              <div className="w-full">
+                                <span className="font-bold">{job.codeemploi} :</span> {job.nom_emploi}
+                              </div>
                             </CommandItem>
                           ))}
                         </CommandGroup>
@@ -497,12 +625,13 @@ export function AddEmployeeModal() {
               </div>
             </div>
           )}
-          {currentStep === 2 && (
+          {currentStep === 3 && (
             <div className="space-y-6">
               <div className="text-center">
-                <h3 className="text-lg font-semibold mb-2">Compétences & Niveaux</h3>
+                <h3 className="text-lg font-semibold">Compétences & Niveaux</h3>
                 <p className="text-sm text-gray-600">
-                  Sélectionnez les compétences acquises par l'employé parmi celles disponibles et indiquez le niveau de maîtrise pour chacune (1 = Débutant, 4 = Expert).
+                  Sélectionnez les compétences acquises par l'employé parmi celles disponibles et indiquez le niveau de maîtrise
+                  pour chacune (1 = Débutant, 4 = Expert).
                 </p>
               </div>
               <div className="space-y-4">
@@ -534,13 +663,13 @@ export function AddEmployeeModal() {
                                   <Check
                                     className={`mr-2 h-4 w-4 ${
                                       competences.some((s) => s.id_competencea === skill.id_competencea)
-                                        ? "opacity-100"
-                                        : "opacity-0"
+                                      ? "opacity-100"
+                                      : "opacity-0"
                                     }`}
                                   />
-                                  <span>{skill.competencea}</span>
-                                </CommandItem>
-                              ))}
+                                <span>{skill.competencea}</span>
+                              </CommandItem>
+                            ))}
                           </CommandGroup>
                         </CommandList>
                       )}
@@ -556,35 +685,33 @@ export function AddEmployeeModal() {
                     competences.map((skill) => (
                       <div
                         key={skill.id_competencea}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="font-medium">{skill.competencea}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
+                        className="flex items-center justify-between p-4 border-rounded-lg hover:bg-gray-50">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-600">Niveau:</span>
-                            <Select
-                              value={skill.niveaua.toString()}
-                              onValueChange={(value) => handleSkillLevelChange(skill.id_competencea, Number.parseInt(value))}
-                            >
-                              <SelectTrigger className="w-16">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="1">1</SelectItem>
-                                <SelectItem value="2">2</SelectItem>
-                                <SelectItem value="3">3</SelectItem>
-                                <SelectItem value="4">4</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <span className="font-medium">{skill.competencea}</span>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeSkill(skill.id_competencea)}
-                            className="h-8 w-8 text-gray-500 hover:text-red-500"
-                          >
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-600">Niveau :</span>
+                              <Select
+                                value={skill.niveaua.toString()}
+                                onValueChange={(value) => handleSkillLevelChange(skill.id_competencea, Number.parseInt(value))}
+                              >
+                                <SelectTrigger className="w-16">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="1">1</SelectItem>
+                                  <SelectItem value="2">2</SelectItem>
+                                  <SelectItem value="3">3</SelectItem>
+                                  <SelectItem value="4">4</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeSkill(skill.id_competencea)}
+                              className="h-8 w-8 text-gray-500 hover:text-red-500">
                             <X className="h-4 w-4" />
                           </Button>
                         </div>
@@ -600,15 +727,15 @@ export function AddEmployeeModal() {
               <Button variant="outline" onClick={handleClose}>
                 Annuler
               </Button>
-              {currentStep === 2 && (
-                <Button variant="outline" onClick={() => setCurrentStep(1)}>
+              {currentStep > 1 && (
+                <Button variant="outline" onClick={handlePreviousStep}>
                   <ChevronLeft className="h-4 w-4 mr-2" />
                   Précédent
                 </Button>
               )}
             </div>
-            {currentStep === 1 ? (
-              <Button variant="outline" onClick={() => setCurrentStep(2)}>
+            {currentStep < 3 ? (
+              <Button variant="outline" onClick={handleNextStep}>
                 Suivant
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
@@ -626,4 +753,4 @@ export function AddEmployeeModal() {
       </DialogContent>
     </Dialog>
   );
-}
+};
