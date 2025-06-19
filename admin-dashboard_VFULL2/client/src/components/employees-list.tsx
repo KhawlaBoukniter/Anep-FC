@@ -112,7 +112,7 @@ export function EmployeesList() {
     const matchesFilters = filters.every((filter) => {
       if (filter.type === "Emploi") return filter.values.some((val) => emplois.some((e) => e?.nom_emploi?.toLowerCase().includes(val.toLowerCase())));
       if (filter.type === "Ville") return filter.values.some((val) => employee.profile?.LIBELLE_LOC?.toLowerCase().includes(val.toLowerCase()));
-      if (filter.type === "Département") return filter.values.some((val) => emplois.some((e) => e?.entite?.toLowerCase().includes(val.toLowerCase())));
+      if (filter.type === "Direction") return filter.values.some((val) => emplois.some((e) => e?.entite?.toLowerCase().includes(val.toLowerCase())));
       if (filter.type === "Région") return filter.values.some((val) => employee.profile?.LIBELLE_REGION?.toLowerCase().includes(val.toLowerCase()));
       if (filter.type === "Statut") return filter.values.some((val) => employee.profile?.STATUT?.toLowerCase() === val.toLowerCase());
       return true;
@@ -219,7 +219,7 @@ export function EmployeesList() {
   const filterOptions: FilterOption[] = [
     { label: "Emploi", value: "Emploi", options: uniqueJobs },
     { label: "Ville", value: "Ville", options: uniqueVilles },
-    { label: "Département", value: "Département", options: uniqueDepartements },
+    { label: "Direction", value: "Direction", options: uniqueDepartements },
     { label: "Région", value: "Région", options: uniqueRegions },
     { label: "Statut", value: "Statut", options: uniqueStatuses },
   ];
@@ -232,7 +232,7 @@ export function EmployeesList() {
         return "bg-blue-50 text-blue-700 border-blue-200";
       case "Ville":
         return "bg-green-50 text-green-700 border-green-200";
-      case "Département":
+      case "Direction":
         return "bg-yellow-50 text-yellow-700 border-yellow-200";
       case "Région":
         return "bg-purple-50 text-purple-700 border-purple-200";
@@ -469,7 +469,7 @@ export function EmployeesList() {
                       className={clsx("flex items-center gap-1", {
                         "bg-blue-50 text-blue-700 border-blue-200": filter.type === "Emploi",
                         "bg-green-50 text-green-700 border-green-200": filter.type === "Ville",
-                        "bg-yellow-50 text-yellow-700 border-yellow-200": filter.type === "Département",
+                        "bg-yellow-50 text-yellow-700 border-yellow-200": filter.type === "Direction",
                         "bg-purple-50 text-purple-700 border-purple-200": filter.type === "Région",
                         "bg-red-50 text-red-700 border-red-200": filter.type === "Statut",
                       })}
@@ -613,7 +613,7 @@ export function EmployeesList() {
                                           <p className="text-gray-600">{employee.profile?.STATUT || "-"}</p>
                                         </div>
                                         <div>
-                                          <span className="font-medium text-gray-700">Département:</span>
+                                          <span className="font-medium text-gray-700">Direction:</span>
                                           <p className="text-gray-600">
                                             {(employee.emplois || []).map((e) => e.entite).join(", ") || "-"}
                                           </p>
