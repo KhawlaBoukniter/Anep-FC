@@ -405,232 +405,326 @@ export function AddEmployeeModal() {
         </DialogHeader>
         <div className="space-y-6 mt-6">
           {currentStep === 1 && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="nom_prenom">Nom complet *</Label>
-                <Input
-                  id="nom_prenom"
-                  placeholder="Entrez le nom complet"
-                  value={profileData["NOM PRENOM"] || ""}
-                  onChange={(e) => handleProfileInputChange("NOM PRENOM", e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="adresse">Adresse</Label>
-                <Input
-                  id="adresse"
-                  placeholder="Entrez l'adresse"
-                  value={profileData.ADRESSE || ""}
-                  onChange={(e) => handleProfileInputChange("ADRESSE", e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="date_naissance">Date de naissance *</Label>
-                <Input
-                  id="date_naissance"
-                  type="date"
-                  value={profileData.DATE_NAISS || ""}
-                  onChange={(e) => handleProfileInputChange("DATE_NAISS", e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cin">CIN *</Label>
-                <Input
-                  id="cin"
-                  placeholder="Entrez le numéro CIN"
-                  value={profileData.CIN || ""}
-                  onChange={(e) => handleProfileInputChange("CIN", e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sexe">Sexe *</Label>
-                <Select
-                  value={profileData.SEXE || ""}
-                  onValueChange={(value) => handleProfileInputChange("SEXE", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner le sexe" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="M">Masculin</SelectItem>
-                    <SelectItem value="F">Féminin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sit_f_ag">Situation familiale</Label>
-                <Select
-                  value={profileData.SIT_F_AG || ""}
-                  onValueChange={(value) => handleProfileInputChange("SIT_F_AG", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner la situation familiale" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="C">Célibataire</SelectItem>
-                    <SelectItem value="M">Marié(e)</SelectItem>
-                    <SelectItem value="D">Divorcé(e)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-          {currentStep === 2 && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Entrez l'adresse email"
-                  value={formData.email || ""}
-                  onChange={(e) => handleEmployeeInputChange("email", e.target.value)}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="telephone1">Téléphone 1 *</Label>
-                  <Input
-                    id="telephone1"
-                    type="tel"
-                    placeholder="Entrez le numéro principal"
-                    value={formData.telephone1 || ""}
-                    onChange={(e) => handleEmployeeInputChange("telephone1", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="telephone2">Téléphone 2</Label>
-                  <Input
-                    id="telephone2"
-                    type="tel"
-                    placeholder="Entrez le numéro secondaire"
-                    value={formData.telephone2 || ""}
-                    onChange={(e) => handleEmployeeInputChange("telephone2", e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="categorie">Catégorie *</Label>
-                  <Input
-                    id="categorie"
-                    placeholder="Entrez la catégorie"
-                    value={formData.categorie || ""}
-                    onChange={(e) => handleEmployeeInputChange("categorie", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="specialite">Spécialité</Label>
-                  <Input
-                    id="specialite"
-                    placeholder="Entrez la spécialité"
-                    value={formData.specialite || ""}
-                    onChange={(e) => handleEmployeeInputChange("specialite", e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="experience_employe">Expérience (années)</Label>
-                  <Input
-                    id="experience_employe"
-                    type="number"
-                    placeholder="Entrez les années d'expérience"
-                    value={formData.experience_employe || ""}
-                    onChange={(e) => handleEmployeeInputChange("experience_employe", Number(e.target.value))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="role">Rôle *</Label>
-                  <Select
-                    value={formData.role || ""}
-                    onValueChange={(value) => handleEmployeeInputChange("role", value)}
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="nom_prenom">Nom complet</Label>
+      <Input
+        id="nom_prenom"
+        placeholder="Entrez le nom complet"
+        value={profileData["NOM PRENOM"] || ""}
+        onChange={(e) => handleProfileInputChange("NOM PRENOM", e.target.value)}
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="adresse">Adresse</Label>
+      <Input
+        id="adresse"
+        placeholder="Entrez l'adresse"
+        value={profileData.ADRESSE || ""}
+        onChange={(e) => handleProfileInputChange("ADRESSE", e.target.value)}
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="date_naissance">Date de naissance</Label>
+      <Input
+        id="date_naissance"
+        type="date"
+        value={profileData.DATE_NAISS || ""}
+        onChange={(e) => handleProfileInputChange("DATE_NAISS", e.target.value)}
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="cin">CIN</Label>
+      <Input
+        id="cin"
+        placeholder="Entrez le numéro CIN"
+        value={profileData.CIN || ""}
+        onChange={(e) => handleProfileInputChange("CIN", e.target.value)}
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="sexe">Sexe</Label>
+      <Select
+        value={profileData.SEXE || ""}
+        onValueChange={(value) => handleProfileInputChange("SEXE", value)}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Sélectionner le sexe" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="M">Masculin</SelectItem>
+          <SelectItem value="F">Féminin</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="sit_f_ag">Situation familiale</Label>
+      <Select
+        value={profileData.SIT_F_AG || ""}
+        onValueChange={(value) => handleProfileInputChange("SIT_F_AG", value)}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Sélectionner la situation familiale" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="C">Célibataire</SelectItem>
+          <SelectItem value="M">Marié(e)</SelectItem>
+          <SelectItem value="D">Divorcé(e)</SelectItem>
+          <SelectItem value="AUTRE">Autre</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="detache">Détaché</Label>
+      <Select
+        value={profileData.DETACHE || ""}
+        onValueChange={(value) => handleProfileInputChange("DETACHE", value)}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Sélectionner l'état de détachement" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="O">Oui</SelectItem>
+          <SelectItem value="N">Non</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="statut">Statut</Label>
+      <Select
+        value={profileData.STATUT || ""}
+        onValueChange={(value) => handleProfileInputChange("STATUT", value)}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Sélectionner le statut" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="activite">Activité</SelectItem>
+          <SelectItem value="sortie de service">Sortie de service</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="dat_rec">Date de recrutement</Label>
+      <Input
+        id="dat_rec"
+        type="date"
+        value={profileData.DAT_REC || ""}
+        onChange={(e) => handleProfileInputChange("DAT_REC", e.target.value)}
+      />
+    </div>
+  </div>
+)}
+{currentStep === 2 && (
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="email">Email</Label>
+      <Input
+        id="email"
+        type="email"
+        placeholder="Entrez l'adresse email"
+        value={formData.email || ""}
+        onChange={(e) => handleEmployeeInputChange("email", e.target.value)}
+      />
+    </div>
+    <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Label htmlFor="telephone1">Téléphone 1</Label>
+        <Input
+          id="telephone1"
+          type="tel"
+          placeholder="Entrez le numéro principal"
+          value={formData.telephone1 || ""}
+          onChange={(e) => handleEmployeeInputChange("telephone1", e.target.value)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="telephone2">Téléphone 2</Label>
+        <Input
+          id="telephone2"
+          type="tel"
+          placeholder="Entrez le numéro secondaire"
+          value={formData.telephone2 || ""}
+          onChange={(e) => handleEmployeeInputChange("telephone2", e.target.value)}
+        />
+      </div>
+    </div>
+    <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Label htmlFor="categorie">Catégorie</Label>
+        <Input
+          id="categorie"
+          placeholder="Entrez la catégorie"
+          value={formData.categorie || ""}
+          onChange={(e) => handleEmployeeInputChange("categorie", e.target.value)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="specialite">Spécialité</Label>
+        <Input
+          id="specialite"
+          placeholder="Entrez la spécialité"
+          value={formData.specialite || ""}
+          onChange={(e) => handleEmployeeInputChange("specialite", e.target.value)}
+        />
+      </div>
+    </div>
+    <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Label htmlFor="experience_employe">Expérience (années)</Label>
+        <Input
+          id="experience_employe"
+          type="number"
+          placeholder="Entrez les années d'expérience"
+          value={formData.experience_employe || ""}
+          onChange={(e) => handleEmployeeInputChange("experience_employe", Number(e.target.value))}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="role">Rôle</Label>
+        <Select
+          value={formData.role || ""}
+          onValueChange={(value) => handleEmployeeInputChange("role", value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionner un rôle" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="user">Utilisateur</SelectItem>
+            <SelectItem value="admin">Admin</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="dat_pos">Date de prise de poste</Label>
+      <Input
+        id="dat_pos"
+        type="date"
+        value={profileData.DAT_POS || ""}
+        onChange={(e) => handleProfileInputChange("DAT_POS", e.target.value)}
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="libelle_grade">Libellé Grade</Label>
+      <Input
+        id="libelle_grade"
+        placeholder="Entrez le libellé du grade"
+        value={profileData.LIBELLE_GRADE || ""}
+        onChange={(e) => handleProfileInputChange("LIBELLE_GRADE", e.target.value)}
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="grade_assimile">Grade Assimilé</Label>
+      <Input
+        id="grade_assimile"
+        placeholder="Entrez le grade assimilé"
+        value={profileData.GRADE_ASSIMILE || ""}
+        onChange={(e) => handleProfileInputChange("GRADE_ASSIMILE", e.target.value)}
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="libelle_fonction">Libellé Fonction</Label>
+      <Input
+        id="libelle_fonction"
+        placeholder="Entrez le libellé de la fonction"
+        value={profileData.LIBELLE_FONCTION || ""}
+        onChange={(e) => handleProfileInputChange("LIBELLE_FONCTION", e.target.value)}
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="dat_fct">Date de fonction</Label>
+      <Input
+        id="dat_fct"
+        type="date"
+        value={profileData.DAT_FCT || ""}
+        onChange={(e) => handleProfileInputChange("DAT_FCT", e.target.value)}
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="libelle_loc">Localisation</Label>
+      <Input
+        id="libelle_loc"
+        placeholder="Entrez la localisation"
+        value={profileData.LIBELLE_LOC || ""}
+        onChange={(e) => handleProfileInputChange("LIBELLE_LOC", e.target.value)}
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="libelle_region">Région</Label>
+      <Input
+        id="libelle_region"
+        placeholder="Entrez la région"
+        value={profileData.LIBELLE_REGION || ""}
+        onChange={(e) => handleProfileInputChange("LIBELLE_REGION", e.target.value)}
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="emplois">Emplois</Label>
+      <Popover open={openJobPopover} onOpenChange={setOpenJobPopover}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            className="w-full justify-between"
+            onClick={() => setOpenJobPopover(true)}
+          >
+            {selectedJobs.length > 0
+              ? `${selectedJobs.length} emploi(s) sélectionné(s)`
+              : "Sélectionner des emplois"}
+            <ChevronRight className="ml-2 h-4 w-4 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[400px] p-0">
+          <Command>
+            <CommandInput ref={jobInputRef} placeholder="Rechercher un emploi..." />
+            <CommandList>
+              <CommandEmpty>Aucun emploi trouvé.</CommandEmpty>
+              <CommandGroup>
+                {jobs.map((job: Emploi) => (
+                  <CommandItem
+                    key={job.id_emploi}
+                    value={job.nom_emploi}
+                    onSelect={() => handleJobToggle(job)}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un rôle" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="user">Utilisateur</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="dat_rec">Date de recrutement *</Label>
-                <Input
-                  id="dat_rec"
-                  type="date"
-                  value={profileData.DAT_REC || ""}
-                  onChange={(e) => handleProfileInputChange("DAT_REC", e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="emplois">Emplois *</Label>
-                <Popover open={openJobPopover} onOpenChange={setOpenJobPopover}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="w-full justify-between"
-                      onClick={() => setOpenJobPopover(true)}
-                    >
-                      {selectedJobs.length > 0
-                        ? `${selectedJobs.length} emploi(s) sélectionné(s)`
-                        : "Sélectionner des emplois"}
-                      <ChevronRight className="ml-2 h-4 w-4 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[400px] p-0">
-                    <Command>
-                      <CommandInput ref={jobInputRef} placeholder="Rechercher un emploi..." />
-                      <CommandList>
-                        <CommandEmpty>Aucun emploi trouvé.</CommandEmpty>
-                        <CommandGroup>
-                          {jobs.map((job: Emploi) => (
-                            <CommandItem
-                              key={job.id_emploi}
-                              value={job.nom_emploi}
-                              onSelect={() => handleJobToggle(job)}
-                            >
-                              <Check
-                                className={`mr-2 h-4 w-4 ${
-                                  selectedJobs.some((j) => j.id_emploi === job.id_emploi)
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                }`}
-                              />
-                              <div className="w-full">
-                                <span className="font-bold">{job.codeemploi} :</span> {job.nom_emploi}
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {selectedJobs.map((job) => (
-                    <div
-                      key={job.id_emploi}
-                      className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
-                    >
-                      {job.nom_emploi}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-4 w-4"
-                        onClick={() => handleJobToggle(job)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
+                    <Check
+                      className={`mr-2 h-4 w-4 ${
+                        selectedJobs.some((j) => j.id_emploi === job.id_emploi)
+                          ? "opacity-100"
+                          : "opacity-0"
+                      }`}
+                    />
+                    <div className="w-full">
+                      <span className="font-bold">{job.codeemploi} :</span> {job.nom_emploi}
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      <div className="flex flex-wrap gap-2 mt-2">
+        {selectedJobs.map((job) => (
+          <div
+            key={job.id_emploi}
+            className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+          >
+            {job.nom_emploi}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-4 w-4"
+              onClick={() => handleJobToggle(job)}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+)}
           {currentStep === 3 && (
             <div className="space-y-6">
               <div className="text-center">

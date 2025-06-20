@@ -48,7 +48,7 @@ interface Profile {
   CIN?: string | null;
   DETACHE?: 'O' | 'N' | null;
   SEXE?: 'F' | 'M' | null;
-  SIT_F_AG?: 'M' | 'C' | 'D' | null;
+  SIT_F_AG?: 'M' | 'C' | 'D' | 'AUTRE' | null;
   STATUT?: 'activite' | 'sortie de service' | null;
   DAT_POS?: string | null;
   LIBELLE_GRADE?: string | null;

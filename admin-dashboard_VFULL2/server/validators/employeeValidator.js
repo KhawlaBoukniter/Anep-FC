@@ -34,7 +34,7 @@ const employeeSchema = Joi.object({
         CIN: Joi.string().pattern(/^[A-Z]{1,2}[0-9]{5,6}$/).allow(null),
         DETACHE: Joi.string().valid("O", "N").allow(null),
         SEXE: Joi.string().valid("F", "M").allow(null),
-        SIT_F_AG: Joi.string().valid("M", "C", "D").allow(null),
+        SIT_F_AG: Joi.string().valid("M", "C", "D", "AUTRE").allow(null),
         STATUT: Joi.string().valid("activite", "sortie de service").allow(null),
         DAT_POS: Joi.date().allow(null),
         LIBELLE_GRADE: Joi.string().max(200).allow(null),
@@ -43,7 +43,7 @@ const employeeSchema = Joi.object({
         DAT_FCT: Joi.date().allow(null),
         LIBELLE_LOC: Joi.string().max(200).allow(null),
         LIBELLE_REGION: Joi.string().max(200).allow(null),
-    }).required(),
+    }).allow(null),
 }).unknown(true);
 
 module.exports = { employeeSchema };

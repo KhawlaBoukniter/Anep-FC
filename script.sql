@@ -137,6 +137,7 @@ CREATE TYPE sexe_enum AS ENUM ('F', 'M');
 CREATE TYPE situation_familiale_enum AS ENUM ('M', 'C', 'D');
 CREATE TYPE statut_enum AS ENUM ('activite', 'sortie de service');
 
+ALTER TYPE situation_familiale_enum ADD VALUE 'AUTRE';
 
 
 
