@@ -63,6 +63,8 @@ export const jobService = {
   create: (data) => api.post("/jobs", data),
   update: (id, data) => api.put(`/jobs/${id}`, data),
   delete: (id) => api.delete(`/jobs/${id}`),
+  archive: (id) => api.put(`/jobs/${id}/archive`), 
+  unarchive: (id) => api.put(`/jobs/${id}/unarchive`),
 }
 
 // Services pour les compétences
