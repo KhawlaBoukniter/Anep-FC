@@ -99,11 +99,42 @@ async function deleteSkill(req, res) {
     }
 }
 
+async function archiveSkill(req, res) {
+    try {
+        const { id } = req.params;
+        const archivedSkill = await skillModel.archiveSkill(id);
+        if (!archivedSkill) {
+            return res.status(404).json({ error: "Compétence non trouvée" });
+        }
+        res.json({ message: "Compétence archivée avec succès", skill: archivedSkill });
+    } catch (error) {
+        console.error("Erreur lors de l'archivage de la compétence:", error);
+        res.status(500).json({ error: "Erreur lors de l'archivage de la compétence" });
+    }
+}
+
+async function unarchiveSkill(req, res) {
+    try {
+        const { id } = req.params;
+        const unarchivedSkill = await skillModel.unarchiveSkill(id);
+        if (!unarchivedSkill) {
+            return res.status(404).json({ error: "Compétence non trouvée" });
+        }
+        res.json({ message: "Compétence désarchivée avec succès", skill: unarchivedSkill });
+    } catch (error) {
+        console.error("Erreur lors du désarchivage de la compétence:", error);
+        res.status(500).json({ error: "Erreur lors du désarchivage de la compétence" });
+    }
+}
+
+
 module.exports = {
     getLatestCode,
     getSkills,
     getSkill,
     createSkill,
     updateSkill,
-    deleteSkill
-}
+    deleteSkill,
+    archiveSkill,
+    unarchiveSkill,
+};
