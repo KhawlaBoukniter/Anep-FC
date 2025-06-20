@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "./ui/input.tsx";
 import { Label } from "./ui/label.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.tsx";
-import { ChevronLeft, ChevronRight, UserPlus, X, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, UserPlus, X, Check, ChevronDown } from "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command.tsx";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover.tsx";
 import { useCreateEmployee } from "../hooks/useEmployees";
@@ -20,6 +20,11 @@ import api from "../services/api.js";
 export function AddEmployeeModal() {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [skillSectionsOpen, setSkillSectionsOpen] = useState({
+    required: true,
+    additional: true,
+    complementary: true,
+  });
 
   const [profileData, setProfileData] = useState<Partial<Profile>>({
     "NOM PRENOM": "",
@@ -244,6 +249,13 @@ export function AddEmployeeModal() {
     } else {
       setComplementarySkills(updateSkills);
     }
+  };
+
+  const toggleSkillSection = (section: 'required' | 'additional' | 'complementary') => {
+    setSkillSectionsOpen((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
   };
 
   const addAdditionalJobSkill = (id_competencea: number) => {
@@ -929,8 +941,14 @@ export function AddEmployeeModal() {
                 {/* Compétences requises pour l'emploi */}
                 {requiredSkills.length > 0 && (
                   <div className="space-y-3">
-                    <h4 className="text-md font-semibold text-green-700 bg-green-100 p-2 rounded">Compétences requises pour l'emploi</h4>
-                    {requiredSkills.map((skill) => (
+                    <h4 
+                      className="text-md font-semibold text-green-700 bg-green-100 p-2 rounded flex justify-between items-center cursor-pointer"
+                      onClick={() => toggleSkillSection('required')}
+                    >
+                      Compétences requises pour l'emploi
+                      <span>{skillSectionsOpen.required ? <ChevronDown></ChevronDown> : <ChevronRight></ChevronRight>}</span>
+                    </h4>
+                    {skillSectionsOpen.required && requiredSkills.map((skill) => (
                       <div
                         key={skill.id_competencea}
                         className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
@@ -964,8 +982,14 @@ export function AddEmployeeModal() {
                 {/* Compétences supplémentaires des emplois */}
                 {additionalJobSkills.length > 0 && (
                   <div className="space-y-3">
-                    <h4 className="text-md font-semibold text-blue-700 bg-blue-100 p-2 rounded">Compétences supplémentaires des emplois</h4>
-                    {additionalJobSkills.map((skill) => (
+                    <h4 
+                      className="text-md font-semibold text-blue-700 bg-blue-100 p-2 rounded flex justify-between items-center cursor-pointer"
+                      onClick={() => toggleSkillSection('additional')}
+                    >
+                      Compétences hors emploi
+                      <span>{skillSectionsOpen.additional ? <ChevronDown></ChevronDown> : <ChevronRight></ChevronRight>}</span>
+                    </h4>
+                    {skillSectionsOpen.additional && additionalJobSkills.map((skill) => (
                       <div
                         key={skill.id_competencea}
                         className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
@@ -1007,8 +1031,14 @@ export function AddEmployeeModal() {
                 {/* Compétences complémentaires */}
                 {complementarySkills.length > 0 && (
                   <div className="space-y-3">
-                    <h4 className="text-md font-semibold text-purple-700 bg-purple-100 p-2 rounded">Compétences complémentaires</h4>
-                    {complementarySkills.map((skill) => (
+                    <h4 
+                      className="text-md font-semibold text-purple-700 bg-purple-100 p-2 rounded flex justify-between items-center cursor-pointer"
+                      onClick={() => toggleSkillSection('complementary')}
+                    >
+                      Autres compétences
+                      <span>{skillSectionsOpen.complementary ? <ChevronDown></ChevronDown> : <ChevronRight></ChevronRight>}</span>
+                    </h4>
+                    {skillSectionsOpen.complementary && complementarySkills.map((skill) => (
                       <div
                         key={skill.id_competencea}
                         className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
