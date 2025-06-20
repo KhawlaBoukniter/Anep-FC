@@ -83,6 +83,8 @@ export const reqSkillService = {
   update: (id, data) => api.put(`/req-skills/${id}`, data),
   delete: (id) => api.delete(`/req-skills/${id}`),
   getLatestCode: () => api.get("/req-skills/latest-code"),
+  archive: (id) => api.put(`/req-skills/${id}/archive`), 
+  unarchive: (id) => api.put(`/req-skills/${id}/unarchive`),
 }
 
 // Services pour les analyses
