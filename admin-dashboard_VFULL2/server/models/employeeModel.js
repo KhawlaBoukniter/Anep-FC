@@ -78,7 +78,7 @@ async function getAllEmployees({ search, role, archived }) {
         query += ` AND ${conditions.join(" AND ")}`;
     }
 
-    query += ` GROUP BY e.id_employe, p.id_profile ORDER BY e.nom_complet`;
+    query += ` GROUP BY e.id_employe, p.id_profile ORDER BY e.created_at`;
 
     try {
         console.log("Executing query:", query, "with params:", params);
