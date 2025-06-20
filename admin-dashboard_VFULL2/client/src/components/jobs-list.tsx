@@ -36,6 +36,7 @@ import {
   TrendingUp,
   Archive,
   ArchiveRestore,
+  X,
 } from "lucide-react";
 import { AddJobModal } from "./add-job-modal.tsx";
 import { EditJobModal } from "./edit-job-modal.tsx";
@@ -45,6 +46,17 @@ import { useJobs, useArchiveJob, useUnarchiveJob } from "../hooks/useJobs";
 import { Job } from "../types/job.ts";
 import clsx from "clsx";
 import CompetencesRByLevel from "./CompetencesRByLevel.tsx";
+
+interface Filter {
+  type: string;
+  values: string[];
+}
+
+interface FilterOption {
+  value: string;
+  label: string;
+  options: string[];
+}
 
 // Custom debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -65,19 +77,23 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export function JobsList() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterEntite, setFilterEntite] = useState("all");
-  const [showArchived, setShowArchived] = useState(false);
+  const [filters, setFilters] = useState<Filter[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [unarchiveDialogOpen, setUnarchiveDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [newFilterType, setNewFilterType] = useState("");
+  const [newFilterValues, setNewFilterValues] = useState<string[]>([]);
+  const [searchValue, setSearchValue] = useState("");
+  const [openPopover, setOpenPopover] = useState(false);
   const jobsPerPage = 10;
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   const { data: jobs = [], isLoading, isError, error } = useJobs({
     search: debouncedSearchTerm,
-    archived: showArchived,
+    archived: filters.some(f => f.type === "Archivage" && f.values.includes("Archivés")),
   });
 
   const { mutate: archiveJob } = useArchiveJob();
@@ -89,9 +105,27 @@ export function JobsList() {
     return [...new Set(entites)].sort() as string[];
   }, [jobs]);
 
+  const filterOptions: FilterOption[] = useMemo(() => [
+    { label: "Entité", value: "Entité", options: uniqueEntites },
+    { label: "Archivage", value: "Archivage", options: ["Archivés", "Désarchivés"] },
+  ], [uniqueEntites]);
+
+  const availableOptions = filterOptions.find((opt) => opt.value === newFilterType)?.options || [];
+
   const filteredJobs = jobs.filter((job: Job) => {
-    const matchesEntite = filterEntite === "all" || job.entite === filterEntite;
-    return matchesEntite;
+    const matchesFilters = filters.every((filter) => {
+      if (filter.type === "Entité") return filter.values.some((val) => job.entite.toLowerCase() === val.toLowerCase());
+      if (filter.type === "Archivage") {
+        return filter.values.every((val) => {
+          if (val === "Archivés") return job.archived === true;
+          if (val === "Désarchivés") return job.archived === false;
+          return true;
+        });
+      }
+      return true;
+    });
+
+    return matchesFilters;
   });
 
   const totalPages = Math.ceil(filteredJobs.length / jobsPerPage);
@@ -107,7 +141,7 @@ export function JobsList() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearchTerm, filterEntite, showArchived]);
+  }, [debouncedSearchTerm, filters]);
 
   const handleArchive = (job: Job) => {
     setSelectedJob(job);
@@ -132,6 +166,57 @@ export function JobsList() {
       unarchiveJob(selectedJob.id_emploi);
       setUnarchiveDialogOpen(false);
       setSelectedJob(null);
+    }
+  };
+
+  const clearFilter = (filterType: string, value?: string) => {
+    if (value) {
+      setFilters((prev) =>
+        prev.map((f) =>
+          f.type === filterType ? { ...f, values: f.values.filter((v) => v !== value) } : f
+        ).filter((f) => f.values.length > 0)
+      );
+    } else {
+      setFilters((prev) => prev.filter((f) => f.type !== filterType));
+    }
+    setCurrentPage(1);
+  };
+
+  const addFilter = () => {
+    if (newFilterType && newFilterValues.length > 0) {
+      setFilters((prev) => {
+        const existingFilter = prev.find((f) => f.type === newFilterType);
+        if (existingFilter) {
+          return prev.map((f) =>
+            f.type === newFilterType ? { ...f, values: [...f.values, ...newFilterValues.filter((v) => !f.values.includes(v))] } : f
+          );
+        }
+        return [...prev, { type: newFilterType, values: newFilterValues }];
+      });
+      setNewFilterType("");
+      setNewFilterValues([]);
+      setSearchValue("");
+      setFilterDialogOpen(false);
+      setCurrentPage(1);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && searchValue.trim() && !newFilterValues.includes(searchValue)) {
+      setNewFilterValues((prev) => [...prev, searchValue]);
+      setSearchValue("");
+      setOpenPopover(false);
+    }
+  };
+
+  const getFilterColor = (type: string) => {
+    switch (type) {
+      case "Entité":
+        return "bg-yellow-50 text-yellow-700 border-yellow-200";
+      case "Archivage":
+        return "bg-gray-50 text-gray-700 border-gray-200";
+      default:
+        return "bg-gray-50 text-gray-700 border-gray-200";
     }
   };
 
@@ -194,41 +279,177 @@ export function JobsList() {
                 />
               </div>
               <div className="flex gap-2 w-full md:w-auto">
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-2 bg-white rounded-lg border-green-600 hover:bg-gray-100 transition-all"
-                  onClick={() => {
-                    setShowArchived(!showArchived);
-                    setCurrentPage(1);
-                  }}
-                >
-                  {showArchived ? <Briefcase className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
-                  {showArchived ? "Afficher Actifs" : "Afficher Archivés"}
-                </Button>
-                <Select value={filterEntite} onValueChange={(value) => setFilterEntite(value)}>
-                  <SelectTrigger className="w-40 border-l border-green-600">
-                    <Filter className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Entité" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Toutes les entités</SelectItem>
-                    {uniqueEntites.map((entite) => (
-                      <SelectItem key={entite} value={entite}>
-                        {entite}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="flex items-center gap-2 bg-white rounded-lg border-green-600 hover:bg-gray-100 transition-all"
+                    >
+                      <Filter className="h-4 w-4" /> Ajouter Filtre
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md rounded-xl bg-white shadow-2xl border border-gray-200 animate-in fade-in duration-200">
+                    <DialogHeader className="border-b border-gray-100 p-4">
+                      <DialogTitle className="text-xl font-bold text-gray-900">Ajouter un filtre</DialogTitle>
+                    </DialogHeader>
+                    <div className="p-6 space-y-6">
+                      <div className="relative">
+                        <select
+                          value={newFilterType}
+                          onChange={(e) => {
+                            setNewFilterType(e.target.value);
+                            setNewFilterValues([]);
+                            setSearchValue("");
+                          }}
+                          className="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-gray-700 bg-white appearance-none"
+                          aria-label="Sélectionner le type de filtre"
+                        >
+                          <option value="">Choisir un type de filtre</option>
+                          {filterOptions.map((option) => (
+                            <option
+                              key={option.value}
+                              value={option.value}
+                              disabled={filters.some((f) => f.type === option.value)}
+                            >
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                          </svg>
+                        </div>
+                      </div>
+                      {newFilterType && (
+                        <div className="space-y-4">
+                          <Input
+                            placeholder={`Saisir ou rechercher ${newFilterType.toLowerCase()}...`}
+                            value={searchValue}
+                            onChange={(e) => {
+                              setSearchValue(e.target.value);
+                              setOpenPopover(e.target.value.length > 0);
+                            }}
+                            onKeyDown={handleKeyDown}
+                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition-all"
+                            aria-label={`Rechercher ${newFilterType.toLowerCase()}`}
+                          />
+                          {openPopover && (
+                            <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                              {availableOptions
+                                .filter((option) => option.toLowerCase().includes(searchValue.toLowerCase()))
+                                .map((option) => (
+                                  <div
+                                    key={option}
+                                    onClick={() => {
+                                      if (!newFilterValues.includes(option)) {
+                                        setNewFilterValues((prev) => [...prev, option]);
+                                        setSearchValue("");
+                                        setOpenPopover(false);
+                                      }
+                                    }}
+                                    className={clsx(
+                                      "p-2 cursor-pointer hover:bg-gray-100 transition-colors",
+                                      newFilterValues.includes(option) && "opacity-50 cursor-not-allowed"
+                                    )}
+                                  >
+                                    {option}
+                                  </div>
+                                ))}
+                              {availableOptions.filter((option) => option.toLowerCase().includes(searchValue.toLowerCase())).length === 0 && (
+                                <div className="p-2 text-gray-500">Aucun résultat. Appuyez sur Entrée pour ajouter.</div>
+                              )}
+                            </div>
+                          )}
+                          {newFilterValues.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {newFilterValues.map((value) => (
+                                <Badge
+                                  key={value}
+                                  variant="secondary"
+                                  className={clsx(
+                                    "flex items-center gap-1 p-1 text-sm font-medium rounded-full transition-all",
+                                    getFilterColor(newFilterType)
+                                  )}
+                                >
+                                  {value}
+                                  <X
+                                    className="h-3 w-3 cursor-pointer hover:bg-gray-300 rounded-full p-0.5"
+                                    onClick={() => setNewFilterValues((prev) => prev.filter((v) => v !== value))}
+                                    aria-label={`Supprimer ${value}`}
+                                  />
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter className="border-t border-gray-100 p-4 flex justify-end gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => setFilterDialogOpen(false)}
+                        className="rounded-lg border-gray-300 hover:bg-gray-100 text-gray-700 px-4 py-2 transition-all"
+                      >
+                        Annuler
+                      </Button>
+                      <Button
+                        variant="default"
+                        onClick={() => {
+                          addFilter();
+                          setFilterDialogOpen(false);
+                        }}
+                        disabled={!newFilterType || newFilterValues.length === 0}
+                        className="bg-green-600 hover:bg-green-700 text-white rounded-lg px-4 py-2 shadow-md transition-all"
+                      >
+                        Ajouter
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
                 <AddJobModal />
               </div>
             </div>
+            {filters.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {filters.map((filter) =>
+                  filter.values.map((value) => (
+                    <Badge
+                      key={`${filter.type}-${value}`}
+                      variant="secondary"
+                      className={clsx("flex items-center gap-1", getFilterColor(filter.type))}
+                    >
+                      {filter.type}: {value}
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:bg-gray-300 rounded"
+                        onClick={() => clearFilter(filter.type, value)}
+                        aria-label={`Supprimer filtre ${filter.type} ${value}`}
+                      />
+                    </Badge>
+                  ))
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 rounded-lg border-gray-300 hover:bg-gray-100 transition-all"
+                  onClick={() => {
+                    setFilters([]);
+                    setCurrentPage(1);
+                  }}
+                >
+                  Effacer tous les filtres
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         <Card className="bg-gray-100">
           <CardHeader>
             <div className="flex items-center justify-between text-green-600">
-              <CardTitle className="text-xl">{showArchived ? "Emplois Archivés" : "Liste des Emplois"}</CardTitle>
+              <CardTitle className="text-xl">
+                {filters.some(f => f.type === "Archivage" && f.values.includes("Archivés")) ? "Emplois Archivés" : "Liste des Emplois"}
+              </CardTitle>
               <Badge variant="secondary">{filteredJobs.length} résultat(s)</Badge>
             </div>
           </CardHeader>
@@ -383,7 +604,7 @@ export function JobsList() {
                                   </Tooltip>
                                 </>
                               )}
-                              {showArchived && (
+                              {filters.some(f => f.type === "Archivage" && f.values.includes("Archivés")) && (
                                 <>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -484,7 +705,7 @@ export function JobsList() {
                   <div className="text-center py-8">
                     <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      {showArchived ? "Aucun emploi archivé trouvé" : "Aucun emploi actif trouvé"}
+                      {filters.some(f => f.type === "Archivage" && f.values.includes("Archivés")) ? "Aucun emploi archivé trouvé" : "Aucun emploi actif trouvé"}
                     </h3>
                     <p className="text-gray-600">
                       Essayez de modifier vos critères de recherche ou d'ajouter un nouvel emploi.
