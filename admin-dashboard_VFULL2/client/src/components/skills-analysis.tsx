@@ -282,14 +282,14 @@ export function SkillsAnalysis() {
               <Button 
                 variant={analysisType === "union" ? "default" : "outline"}
                 onClick={() => setAnalysisType("union")}
-                className={analysisType === "union" ? "bg-purple-600 text-white w-full py-[22px] hover:bg-purple-700" : "w-full bg-purple-200 py-[22px]"} 
+                className={analysisType === "union" ? "bg-purple-200  w-full py-[22px] " : "w-full bg-purple-600 py-[22px] hover:bg-purple-700 text-white"} 
               >
                 Union
               </Button>
               <Button
                 variant={analysisType === "intersection" ? "default" : "outline"}
                 onClick={() => setAnalysisType("intersection")}
-                className={analysisType === "intersection" ? "bg-purple-600 text-white w-full py-[22px] hover:bg-purple-700" : "w-full bg-purple-200 py-[22px]"}
+                className={analysisType === "intersection" ? "bg-purple-200  w-full py-[22px]" : "w-full bg-purple-600 py-[22px] hover:bg-purple-700 text-white"}
               >
                 Intersection
               </Button>
