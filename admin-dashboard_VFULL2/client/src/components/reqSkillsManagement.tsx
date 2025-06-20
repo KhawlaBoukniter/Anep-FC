@@ -9,6 +9,8 @@ import {
   useCreateSkill,
   useUpdateSkill,
   useDeleteSkill,
+  useArchiveSkill,
+  useUnarchiveSkill,
   useLatestSkillCode,
 } from "../hooks/useReqSkills";
 import { useEmployees } from "../hooks/useEmployees";
@@ -22,9 +24,9 @@ import {
 import { Button } from "./ui/button.tsx";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table.tsx";
 import { Badge } from "./ui/badge.tsx";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog.tsx";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog.tsx";
 import { Input } from "./ui/input.tsx";
-import { Eye, Search, Filter, BookOpen, X, AlertTriangle, Users, UserX } from "lucide-react";
+import { Eye, Search, BookOpen, Archive, ArchiveRestore, XCircle, Users, UserX } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip.tsx";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { Trash } from "lucide-react";
@@ -37,30 +39,36 @@ export function ReqSkillsManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
+  const [isUnarchiveDialogOpen, setIsUnarchiveDialogOpen] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState(null);
   const [newSkill, setNewSkill] = useState({ code_competencer: "", competencer: "" });
   const [editSkill, setEditSkill] = useState({ id: "", code_competencer: "", competencer: "" });
+  const [showArchived, setShowArchived] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const skillsPerPage = 10;
 
-  const { data: allSkills = [], isLoading: isSkillsLoading } = useSkills();
+  const { data: allSkills = [], isLoading: isSkillsLoading } = useSkills({ archived: showArchived });
   const { data: employees = [], isLoading: isEmployeesLoading } = useEmployees({ archived: false });
   const { data: jobs = [], isLoading: isJobsLoading } = useJobs();
-
   const createSkill = useCreateSkill();
   const updateSkill = useUpdateSkill();
   const deleteSkill = useDeleteSkill();
+  const archiveSkill = useArchiveSkill();
+  const unarchiveSkill = useUnarchiveSkill();
   const { data: latestCode, isLoading: isLatestCodeLoading, error } = useLatestSkillCode();
 
-  const filteredSkills = allSkills.filter((skill) => {
-    if (!skill || typeof skill !== "object") return false;
-    const code = skill.code_competencer || "";
-    const competence = skill.competencer || "";
-    return (
-      code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      competence.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
+  // Client-side filtering to ensure correct archived status
+  const filteredSkills = allSkills
+    .filter((skill) => skill && typeof skill === "object" && skill.archived === showArchived)
+    .filter((skill) => {
+      const code = skill.code_competencer || "";
+      const competence = skill.competencer || "";
+      return (
+        code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        competence.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    });
 
   const generateNextCode = (latestCode) => {
     if (!latestCode) return "C1";
@@ -90,6 +98,11 @@ export function ReqSkillsManagement() {
     }
   }, [isAddModalOpen, latestCode, isLatestCodeLoading, error]);
 
+  // Invalidate skills query when showArchived changes
+  useEffect(() => {
+    queryClient.invalidateQueries(["skills", { archived: showArchived }]);
+  }, [showArchived, queryClient]);
+
   const handleAddSkill = () => {
     if (!newSkill.code_competencer || !newSkill.competencer) {
       toast({
@@ -105,7 +118,7 @@ export function ReqSkillsManagement() {
         toast({ title: "Succès", description: "Compétence ajoutée avec succès." });
         setIsAddModalOpen(false);
         setNewSkill({ code_competencer: "", competencer: "" });
-        queryClient.invalidateQueries("skills");
+        queryClient.invalidateQueries(["skills", { archived: showArchived }]);
       },
       onError: (error) => {
         toast({
@@ -125,7 +138,7 @@ export function ReqSkillsManagement() {
           toast({ title: "Succès", description: "Compétence mise à jour avec succès." });
           setIsEditModalOpen(false);
           setEditSkill({ id: "", code_competencer: "", competencer: "" });
-          queryClient.invalidateQueries("skills");
+          queryClient.invalidateQueries(["skills", { archived: showArchived }]);
         },
         onError: (error) => {
           toast({
@@ -142,7 +155,7 @@ export function ReqSkillsManagement() {
     deleteSkill.mutate(id, {
       onSuccess: () => {
         toast({ title: "Succès", description: "Compétence supprimée avec succès." });
-        queryClient.invalidateQueries("skills");
+        queryClient.invalidateQueries(["skills", { archived: showArchived }]);
       },
       onError: (error) => {
         toast({
@@ -152,6 +165,56 @@ export function ReqSkillsManagement() {
         });
       },
     });
+  };
+
+  const handleArchiveSkill = (skill) => {
+    setSelectedSkill(skill);
+    setIsArchiveDialogOpen(true);
+  };
+
+  const handleUnarchiveSkill = (skill) => {
+    setSelectedSkill(skill);
+    setIsUnarchiveDialogOpen(true);
+  };
+
+  const confirmArchive = () => {
+    if (selectedSkill && selectedSkill.id) {
+      archiveSkill.mutate(selectedSkill.id, {
+        onSuccess: () => {
+          toast({ title: "Succès", description: "Compétence archivée avec succès." });
+          queryClient.invalidateQueries(["skills", { archived: showArchived }]);
+          setIsArchiveDialogOpen(false);
+          setSelectedSkill(null);
+        },
+        onError: (error) => {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: error.response?.data?.error || "Échec de l'archivage de la compétence.",
+          });
+        },
+      });
+    }
+  };
+
+  const confirmUnarchive = () => {
+    if (selectedSkill && selectedSkill.id) {
+      unarchiveSkill.mutate(selectedSkill.id, {
+        onSuccess: () => {
+          toast({ title: "Succès", description: "Compétence désarchivée avec succès." });
+          queryClient.invalidateQueries(["skills", { archived: showArchived }]);
+          setIsUnarchiveDialogOpen(false);
+          setSelectedSkill(null);
+        },
+        onError: (error) => {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: error.response?.data?.error || "Échec du désarchivage de la compétence.",
+          });
+        },
+      });
+    }
   };
 
   const totalPages = Math.ceil(filteredSkills.length / skillsPerPage);
@@ -320,7 +383,7 @@ export function ReqSkillsManagement() {
               </div>
             </CardContent>
           </Card>
-          <Card  style={{ borderColor: '#5784BA' }} className="border-l-4 shadow-lg shadow-blue-800">
+          <Card style={{ borderColor: '#5784BA' }} className="border-l-4 shadow-lg shadow-blue-800">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-100 rounded-lg">
@@ -361,16 +424,43 @@ export function ReqSkillsManagement() {
                     setCurrentPage(1);
                   }}
                   style={{ borderColor: '#007198' }}
-                  className="pl-10"
+                  className="pl-10 pr-10"
                 />
+                {searchTerm && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <XCircle className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                  </Button>
+                )}
               </div>
-              <Button
-                onClick={() => setIsAddModalOpen(true)}
-                style={{ backgroundColor: '#007198' }}
-                className=" text-white"
-              >
-                Ajouter une compétence
-              </Button>
+              <div className="flex gap-2 w-full md:w-auto">
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2 bg-white rounded-lg border-blue-700 hover:bg-gray-100 transition-all"
+                  onClick={() => {
+                    setShowArchived(!showArchived);
+                    setCurrentPage(1);
+                  }}
+                  style={{ borderColor: '#007198' }}
+                >
+                  {showArchived ? <BookOpen className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                  {showArchived ? "Afficher Actives" : "Afficher Archivées"}
+                </Button>
+                <Button
+                  onClick={() => setIsAddModalOpen(true)}
+                  style={{ backgroundColor: '#007198' }}
+                  className="text-white"
+                >
+                  Ajouter une compétence
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -378,11 +468,11 @@ export function ReqSkillsManagement() {
         <Card className="bg-gray-100">
           <CardHeader>
             <div className="flex items-center justify-between" style={{ color: '#007198' }}>
-              <CardTitle className="text-xl">Liste des Compétences</CardTitle>
+              <CardTitle className="text-xl">{showArchived ? "Compétences Archivées" : "Liste des Compétences"}</CardTitle>
               <Badge variant="secondary">{filteredSkills.length} résultat(s)</Badge>
             </div>
           </CardHeader>
-          <CardContent >
+          <CardContent>
             {isSkillsLoading ? (
               <p>Chargement...</p>
             ) : (
@@ -392,6 +482,7 @@ export function ReqSkillsManagement() {
                     <TableRow>
                       <TableHead className="w-1/6 text-center" style={{ color: '#003C57' }}>Code</TableHead>
                       <TableHead className="w-1/2 text-center" style={{ color: '#003C57' }}>Compétence</TableHead>
+                      <TableHead className="w-1/6 text-center" style={{ color: '#003C57' }}>Statut</TableHead>
                       <TableHead className="w-1/6 text-center" style={{ color: '#003C57' }}>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -400,6 +491,11 @@ export function ReqSkillsManagement() {
                       <TableRow key={skill.id} className="hover:bg-gray-50">
                         <TableCell className="text-center">{skill.code_competencer}</TableCell>
                         <TableCell className="text-center">{skill.competencer}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={skill.archived ? "destructive" : "secondary"}>
+                            {skill.archived ? "Archivée" : "Active"}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-center">
                           <div className="flex gap-1 justify-center">
                             <Tooltip>
@@ -427,6 +523,10 @@ export function ReqSkillsManagement() {
                                         <span className="font-medium text-gray-700">Compétence:</span>
                                         <p className="text-gray-600">{skill.competencer}</p>
                                       </div>
+                                      <div>
+                                        <span className="font-medium text-gray-700">Statut:</span>
+                                        <p className="text-gray-600">{skill.archived ? "Archivée" : "Active"}</p>
+                                      </div>
                                     </div>
                                   </DialogContent>
                                 </Dialog>
@@ -435,53 +535,92 @@ export function ReqSkillsManagement() {
                                 <p>Voir les détails</p>
                               </TooltipContent>
                             </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => {
-                                    setEditSkill(skill);
-                                    setIsEditModalOpen(true);
-                                  }}
-                                >
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    strokeWidth="1.5"
-                                    stroke="currentColor"
-                                    className="h-4 w-4 "
-                                    style={{ color: '#007198' }}
+                            {!skill.archived && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => {
+                                      setEditSkill(skill);
+                                      setIsEditModalOpen(true);
+                                    }}
                                   >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
-                                    />
-                                  </svg>
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Modifier</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleDeleteSkill(skill.id)}
-                                >
-                                  <Trash className="h-4 w-4 text-red-500" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Supprimer</p>
-                              </TooltipContent>
-                            </Tooltip>
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      strokeWidth="1.5"
+                                      stroke="currentColor"
+                                      className="h-4 w-4"
+                                      style={{ color: '#007198' }}
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
+                                      />
+                                    </svg>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Modifier</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                            {showArchived ? (
+                              <>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-green-600"
+                                      onClick={() => handleUnarchiveSkill(skill)}
+                                    >
+                                      <ArchiveRestore className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Désarchiver la compétence</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      onClick={() => handleDeleteSkill(skill.id)}
+                                    >
+                                      <Trash className="h-4 w-4 text-red-500" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Supprimer définitivement</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </>
+                            ) : (
+                              <>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-yellow-600"
+                                      onClick={() => handleArchiveSkill(skill)}
+                                    >
+                                      <Archive className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Archiver la compétence</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -497,7 +636,7 @@ export function ReqSkillsManagement() {
                   Affichage de {indexOfFirstSkill + 1} à{" "}
                   {Math.min(indexOfLastSkill, filteredSkills.length)} sur {filteredSkills.length} compétences
                 </div>
-                <div className="flex flex-wrap justify-center gap-1 md:gap-2 ">
+                <div className="flex flex-wrap justify-center gap-1 md:gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -552,7 +691,9 @@ export function ReqSkillsManagement() {
             {filteredSkills.length === 0 && !isSkillsLoading && (
               <div className="text-center py-8">
                 <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune compétence trouvée</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {showArchived ? "Aucune compétence archivée trouvée" : "Aucune compétence active trouvée"}
+                </h3>
                 <p className="text-gray-600">
                   Essayez de modifier votre recherche ou d'ajouter une nouvelle compétence.
                 </p>
@@ -661,6 +802,40 @@ export function ReqSkillsManagement() {
             </DialogContent>
           </Dialog>
         )}
+
+        <Dialog open={isArchiveDialogOpen} onOpenChange={setIsArchiveDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirmer l'archivage</DialogTitle>
+            </DialogHeader>
+            <p>Voulez-vous vraiment archiver la compétence {selectedSkill?.competencer || "-"} ?</p>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsArchiveDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button variant="destructive" onClick={confirmArchive}>
+                Archiver
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isUnarchiveDialogOpen} onOpenChange={setIsUnarchiveDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirmer le désarchivage</DialogTitle>
+            </DialogHeader>
+            <p>Voulez-vous vraiment désarchiver la compétence {selectedSkill?.competencer || "-"} ?</p>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsUnarchiveDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button variant="default" onClick={confirmUnarchive}>
+                Désarchiver
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   );

@@ -58,7 +58,7 @@ export const useDeleteSkill = () => {
 export const useArchiveSkill = () => {
   const queryClient = useQueryClient();
 
-  return useMutation((id: string) => reqSkillService.archive(id), {
+  return useMutation((id) => reqSkillService.archive(id), {
     onSuccess: () => {
       queryClient.invalidateQueries(["req-skills"]);
     },
@@ -72,7 +72,7 @@ export const useArchiveSkill = () => {
 export const useUnarchiveSkill = () => {
   const queryClient = useQueryClient();
 
-  return useMutation((id: string) => reqSkillService.unarchive(id), {
+  return useMutation((id) => reqSkillService.unarchive(id), {
     onSuccess: () => {
       queryClient.invalidateQueries(["req-skills"]);
     },
