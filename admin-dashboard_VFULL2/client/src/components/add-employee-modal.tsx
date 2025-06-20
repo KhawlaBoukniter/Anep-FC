@@ -11,7 +11,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover.tsx";
 import { useCreateEmployee } from "../hooks/useEmployees";
 import { useJobs } from "../hooks/useJobs";
-import { useSkills } from "../hooks/useSkills";
+import { useCreateSkill, useSkills } from "../hooks/useSkills";
 import { Employee, Competence, Emploi, Profile } from "../types/employee";
 import { useToast } from "../hooks/use-toast.ts";
 import axios from "axios";
@@ -54,8 +54,12 @@ export function AddEmployeeModal() {
     competences: [],
   });
 
-  const [competences, setCompetences] = useState<Competence[]>([]);
-  const [selectedJobs, setSelectedJobs] = useState<Emploi[]>([]);
+  const [requiredSkills, setRequiredSkills] = useState<Competence[]>([]);
+  const [additionalJobSkills, setAdditionalJobSkills] = useState<Competence[]>([]);
+  const [complementarySkills, setComplementarySkills] = useState<Competence[]>([]);
+  const [newSkillName, setNewSkillName] = useState("");
+  // const [competences, setCompetences] = useState<Competence[]>([]);
+  // const [selectedJobs, setSelectedJobs] = useState<Emploi[]>([]);
   const [openSkillPopover, setOpenSkillPopover] = useState(false);
   const [openJobPopover, setOpenJobPopover] = useState(false);
   const [searchSkill, setSearchSkill] = useState("");
@@ -63,9 +67,40 @@ export function AddEmployeeModal() {
   const jobInputRef = useRef<HTMLInputElement>(null);
 
   const { mutate: createEmployee, isLoading } = useCreateEmployee();
+  const { mutate: createSkill } = useCreateSkill();
   const { data: jobs = [] } = useJobs();
   const { data: availableCompetences = [] } = useSkills();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchRequiredSkills = async () => {
+      if (formData.emplois && formData.emplois.length > 0) {
+        try {
+          const jobIds = formData.emplois.map((job) => job.id_emploi);
+          const response = await api.get("/req-skills/required", {
+            params: { jobIds: jobIds.join(",") },
+          });
+          const skills = response.data.map((skill) => ({
+            id_competencea: skill.id_competencer,
+            code_competencea: skill.code_competencer,
+            competencea: skill.competencer,
+            niveaua: 0,
+          }));
+          setRequiredSkills(skills);
+        } catch (error) {
+          console.error("Erreur lors de la récupération des compétences requises:", error);
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Impossible de récupérer les compétences requises.",
+          });
+        }
+      } else {
+        setRequiredSkills([]);
+      }
+    };
+    fetchRequiredSkills();
+  }, [formData.emplois, toast]);
 
   useEffect(() => {
     setFormData((prev) => ({ ...prev, nom_complet: profileData["NOM PRENOM"] || "" }));
@@ -185,12 +220,12 @@ export function AddEmployeeModal() {
   };
 
   const handleJobToggle = (job: Emploi) => {
-    setSelectedJobs((prev) => {
-      const exists = prev.some((j) => j.id_emploi === job.id_emploi);
-      if (exists) {
-        return prev.filter((j) => j.id_emploi !== job.id_emploi);
-      }
-      return [...prev, job];
+    setFormData((prev) => {
+      const exists = prev.emplois?.some((j) => j.id_emploi === job.id_emploi);
+      const updatedJobs = exists
+        ? prev.emplois?.filter((j) => j.id_emploi !== job.id_emploi) || []
+        : [...(prev.emplois || []), job];
+      return { ...prev, emplois: updatedJobs };
     });
     setOpenJobPopover(false);
     setTimeout(() => {
@@ -198,20 +233,32 @@ export function AddEmployeeModal() {
     }, 100);
   };
 
-  const handleSkillLevelChange = (id_competencea: number, niveaua: number) => {
-    setCompetences((prev) => prev.map((skill) => (skill.id_competencea === id_competencea ? { ...skill, niveaua } : skill)));
+  const handleSkillLevelChange = (id_competencea: number, niveaua: number, skillType: 'required' | 'additional' | 'complementary') => {
+    const updateSkills = (skills: Competence[]) =>
+      skills.map((skill) => (skill.id_competencea === id_competencea ? { ...skill, niveaua } : skill));
+
+    if (skillType === 'required') {
+      setRequiredSkills(updateSkills);
+    } else if (skillType === 'additional') {
+      setAdditionalJobSkills(updateSkills);
+    } else {
+      setComplementarySkills(updateSkills);
+    }
   };
 
-  const addSkill = (id_competencea: number) => {
+  const addAdditionalJobSkill = (id_competencea: number) => {
     const skill = availableCompetences.find((s: Competence) => s.id_competencea === id_competencea);
-    if (!skill || competences.some((s) => s.id_competencea === id_competencea)) return;
+    const isAlreadyListed = [...requiredSkills, ...additionalJobSkills, ...complementarySkills].some(
+      (s) => s.id_competencea === id_competencea
+    );
+    if (!skill || isAlreadyListed) return;
     const newSkillItem: Competence = {
       id_competencea,
       code_competencea: skill.code_competencea,
       competencea: skill.competencea,
-      niveaua: 1,
+      niveaua: 0,
     };
-    setCompetences((prev) => [...prev, newSkillItem]);
+    setAdditionalJobSkills((prev) => [...prev, newSkillItem]);
     setSearchSkill("");
     setOpenSkillPopover(false);
     setTimeout(() => {
@@ -219,18 +266,96 @@ export function AddEmployeeModal() {
     }, 100);
   };
 
-  const removeSkill = (skillId: number) => {
-    setCompetences((prev) => prev.filter((skill) => skill.id_competencea !== skillId));
+  const addComplementarySkill = async (skillName: string) => {
+    if (!skillName.trim()) {
+      toast({ variant: "destructive", title: "Erreur", description: "Le nom de la compétence est requis." });
+      return;
+    }
+
+    const isAlreadyListed = [...requiredSkills, ...additionalJobSkills, ...complementarySkills].some(
+      (s) => s.competencea.toLowerCase() === skillName.toLowerCase()
+    );
+    if (isAlreadyListed) {
+      toast({ variant: "destructive", title: "Erreur", description: "Cette compétence est déjà listée." });
+      return;
+    }
+
+    try {
+      const newSkill = {
+        code_competencea: `COMP_${skillName.slice(0, 3).toUpperCase()}_${Date.now()}`,
+        competencea: skillName,
+      };
+      console.log("Attempting to create skill:", newSkill);
+      await new Promise((resolve, reject) => {
+        createSkill(newSkill, {
+          onSuccess: (data) => {
+            console.log("Skill created successfully:", data);
+            resolve(data);
+          },
+          onError: (error) => {
+            console.error("Error creating skill:", error);
+            reject(error);
+          },
+        });
+      });
+      const skillToAdd: Competence = {
+      id_competencea: Date.now(),
+      code_competencea: newSkill.code_competencea,
+      competencea: skillName,
+      niveaua: 0,
+    };
+      setComplementarySkills((prev) => [
+        ...prev, skillToAdd
+      ]);
+      setNewSkillName("");
+      setSearchSkill("");
+      setOpenSkillPopover(false);
+      toast({ title: "Succès", description: "Compétence complémentaire ajoutée." });
+    } catch (error) {
+      console.error("Erreur lors de la création de la compétence:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Échec de la création de la compétence complémentaire.",
+      });
+    }
+  };
+
+  // const addSkill = (id_competencea: number) => {
+  //   const skill = availableCompetences.find((s: Competence) => s.id_competencea === id_competencea);
+  //   if (!skill || competences.some((s) => s.id_competencea === id_competencea)) return;
+  //   const newSkillItem: Competence = {
+  //     id_competencea,
+  //     code_competencea: skill.code_competencea,
+  //     competencea: skill.competencea,
+  //     niveaua: 0,
+  //   };
+  //   setCompetences((prev) => [...prev, newSkillItem]);
+  //   setSearchSkill("");
+  //   setOpenSkillPopover(false);
+  //   setTimeout(() => {
+  //     inputRef.current?.focus();
+  //   }, 100);
+  // };
+
+  const removeSkill = (skillId: number, skillType: 'required' | 'additional' | 'complementary') => {
+    if (skillType === 'required') {
+      setRequiredSkills((prev) => prev.filter((skill) => skill.id_competencea !== skillId));
+    } else if (skillType === 'additional') {
+      setAdditionalJobSkills((prev) => prev.filter((skill) => skill.id_competencea !== skillId));
+    } else {
+      setComplementarySkills((prev) => prev.filter((skill) => skill.id_competencea !== skillId));
+    }
   };
 
   const handleSubmit = async () => {
     // if (!(await validatePersonalInfo()) || !(await validateProfessionalInfo())) return;
-
+    const allCompetences = [...requiredSkills, ...additionalJobSkills, ...complementarySkills];
     const finalData = {
       ...formData,
       cin: profileData.CIN || undefined,
-      emplois: selectedJobs.map((job) => ({ id_emploi: job.id_emploi })),
-      competences: competences.map(({ id_competencea, niveaua }) => ({
+      emplois: formData.emplois?.map((job) => ({ id_emploi: job.id_emploi })) || [],
+      competences: allCompetences.map(({ id_competencea, niveaua }) => ({
         id_competencea,
         niveaua,
       })),
@@ -291,8 +416,10 @@ export function AddEmployeeModal() {
           LIBELLE_LOC: "",
           LIBELLE_REGION: "",
         });
-        setCompetences([]);
-        setSelectedJobs([]);
+        setRequiredSkills([]);
+        setAdditionalJobSkills([]);
+        setComplementarySkills([]);
+        setNewSkillName("");
         setOpen(false);
       },
       onError: (error: any) => {
@@ -339,8 +466,10 @@ export function AddEmployeeModal() {
       LIBELLE_LOC: "",
       LIBELLE_REGION: "",
     });
-    setCompetences([]);
-    setSelectedJobs([]);
+    setRequiredSkills([]);
+    setAdditionalJobSkills([]);
+    setComplementarySkills([]);
+    setNewSkillName("");
     setOpen(false);
   };
 
@@ -405,333 +534,333 @@ export function AddEmployeeModal() {
         </DialogHeader>
         <div className="space-y-6 mt-6">
           {currentStep === 1 && (
-  <div className="space-y-4">
-    <div className="space-y-2">
-      <Label htmlFor="nom_prenom">Nom complet</Label>
-      <Input
-        id="nom_prenom"
-        placeholder="Entrez le nom complet"
-        value={profileData["NOM PRENOM"] || ""}
-        onChange={(e) => handleProfileInputChange("NOM PRENOM", e.target.value)}
-      />
-    </div>
-    <div className="space-y-2">
-      <Label htmlFor="adresse">Adresse</Label>
-      <Input
-        id="adresse"
-        placeholder="Entrez l'adresse"
-        value={profileData.ADRESSE || ""}
-        onChange={(e) => handleProfileInputChange("ADRESSE", e.target.value)}
-      />
-    </div>
-    <div className="space-y-2">
-      <Label htmlFor="date_naissance">Date de naissance</Label>
-      <Input
-        id="date_naissance"
-        type="date"
-        value={profileData.DATE_NAISS || ""}
-        onChange={(e) => handleProfileInputChange("DATE_NAISS", e.target.value)}
-      />
-    </div>
-    <div className="space-y-2">
-      <Label htmlFor="cin">CIN</Label>
-      <Input
-        id="cin"
-        placeholder="Entrez le numéro CIN"
-        value={profileData.CIN || ""}
-        onChange={(e) => handleProfileInputChange("CIN", e.target.value)}
-      />
-    </div>
-    <div className="space-y-2">
-      <Label htmlFor="sexe">Sexe</Label>
-      <Select
-        value={profileData.SEXE || ""}
-        onValueChange={(value) => handleProfileInputChange("SEXE", value)}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Sélectionner le sexe" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="M">Masculin</SelectItem>
-          <SelectItem value="F">Féminin</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-    <div className="space-y-2">
-      <Label htmlFor="sit_f_ag">Situation familiale</Label>
-      <Select
-        value={profileData.SIT_F_AG || ""}
-        onValueChange={(value) => handleProfileInputChange("SIT_F_AG", value)}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Sélectionner la situation familiale" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="C">Célibataire</SelectItem>
-          <SelectItem value="M">Marié(e)</SelectItem>
-          <SelectItem value="D">Divorcé(e)</SelectItem>
-          <SelectItem value="AUTRE">Autre</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-    <div className="space-y-2">
-      <Label htmlFor="detache">Détaché</Label>
-      <Select
-        value={profileData.DETACHE || ""}
-        onValueChange={(value) => handleProfileInputChange("DETACHE", value)}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Sélectionner l'état de détachement" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="O">Oui</SelectItem>
-          <SelectItem value="N">Non</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-    <div className="space-y-2">
-      <Label htmlFor="statut">Statut</Label>
-      <Select
-        value={profileData.STATUT || ""}
-        onValueChange={(value) => handleProfileInputChange("STATUT", value)}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Sélectionner le statut" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="activite">Activité</SelectItem>
-          <SelectItem value="sortie de service">Sortie de service</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-    <div className="space-y-2">
-      <Label htmlFor="dat_rec">Date de recrutement</Label>
-      <Input
-        id="dat_rec"
-        type="date"
-        value={profileData.DAT_REC || ""}
-        onChange={(e) => handleProfileInputChange("DAT_REC", e.target.value)}
-      />
-    </div>
-  </div>
-)}
-{currentStep === 2 && (
-  <div className="space-y-4">
-    <div className="space-y-2">
-      <Label htmlFor="email">Email</Label>
-      <Input
-        id="email"
-        type="email"
-        placeholder="Entrez l'adresse email"
-        value={formData.email || ""}
-        onChange={(e) => handleEmployeeInputChange("email", e.target.value)}
-      />
-    </div>
-    <div className="grid grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label htmlFor="telephone1">Téléphone 1</Label>
-        <Input
-          id="telephone1"
-          type="tel"
-          placeholder="Entrez le numéro principal"
-          value={formData.telephone1 || ""}
-          onChange={(e) => handleEmployeeInputChange("telephone1", e.target.value)}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="telephone2">Téléphone 2</Label>
-        <Input
-          id="telephone2"
-          type="tel"
-          placeholder="Entrez le numéro secondaire"
-          value={formData.telephone2 || ""}
-          onChange={(e) => handleEmployeeInputChange("telephone2", e.target.value)}
-        />
-      </div>
-    </div>
-    <div className="grid grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label htmlFor="categorie">Catégorie</Label>
-        <Input
-          id="categorie"
-          placeholder="Entrez la catégorie"
-          value={formData.categorie || ""}
-          onChange={(e) => handleEmployeeInputChange("categorie", e.target.value)}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="specialite">Spécialité</Label>
-        <Input
-          id="specialite"
-          placeholder="Entrez la spécialité"
-          value={formData.specialite || ""}
-          onChange={(e) => handleEmployeeInputChange("specialite", e.target.value)}
-        />
-      </div>
-    </div>
-    <div className="grid grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label htmlFor="experience_employe">Expérience (années)</Label>
-        <Input
-          id="experience_employe"
-          type="number"
-          placeholder="Entrez les années d'expérience"
-          value={formData.experience_employe || ""}
-          onChange={(e) => handleEmployeeInputChange("experience_employe", Number(e.target.value))}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="role">Rôle</Label>
-        <Select
-          value={formData.role || ""}
-          onValueChange={(value) => handleEmployeeInputChange("role", value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionner un rôle" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="user">Utilisateur</SelectItem>
-            <SelectItem value="admin">Admin</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
-    <div className="space-y-2">
-      <Label htmlFor="dat_pos">Date de prise de poste</Label>
-      <Input
-        id="dat_pos"
-        type="date"
-        value={profileData.DAT_POS || ""}
-        onChange={(e) => handleProfileInputChange("DAT_POS", e.target.value)}
-      />
-    </div>
-    <div className="space-y-2">
-      <Label htmlFor="libelle_grade">Libellé Grade</Label>
-      <Input
-        id="libelle_grade"
-        placeholder="Entrez le libellé du grade"
-        value={profileData.LIBELLE_GRADE || ""}
-        onChange={(e) => handleProfileInputChange("LIBELLE_GRADE", e.target.value)}
-      />
-    </div>
-    <div className="space-y-2">
-      <Label htmlFor="grade_assimile">Grade Assimilé</Label>
-      <Input
-        id="grade_assimile"
-        placeholder="Entrez le grade assimilé"
-        value={profileData.GRADE_ASSIMILE || ""}
-        onChange={(e) => handleProfileInputChange("GRADE_ASSIMILE", e.target.value)}
-      />
-    </div>
-    <div className="space-y-2">
-      <Label htmlFor="libelle_fonction">Libellé Fonction</Label>
-      <Input
-        id="libelle_fonction"
-        placeholder="Entrez le libellé de la fonction"
-        value={profileData.LIBELLE_FONCTION || ""}
-        onChange={(e) => handleProfileInputChange("LIBELLE_FONCTION", e.target.value)}
-      />
-    </div>
-    <div className="space-y-2">
-      <Label htmlFor="dat_fct">Date de fonction</Label>
-      <Input
-        id="dat_fct"
-        type="date"
-        value={profileData.DAT_FCT || ""}
-        onChange={(e) => handleProfileInputChange("DAT_FCT", e.target.value)}
-      />
-    </div>
-    <div className="space-y-2">
-      <Label htmlFor="libelle_loc">Localisation</Label>
-      <Input
-        id="libelle_loc"
-        placeholder="Entrez la localisation"
-        value={profileData.LIBELLE_LOC || ""}
-        onChange={(e) => handleProfileInputChange("LIBELLE_LOC", e.target.value)}
-      />
-    </div>
-    <div className="space-y-2">
-      <Label htmlFor="libelle_region">Région</Label>
-      <Input
-        id="libelle_region"
-        placeholder="Entrez la région"
-        value={profileData.LIBELLE_REGION || ""}
-        onChange={(e) => handleProfileInputChange("LIBELLE_REGION", e.target.value)}
-      />
-    </div>
-    <div className="space-y-2">
-      <Label htmlFor="emplois">Emplois</Label>
-      <Popover open={openJobPopover} onOpenChange={setOpenJobPopover}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            className="w-full justify-between"
-            onClick={() => setOpenJobPopover(true)}
-          >
-            {selectedJobs.length > 0
-              ? `${selectedJobs.length} emploi(s) sélectionné(s)`
-              : "Sélectionner des emplois"}
-            <ChevronRight className="ml-2 h-4 w-4 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[400px] p-0">
-          <Command>
-            <CommandInput ref={jobInputRef} placeholder="Rechercher un emploi..." />
-            <CommandList>
-              <CommandEmpty>Aucun emploi trouvé.</CommandEmpty>
-              <CommandGroup>
-                {jobs.map((job: Emploi) => (
-                  <CommandItem
-                    key={job.id_emploi}
-                    value={job.nom_emploi}
-                    onSelect={() => handleJobToggle(job)}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="nom_prenom">Nom complet</Label>
+                <Input
+                  id="nom_prenom"
+                  placeholder="Entrez le nom complet"
+                  value={profileData["NOM PRENOM"] || ""}
+                  onChange={(e) => handleProfileInputChange("NOM PRENOM", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="adresse">Adresse</Label>
+                <Input
+                  id="adresse"
+                  placeholder="Entrez l'adresse"
+                  value={profileData.ADRESSE || ""}
+                  onChange={(e) => handleProfileInputChange("ADRESSE", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="date_naissance">Date de naissance</Label>
+                <Input
+                  id="date_naissance"
+                  type="date"
+                  value={profileData.DATE_NAISS || ""}
+                  onChange={(e) => handleProfileInputChange("DATE_NAISS", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cin">CIN</Label>
+                <Input
+                  id="cin"
+                  placeholder="Entrez le numéro CIN"
+                  value={profileData.CIN || ""}
+                  onChange={(e) => handleProfileInputChange("CIN", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sexe">Sexe</Label>
+                <Select
+                  value={profileData.SEXE || ""}
+                  onValueChange={(value) => handleProfileInputChange("SEXE", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner le sexe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="M">Masculin</SelectItem>
+                    <SelectItem value="F">Féminin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sit_f_ag">Situation familiale</Label>
+                <Select
+                  value={profileData.SIT_F_AG || ""}
+                  onValueChange={(value) => handleProfileInputChange("SIT_F_AG", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner la situation familiale" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="C">Célibataire</SelectItem>
+                    <SelectItem value="M">Marié(e)</SelectItem>
+                    <SelectItem value="D">Divorcé(e)</SelectItem>
+                    <SelectItem value="AUTRE">Autre</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="detache">Détaché</Label>
+                <Select
+                  value={profileData.DETACHE || ""}
+                  onValueChange={(value) => handleProfileInputChange("DETACHE", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner l'état de détachement" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="O">Oui</SelectItem>
+                    <SelectItem value="N">Non</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="statut">Statut</Label>
+                <Select
+                  value={profileData.STATUT || ""}
+                  onValueChange={(value) => handleProfileInputChange("STATUT", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner le statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="activite">Activité</SelectItem>
+                    <SelectItem value="sortie de service">Sortie de service</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dat_rec">Date de recrutement</Label>
+                <Input
+                  id="dat_rec"
+                  type="date"
+                  value={profileData.DAT_REC || ""}
+                  onChange={(e) => handleProfileInputChange("DAT_REC", e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+          {currentStep === 2 && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Entrez l'adresse email"
+                  value={formData.email || ""}
+                  onChange={(e) => handleEmployeeInputChange("email", e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="telephone1">Téléphone 1</Label>
+                  <Input
+                    id="telephone1"
+                    type="tel"
+                    placeholder="Entrez le numéro principal"
+                    value={formData.telephone1 || ""}
+                    onChange={(e) => handleEmployeeInputChange("telephone1", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="telephone2">Téléphone 2</Label>
+                  <Input
+                    id="telephone2"
+                    type="tel"
+                    placeholder="Entrez le numéro secondaire"
+                    value={formData.telephone2 || ""}
+                    onChange={(e) => handleEmployeeInputChange("telephone2", e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="categorie">Catégorie</Label>
+                  <Input
+                    id="categorie"
+                    placeholder="Entrez la catégorie"
+                    value={formData.categorie || ""}
+                    onChange={(e) => handleEmployeeInputChange("categorie", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="specialite">Spécialité</Label>
+                  <Input
+                    id="specialite"
+                    placeholder="Entrez la spécialité"
+                    value={formData.specialite || ""}
+                    onChange={(e) => handleEmployeeInputChange("specialite", e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="experience_employe">Expérience (années)</Label>
+                  <Input
+                    id="experience_employe"
+                    type="number"
+                    placeholder="Entrez les années d'expérience"
+                    value={formData.experience_employe || ""}
+                    onChange={(e) => handleEmployeeInputChange("experience_employe", Number(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role">Rôle</Label>
+                  <Select
+                    value={formData.role || ""}
+                    onValueChange={(value) => handleEmployeeInputChange("role", value)}
                   >
-                    <Check
-                      className={`mr-2 h-4 w-4 ${
-                        selectedJobs.some((j) => j.id_emploi === job.id_emploi)
-                          ? "opacity-100"
-                          : "opacity-0"
-                      }`}
-                    />
-                    <div className="w-full">
-                      <span className="font-bold">{job.codeemploi} :</span> {job.nom_emploi}
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un rôle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">Utilisateur</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dat_pos">Date de prise de poste</Label>
+                <Input
+                  id="dat_pos"
+                  type="date"
+                  value={profileData.DAT_POS || ""}
+                  onChange={(e) => handleProfileInputChange("DAT_POS", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="libelle_grade">Libellé Grade</Label>
+                <Input
+                  id="libelle_grade"
+                  placeholder="Entrez le libellé du grade"
+                  value={profileData.LIBELLE_GRADE || ""}
+                  onChange={(e) => handleProfileInputChange("LIBELLE_GRADE", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="grade_assimile">Grade Assimilé</Label>
+                <Input
+                  id="grade_assimile"
+                  placeholder="Entrez le grade assimilé"
+                  value={profileData.GRADE_ASSIMILE || ""}
+                  onChange={(e) => handleProfileInputChange("GRADE_ASSIMILE", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="libelle_fonction">Libellé Fonction</Label>
+                <Input
+                  id="libelle_fonction"
+                  placeholder="Entrez le libellé de la fonction"
+                  value={profileData.LIBELLE_FONCTION || ""}
+                  onChange={(e) => handleProfileInputChange("LIBELLE_FONCTION", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dat_fct">Date de fonction</Label>
+                <Input
+                  id="dat_fct"
+                  type="date"
+                  value={profileData.DAT_FCT || ""}
+                  onChange={(e) => handleProfileInputChange("DAT_FCT", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="libelle_loc">Localisation</Label>
+                <Input
+                  id="libelle_loc"
+                  placeholder="Entrez la localisation"
+                  value={profileData.LIBELLE_LOC || ""}
+                  onChange={(e) => handleProfileInputChange("LIBELLE_LOC", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="libelle_region">Région</Label>
+                <Input
+                  id="libelle_region"
+                  placeholder="Entrez la région"
+                  value={profileData.LIBELLE_REGION || ""}
+                  onChange={(e) => handleProfileInputChange("LIBELLE_REGION", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="emplois">Emplois</Label>
+                <Popover open={openJobPopover} onOpenChange={setOpenJobPopover}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between"
+                      onClick={() => setOpenJobPopover(true)}
+                    >
+                      {formData.emplois?.length
+                        ? `${formData.emplois.length} emploi(s) sélectionné(s)`
+                        : "Sélectionner des emplois"}
+                      <ChevronRight className="ml-2 h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0">
+                    <Command>
+                      <CommandInput ref={jobInputRef} placeholder="Rechercher un emploi..." />
+                      <CommandList>
+                        <CommandEmpty>Aucun emploi trouvé.</CommandEmpty>
+                        <CommandGroup>
+                          {jobs.map((job: Emploi) => (
+                            <CommandItem
+                              key={job.id_emploi}
+                              value={job.nom_emploi}
+                              onSelect={() => handleJobToggle(job)}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${
+                                  formData.emplois?.some((j) => j.id_emploi === job.id_emploi)
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                }`}
+                              />
+                              <div className="w-full">
+                                <span className="font-bold">{job.codeemploi} :</span> {job.nom_emploi}
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.emplois?.map((job) => (
+                    <div
+                      key={job.id_emploi}
+                      className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+                    >
+                      {job.nom_emploi}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-4 w-4"
+                        onClick={() => handleJobToggle(job)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
                     </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-      <div className="flex flex-wrap gap-2 mt-2">
-        {selectedJobs.map((job) => (
-          <div
-            key={job.id_emploi}
-            className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
-          >
-            {job.nom_emploi}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-4 w-4"
-              onClick={() => handleJobToggle(job)}
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
-)}
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
           {currentStep === 3 && (
             <div className="space-y-6">
               <div className="text-center">
                 <h3 className="text-lg font-semibold">Compétences & Niveaux</h3>
                 <p className="text-sm text-gray-600">
                   Sélectionnez les compétences acquises par l'employé parmi celles disponibles et indiquez le niveau de maîtrise
-                  pour chacune (1 = Débutant, 4 = Expert).
+                  pour chacune (0 = non acquise, 4 = Expert).
                 </p>
               </div>
               <div className="space-y-4">
@@ -740,7 +869,7 @@ export function AddEmployeeModal() {
                     <Command className="rounded-lg border">
                       <CommandInput
                         ref={inputRef}
-                        placeholder="Rechercher une compétence..."
+                        placeholder="Rechercher une compétence ou en ajouter une nouvelle..."
                         value={searchSkill}
                         onValueChange={(value) => {
                           setSearchSkill(value);
@@ -749,34 +878,181 @@ export function AddEmployeeModal() {
                       />
                       {openSkillPopover && (
                         <CommandList className="absolute top-10 w-full border shadow-md bg-white z-10">
-                          <CommandEmpty>Aucune compétence trouvée.</CommandEmpty>
+                          <CommandEmpty>
+                            Aucune compétence trouvée.{" "}
+                            <Button
+                              variant="ghost"
+                              onClick={() => {
+                                // setNewSkillName(searchSkill);
+                                addComplementarySkill(searchSkill);
+                              }}
+                            >
+                              Ajouter "{searchSkill}" comme nouvelle compétence
+                            </Button>
+                          </CommandEmpty>
                           <CommandGroup>
                             {availableCompetences
                               .filter((skill: Competence) =>
                                 skill.competencea.toLowerCase().includes(searchSkill.toLowerCase())
                               )
-                              .map((skill: Competence) => (
-                                <CommandItem
-                                  key={skill.id_competencea}
-                                  onSelect={() => addSkill(skill.id_competencea)}
-                                >
-                                  <Check
-                                    className={`mr-2 h-4 w-4 ${
-                                      competences.some((s) => s.id_competencea === skill.id_competencea)
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                    }`}
-                                  />
-                                <span>{skill.competencea}</span>
-                              </CommandItem>
-                            ))}
+                              .map((skill: Competence) => {
+                                const isListed = [
+                                  ...requiredSkills,
+                                  ...additionalJobSkills,
+                                  ...complementarySkills
+                                ].some((s) => s.id_competencea === skill.id_competencea);
+                                return (
+                                  <CommandItem
+                                    key={skill.id_competencea}
+                                    disabled={isListed}
+                                    className={isListed ? "text-gray-400 bg-gray-100 cursor-not-allowed" : ""}
+                                    onSelect={() => !isListed && addAdditionalJobSkill(skill.id_competencea)}
+                                  >
+                                    <Check
+                                      className={`mr-2 h-4 w-4 ${
+                                        additionalJobSkills.some((s) => s.id_competencea === skill.id_competencea)
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      }`}
+                                    />
+                                    <span>{skill.competencea}</span>
+                                  </CommandItem>
+                                );
+                              })}
                           </CommandGroup>
                         </CommandList>
                       )}
                     </Command>
                   </div>
                 </div>
-                <div className="space-y-3 max-h-60 overflow-y-auto">
+                {/* Compétences requises pour l'emploi */}
+                {requiredSkills.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-md font-semibold text-green-700 bg-green-100 p-2 rounded">Compétences requises pour l'emploi</h4>
+                    {requiredSkills.map((skill) => (
+                      <div
+                        key={skill.id_competencea}
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{skill.competencea}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={skill.niveaua.toString()}
+                              onValueChange={(value) => handleSkillLevelChange(skill.id_competencea, Number.parseInt(value), 'required')}
+                            >
+                              <SelectTrigger className="w-16">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="0">0</SelectItem>
+                                <SelectItem value="1">1</SelectItem>
+                                <SelectItem value="2">2</SelectItem>
+                                <SelectItem value="3">3</SelectItem>
+                                <SelectItem value="4">4</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* Compétences supplémentaires des emplois */}
+                {additionalJobSkills.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-md font-semibold text-blue-700 bg-blue-100 p-2 rounded">Compétences supplémentaires des emplois</h4>
+                    {additionalJobSkills.map((skill) => (
+                      <div
+                        key={skill.id_competencea}
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{skill.competencea}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={skill.niveaua.toString()}
+                              onValueChange={(value) => handleSkillLevelChange(skill.id_competencea, Number.parseInt(value), 'additional')}
+                            >
+                              <SelectTrigger className="w-16">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="0">0</SelectItem>
+                                <SelectItem value="1">1</SelectItem>
+                                <SelectItem value="2">2</SelectItem>
+                                <SelectItem value="3">3</SelectItem>
+                                <SelectItem value="4">4</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeSkill(skill.id_competencea, 'additional')}
+                            className="h-8 w-8 text-gray-500 hover:text-red-500"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* Compétences complémentaires */}
+                {complementarySkills.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-md font-semibold text-purple-700 bg-purple-100 p-2 rounded">Compétences complémentaires</h4>
+                    {complementarySkills.map((skill) => (
+                      <div
+                        key={skill.id_competencea}
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{skill.competencea || "non défini"}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={skill.niveaua.toString()}
+                              onValueChange={(value) => handleSkillLevelChange(skill.id_competencea, Number.parseInt(value), 'complementary')}
+                            >
+                              <SelectTrigger className="w-16">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="0">0</SelectItem>
+                                <SelectItem value="1">1</SelectItem>
+                                <SelectItem value="2">2</SelectItem>
+                                <SelectItem value="3">3</SelectItem>
+                                <SelectItem value="4">4</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeSkill(skill.id_competencea, 'complementary')}
+                            className="h-8 w-8 text-gray-500 hover:text-red-500"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {(requiredSkills.length === 0 && additionalJobSkills.length === 0 && complementarySkills.length === 0) && (
+                  <div className="text-center py-8 text-gray-500">
+                    Aucune compétence sélectionnée. Utilisez le champ ci-dessus pour sélectionner des compétences.
+                  </div>
+                )}
+
+                {/* <div className="space-y-3 max-h-60 overflow-y-auto">
                   {competences.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                       Aucune compétence sélectionnée. Utilisez le champ ci-dessus pour sélectionner des compétences.
@@ -791,7 +1067,6 @@ export function AddEmployeeModal() {
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-600">Niveau :</span>
                               <Select
                                 value={skill.niveaua.toString()}
                                 onValueChange={(value) => handleSkillLevelChange(skill.id_competencea, Number.parseInt(value))}
@@ -800,6 +1075,7 @@ export function AddEmployeeModal() {
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
+                                  <SelectItem value="0">0</SelectItem>
                                   <SelectItem value="1">1</SelectItem>
                                   <SelectItem value="2">2</SelectItem>
                                   <SelectItem value="3">3</SelectItem>
@@ -818,7 +1094,7 @@ export function AddEmployeeModal() {
                       </div>
                     ))
                   )}
-                </div>
+                </div> */}
               </div>
             </div>
           )}

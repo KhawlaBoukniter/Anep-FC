@@ -22,7 +22,7 @@ const employeeSchema = Joi.object({
         .items(
             Joi.object({
                 id_competencea: Joi.number().integer().positive().required(),
-                niveaua: Joi.number().integer().min(1).max(4).required(),
+                niveaua: Joi.number().integer().min(0).max(4).required(),
             }).unknown(true)
         )
         .allow(null),

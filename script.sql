@@ -1,3 +1,10 @@
+CREATE TYPE detache_enum AS ENUM ('O', 'N');
+CREATE TYPE sexe_enum AS ENUM ('F', 'M');
+CREATE TYPE situation_familiale_enum AS ENUM ('M', 'C', 'D');
+CREATE TYPE statut_enum AS ENUM ('activite', 'sortie de service');
+
+ALTER TYPE situation_familiale_enum ADD VALUE 'AUTRE';
+
 CREATE TABLE emploi (
     id_emploi SERIAL PRIMARY KEY,
     nom_emploi varchar(255) not null,
@@ -71,6 +78,9 @@ CREATE TABLE employe_competencea (
     niveaua int CHECK (niveaua in (1, 2, 3, 4))
 );
 
+ALTER TABLE employe_competencea DROP CONSTRAINT employe_competencea_niveaua_check;
+ALTER TABLE employe_competencea ADD CONSTRAINT employe_competencea_niveaua_check CHECK (niveaua IN (0, 1, 2, 3, 4));
+
 
 ALTER TABLE employe ADD COLUMN role varchar(50) not null check (role in ('user', 'admin')) DEFAULT 'user';
 -- ALTER TABLE employe ADD COLUMN date_naissance DATE ;
@@ -129,16 +139,4 @@ FOREIGN KEY (id_competencea) REFERENCES competencesa(id_competencea) ON DELETE C
 \copy competencesa(code_competencea, competencea) FROM 'C:\xampp\htdocs\Anep-FC\csv\competencea.csv' DELIMITER ';' CSV HEADER;
 \copy emploi_competencer(id_emploi,id_competencer,niveaur) FROM 'C:\xampp\htdocs\Anep-FC\csv\emploi_competencer.csv' DELIMITER ';' CSV HEADER;
 \copy employe_competencea(id_employe,id_competencea, niveaua) FROM 'C:\xampp\htdocs\Anep-FC\csv\employe_competencea.csv' DELIMITER ';' CSV HEADER;
-
-
-
-CREATE TYPE detache_enum AS ENUM ('O', 'N');
-CREATE TYPE sexe_enum AS ENUM ('F', 'M');
-CREATE TYPE situation_familiale_enum AS ENUM ('M', 'C', 'D');
-CREATE TYPE statut_enum AS ENUM ('activite', 'sortie de service');
-
-ALTER TYPE situation_familiale_enum ADD VALUE 'AUTRE';
-
-
-
 \copy profile("CIN", "NOM PRENOM", "DATE NAISS", "DETACHE", "SEXE", "SIT_F_AG", "DAT_REC", "STATUT", "DAT_POS", "LIBELLE GRADE", "GRADE ASSIMILE", "LIBELLE FONCTION", "DAT_FCT", "LIBELLE LOC", "LIBELLE REGION", "ADRESSE") FROM 'C:\xampp\htdocs\Anep-FC\csv\profile.csv' DELIMITER ';' CSV HEADER;
