@@ -286,7 +286,7 @@ export function AddEmployeeModal() {
         competencea: skillName,
       };
       console.log("Attempting to create skill:", newSkill);
-      await new Promise((resolve, reject) => {
+      const response = await new Promise((resolve, reject) => {
         createSkill(newSkill, {
           onSuccess: (data) => {
             console.log("Skill created successfully:", data);
@@ -298,12 +298,13 @@ export function AddEmployeeModal() {
           },
         });
       });
+      const createdSkill = response as Competence;
       const skillToAdd: Competence = {
-      id_competencea: Date.now(),
-      code_competencea: newSkill.code_competencea,
-      competencea: skillName,
-      niveaua: 0,
-    };
+        id_competencea: createdSkill.id_competencea,
+        code_competencea: newSkill.code_competencea,
+        competencea: skillName,
+        niveaua: 0,
+      };
       setComplementarySkills((prev) => [
         ...prev, skillToAdd
       ]);
