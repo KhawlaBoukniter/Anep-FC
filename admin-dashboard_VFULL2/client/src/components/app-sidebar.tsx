@@ -51,7 +51,6 @@ export function AppSidebar({ activeSection, setActiveSection }: AppSidebarProps)
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Gestion</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
