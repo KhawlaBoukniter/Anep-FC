@@ -63,6 +63,8 @@ export const jobService = {
   create: (data) => api.post("/jobs", data),
   update: (id, data) => api.put(`/jobs/${id}`, data),
   delete: (id) => api.delete(`/jobs/${id}`),
+  archive: (id) => api.put(`/jobs/${id}/archive`), 
+  unarchive: (id) => api.put(`/jobs/${id}/unarchive`),
 }
 
 // Services pour les compétences
@@ -81,6 +83,8 @@ export const reqSkillService = {
   update: (id, data) => api.put(`/req-skills/${id}`, data),
   delete: (id) => api.delete(`/req-skills/${id}`),
   getLatestCode: () => api.get("/req-skills/latest-code"),
+  archive: (id) => api.put(`/req-skills/${id}/archive`), 
+  unarchive: (id) => api.put(`/req-skills/${id}/unarchive`),
 }
 
 // Services pour les analyses

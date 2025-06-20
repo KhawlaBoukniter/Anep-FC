@@ -1,5 +1,91 @@
 const pool = require("../config/database");
 
+
+async function archiveSkill(id) {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Get the code_competencer before archiving
+        const skillR = await client.query(
+            "SELECT code_competencer FROM competencesr WHERE id_competencer = $1",
+            [id]
+        );
+
+        if (skillR.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return null;
+        }
+
+        // Archive in competencesr
+        const resultR = await client.query(
+            "UPDATE competencesr SET archived = TRUE WHERE id_competencer = $1 RETURNING *",
+            [id]
+        );
+
+        // Archive in competencesa where code matches
+        await client.query(
+            "UPDATE competencesa SET archived = TRUE WHERE code_competencea = $1",
+            [skillR.rows[0].code_competencer]
+        );
+
+        await client.query('COMMIT');
+
+        return {
+            ...resultR.rows[0],
+            id: resultR.rows[0].id_competencer.toString(),
+        };
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
+async function unarchiveSkill(id) {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Get the code_competencer before unarchiving
+        const skillR = await client.query(
+            "SELECT code_competencer FROM competencesr WHERE id_competencer = $1",
+            [id]
+        );
+
+        if (skillR.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return null;
+        }
+
+        // Unarchive in competencesr
+        const resultR = await client.query(
+            "UPDATE competencesr SET archived = FALSE WHERE id_competencer = $1 RETURNING *",
+            [id]
+        );
+
+        // Unarchive in competencesa where code matches
+        await client.query(
+            "UPDATE competencesa SET archived = FALSE WHERE code_competencea = $1",
+            [skillR.rows[0].code_competencer]
+        );
+
+        await client.query('COMMIT');
+
+        return {
+            ...resultR.rows[0],
+            id: resultR.rows[0].id_competencer.toString(),
+        };
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
+
 async function getLatestCode() {
     const result = await pool.query(
         "SELECT code_competencer FROM competencesr ORDER BY created_at DESC LIMIT 1"
@@ -7,10 +93,10 @@ async function getLatestCode() {
     return result.rows.length === 0 ? "C000" : result.rows[0].code_competencer;
 }
 
-async function getAllSkills({ search }) {
-    let query = "SELECT * FROM competencesr";
+async function getAllSkills({ search, archived = false }) {
+    let query = "SELECT * FROM competencesr WHERE archived = $1";
     const conditions = [];
-    const params = [];
+    const params = [archived];
 
     if (search) {
         conditions.push(`competencer ILIKE $${params.length + 1}`);
@@ -18,7 +104,7 @@ async function getAllSkills({ search }) {
     }
 
     if (conditions.length > 0) {
-        query += ` WHERE ${conditions.join(" AND ")}`;
+        query += ` AND ${conditions.join(" AND ")}`;
     }
 
     const result = await pool.query(query, params);
@@ -162,5 +248,7 @@ module.exports = {
     getSkillById,
     createSkill,
     updateSkill,
-    deleteSkill
+    deleteSkill,
+    archiveSkill,
+    unarchiveSkill,
 };

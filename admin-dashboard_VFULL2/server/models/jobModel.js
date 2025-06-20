@@ -15,6 +15,7 @@ exports.jobSchema = Joi.object({
       niveaur: Joi.number().integer().min(1).max(4).required(),
     })
   ).allow(null),
+  archived: Joi.boolean().default(false), // Ajout du champ archived
 });
 
 exports.updateEmploiWeights = async () => {
@@ -38,7 +39,7 @@ exports.updateEmploiWeights = async () => {
   }
 };
 
-exports.getAllJobs = async (search) => {
+exports.getAllJobs = async (search, archived = false) => {
   await this.updateEmploiWeights();
 
   let query = `
@@ -62,6 +63,10 @@ exports.getAllJobs = async (search) => {
 
   const conditions = [];
   const params = [];
+
+  // Filtrer par archived
+  conditions.push(`j.archived = $${params.length + 1}`);
+  params.push(archived);
 
   if (search) {
     conditions.push(
@@ -132,8 +137,8 @@ exports.createJob = async (jobData, required_skills) => {
 
     // Insérer l'emploi
     const insertJobQuery = `
-      INSERT INTO emploi (nom_emploi, entite, formation, experience, codeemploi, poidsemploi)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO emploi (nom_emploi, entite, formation, experience, codeemploi, poidsemploi, archived)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
 
@@ -144,6 +149,7 @@ exports.createJob = async (jobData, required_skills) => {
       jobData.experience,
       jobData.codeemploi,
       jobData.poidsemploi,
+      jobData.archived || false, // Ajout du champ archived
     ];
 
     const jobResult = await client.query(insertJobQuery, jobValues);
@@ -153,7 +159,7 @@ exports.createJob = async (jobData, required_skills) => {
     if (required_skills && required_skills.length > 0) {
       for (const skill of required_skills) {
         await client.query(
-          "INSERT INTO emploi_competencer (id_emploi, id_competencer, niveaur) VALUES ($1, $2, $3)", 
+          "INSERT INTO emploi_competencer (id_emploi, id_competencer, niveaur) VALUES ($1, $2, $3)",
           [newJob.id_emploi, skill.id_competencer, skill.niveaur]
         );
       }
@@ -179,8 +185,8 @@ exports.updateJob = async (id, jobData, required_skills) => {
     const updateJobQuery = `
       UPDATE emploi 
       SET nom_emploi = $1, entite = $2, formation = $3, experience = $4, 
-          codeemploi = $5, poidsemploi = $6
-      WHERE id_emploi = $7
+          codeemploi = $5, poidsemploi = $6, archived = $7
+      WHERE id_emploi = $8
       RETURNING *
     `;
 
@@ -191,6 +197,7 @@ exports.updateJob = async (id, jobData, required_skills) => {
       jobData.experience,
       jobData.codeemploi,
       jobData.poidsemploi,
+      jobData.archived || false, // Ajout du champ archived
       id,
     ];
 
@@ -206,7 +213,7 @@ exports.updateJob = async (id, jobData, required_skills) => {
     if (required_skills && required_skills.length > 0) {
       for (const skill of required_skills) {
         await client.query(
-          "INSERT INTO emploi_competencer (id_emploi, id_competencer, niveaur) VALUES ($1, $2, $3)", 
+          "INSERT INTO emploi_competencer (id_emploi, id_competencer, niveaur) VALUES ($1, $2, $3)",
           [id, skill.id_competencer, skill.niveaur]
         );
       }
@@ -262,4 +269,36 @@ exports.getCompleteJob = async (id) => {
   };
 
   return job;
+};
+
+exports.archiveJob = async (id) => {
+  try {
+    const query = "UPDATE emploi SET archived = TRUE WHERE id_emploi = $1 RETURNING *";
+    const result = await pool.query(query, [id]);
+    if (!result.rows[0]) {
+      throw new Error("Emploi non trouvé");
+    }
+    return {
+      ...result.rows[0],
+      id_emploi: result.rows[0].id_emploi.toString(),
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+exports.unarchiveJob = async (id) => {
+  try {
+    const query = "UPDATE emploi SET archived = FALSE WHERE id_emploi = $1 RETURNING *";
+    const result = await pool.query(query, [id]);
+    if (!result.rows[0]) {
+      throw new Error("Emploi non trouvé");
+    }
+    return {
+      ...result.rows[0],
+      id_emploi: result.rows[0].id_emploi.toString(),
+    };
+  } catch (error) {
+    throw error;
+  }
 };
