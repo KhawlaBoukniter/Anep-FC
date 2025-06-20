@@ -4,21 +4,47 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "./ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.tsx";
 import { Badge } from "./ui/badge.tsx";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, } from "./ui/dialog.tsx";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "./ui/dialog.tsx";
 import { Input } from "./ui/input.tsx";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "./ui/select.tsx";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "./ui/table.tsx";
-import { Eye, Search, Filter, Briefcase, TrendingUp, Award } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select.tsx";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table.tsx";
+import {
+  Eye,
+  Search,
+  Filter,
+  Briefcase,
+  TrendingUp,
+  Archive,
+  ArchiveRestore,
+} from "lucide-react";
 import { AddJobModal } from "./add-job-modal.tsx";
 import { EditJobModal } from "./edit-job-modal.tsx";
 import { DeleteJobModal } from "./delete-job-modal.tsx";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, } from "./ui/tooltip.tsx";
-import { useJobs } from "../hooks/useJobs";
-import { Job, Competence } from "../types/job.ts";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip.tsx";
+import { useJobs, useArchiveJob, useUnarchiveJob } from "../hooks/useJobs";
+import { Job } from "../types/job.ts";
 import clsx from "clsx";
-import CompetencesByLevel from "./CompetencesByLevel.tsx";
 import CompetencesRByLevel from "./CompetencesRByLevel.tsx";
-
 
 // Custom debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -40,21 +66,28 @@ function useDebounce<T>(value: T, delay: number): T {
 export function JobsList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterEntite, setFilterEntite] = useState("all");
+  const [showArchived, setShowArchived] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  const [unarchiveDialogOpen, setUnarchiveDialogOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const jobsPerPage = 10;
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   const { data: jobs = [], isLoading, isError, error } = useJobs({
     search: debouncedSearchTerm,
+    archived: showArchived,
   });
+
+  const { mutate: archiveJob } = useArchiveJob();
+  const { mutate: unarchiveJob } = useUnarchiveJob();
 
   const uniqueEntites = useMemo(() => {
     if (!jobs) return [];
-    const entites = jobs.map(job => job.entite);
+    const entites = jobs.map((job) => job.entite);
     return [...new Set(entites)].sort() as string[];
   }, [jobs]);
-
 
   const filteredJobs = jobs.filter((job: Job) => {
     const matchesEntite = filterEntite === "all" || job.entite === filterEntite;
@@ -74,20 +107,31 @@ export function JobsList() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearchTerm, filterEntite]);
+  }, [debouncedSearchTerm, filterEntite, showArchived]);
 
-  const getLevelColor = (level: number) => {
-    switch (level) {
-      case 1:
-        return "bg-red-100 text-red-800";
-      case 2:
-        return "bg-yellow-100 text-yellow-800";
-      case 3:
-        return "bg-blue-100 text-blue-800";
-      case 4:
-        return "bg-green-100 text-green-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+  const handleArchive = (job: Job) => {
+    setSelectedJob(job);
+    setArchiveDialogOpen(true);
+  };
+
+  const handleUnarchive = (job: Job) => {
+    setSelectedJob(job);
+    setUnarchiveDialogOpen(true);
+  };
+
+  const confirmArchive = () => {
+    if (selectedJob && selectedJob.id_emploi) {
+      archiveJob(selectedJob.id_emploi);
+      setArchiveDialogOpen(false);
+      setSelectedJob(null);
+    }
+  };
+
+  const confirmUnarchive = () => {
+    if (selectedJob && selectedJob.id_emploi) {
+      unarchiveJob(selectedJob.id_emploi);
+      setUnarchiveDialogOpen(false);
+      setSelectedJob(null);
     }
   };
 
@@ -98,7 +142,11 @@ export function JobsList() {
   };
 
   if (isError) {
-    return <div>Error: {(error as Error)?.message || 'An unknown error occurred'}</div>;
+    return (
+      <div>
+        Erreur: {(error as Error)?.message || "Une erreur inconnue s'est produite"}
+      </div>
+    );
   }
 
   return (
@@ -118,7 +166,6 @@ export function JobsList() {
               </div>
             </CardContent>
           </Card>
-
           <Card className="border-l-4 border-purple-900 shadow-lg shadow-purple-900">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -134,10 +181,9 @@ export function JobsList() {
           </Card>
         </div>
 
-
-        <Card>
-          <CardContent className="p-4 bg-gray-100">
-            <div className="flex flex-col md:flex-row gap-4 bg-gray-50 ">
+        <Card className="bg-gray-100">
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-900" />
                 <Input
@@ -147,10 +193,20 @@ export function JobsList() {
                   className="pl-10 border-l border-green-600"
                 />
               </div>
-
-              <div className="flex gap-2">
+              <div className="flex gap-2 w-full md:w-auto">
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2 bg-white rounded-lg border-green-600 hover:bg-gray-100 transition-all"
+                  onClick={() => {
+                    setShowArchived(!showArchived);
+                    setCurrentPage(1);
+                  }}
+                >
+                  {showArchived ? <Briefcase className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                  {showArchived ? "Afficher Actifs" : "Afficher Archivés"}
+                </Button>
                 <Select value={filterEntite} onValueChange={(value) => setFilterEntite(value)}>
-                  <SelectTrigger className="w-40  border-l border-green-600">
+                  <SelectTrigger className="w-40 border-l border-green-600">
                     <Filter className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Entité" />
                   </SelectTrigger>
@@ -163,7 +219,6 @@ export function JobsList() {
                     ))}
                   </SelectContent>
                 </Select>
-
                 <AddJobModal />
               </div>
             </div>
@@ -173,7 +228,7 @@ export function JobsList() {
         <Card className="bg-gray-100">
           <CardHeader>
             <div className="flex items-center justify-between text-green-600">
-              <CardTitle className="text-xl ">Liste des Emplois</CardTitle>
+              <CardTitle className="text-xl">{showArchived ? "Emplois Archivés" : "Liste des Emplois"}</CardTitle>
               <Badge variant="secondary">{filteredJobs.length} résultat(s)</Badge>
             </div>
           </CardHeader>
@@ -220,7 +275,7 @@ export function JobsList() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="secondary">
+                            <Badge variant={job.archived ? "destructive" : "secondary"}>
                               {job.entite}
                             </Badge>
                           </TableCell>
@@ -257,7 +312,7 @@ export function JobsList() {
                                             </div>
                                             <div>
                                               <span className="font-medium text-gray-700">Entité:</span>
-                                              <Badge variant="secondary">
+                                              <Badge variant={job.archived ? "destructive" : "secondary"}>
                                                 {job.entite}
                                               </Badge>
                                             </div>
@@ -273,9 +328,14 @@ export function JobsList() {
                                               <span className="font-medium text-gray-700">Poids emploi:</span>
                                               <p className="text-gray-600">{job.poidsemploi || "-"}</p>
                                             </div>
+                                            <div>
+                                              <span className="font-medium text-gray-700">Statut:</span>
+                                              <Badge variant={job.archived ? "destructive" : "secondary"}>
+                                                {job.archived ? "Archivé" : "Actif"}
+                                              </Badge>
+                                            </div>
                                           </div>
                                         </div>
-
                                         <div>
                                           <h4 className="font-medium mb-3 text-gray-900">
                                             Compétences requises ({job.required_skills?.length || 0})
@@ -296,24 +356,60 @@ export function JobsList() {
                                   <p>Voir les détails</p>
                                 </TooltipContent>
                               </Tooltip>
-
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <EditJobModal job={job} />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Modifier l'emploi</p>
-                                </TooltipContent>
-                              </Tooltip>
-
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <DeleteJobModal jobId={job.id_emploi} jobCode={job.codeemploi} />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Supprimer l'emploi</p>
-                                </TooltipContent>
-                              </Tooltip>
+                              {!job.archived && (
+                                <>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <EditJobModal job={job} />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Modifier l'emploi</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-yellow-600"
+                                        onClick={() => handleArchive(job)}
+                                      >
+                                        <Archive className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Archiver l'emploi</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </>
+                              )}
+                              {showArchived && (
+                                <>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-green-600"
+                                        onClick={() => handleUnarchive(job)}
+                                      >
+                                        <ArchiveRestore className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Désarchiver l'emploi</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <DeleteJobModal jobId={job.id_emploi} jobCode={job.codeemploi} />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Supprimer l'emploi</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -328,39 +424,33 @@ export function JobsList() {
                       Affichage de {indexOfFirstJob + 1} à{" "}
                       {Math.min(indexOfLastJob, filteredJobs.length)} sur {filteredJobs.length} emplois
                     </div>
-
-                    <div className="flex flex-wrap justify-center gap-1 md:gap-2 ">
+                    <div className="flex flex-wrap justify-center gap-1 md:gap-2">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
                         className="bg-green-600 text-white"
-
                       >
                         Précédent
                       </Button>
-
                       {(() => {
                         const pages: React.ReactNode[] = [];
                         const showPages: (number | "start-ellipsis" | "end-ellipsis")[] = [1];
-
                         if (currentPage > 3) showPages.push("start-ellipsis");
-
                         for (let i = currentPage - 1; i <= currentPage + 1; i++) {
                           if (i > 1 && i < totalPages) {
                             showPages.push(i);
                           }
                         }
-
                         if (currentPage < totalPages - 2) showPages.push("end-ellipsis");
-
                         if (totalPages > 1) showPages.push(totalPages);
-
                         showPages.forEach((item, index) => {
                           if (typeof item === "string") {
                             pages.push(
-                              <span key={item + index} className="px-2 text-gray-500">…</span>
+                              <span key={item + index} className="px-2 text-gray-500">
+                                …
+                              </span>
                             );
                           } else {
                             pages.push(
@@ -375,10 +465,8 @@ export function JobsList() {
                             );
                           }
                         });
-
                         return pages;
                       })()}
-
                       <Button
                         variant="outline"
                         size="sm"
@@ -395,7 +483,9 @@ export function JobsList() {
                 {filteredJobs.length === 0 && !isLoading && (
                   <div className="text-center py-8">
                     <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun emploi trouvé</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      {showArchived ? "Aucun emploi archivé trouvé" : "Aucun emploi actif trouvé"}
+                    </h3>
                     <p className="text-gray-600">
                       Essayez de modifier vos critères de recherche ou d'ajouter un nouvel emploi.
                     </p>
@@ -405,6 +495,42 @@ export function JobsList() {
             )}
           </CardContent>
         </Card>
+
+        {/* Archive Confirmation Dialog */}
+        <Dialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirmer l'archivage</DialogTitle>
+            </DialogHeader>
+            <p>Voulez-vous vraiment archiver l'emploi {selectedJob?.nom_emploi || "-"} ?</p>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setArchiveDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button variant="destructive" onClick={confirmArchive}>
+                Archiver
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Unarchive Confirmation Dialog */}
+        <Dialog open={unarchiveDialogOpen} onOpenChange={setUnarchiveDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirmer le désarchivage</DialogTitle>
+            </DialogHeader>
+            <p>Voulez-vous vraiment désarchiver l'emploi {selectedJob?.nom_emploi || "-"} ?</p>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setUnarchiveDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button variant="default" onClick={confirmUnarchive}>
+                Désarchiver
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   );
