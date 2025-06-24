@@ -51,7 +51,7 @@ export default function ProfilePage() {
     };
 
     return (
-        <div className="container mx-auto px-4 py-8 md:px-8 md:py-12 bg-gray-100 min-h-screen">
+        <div className="mx-auto px-4 py-8 md:px-8 md:py-12 bg-gray-100 min-h-screen">
             <header className="flex items-center justify-between mb-8">
                 <Button 
                     variant="outline" 
