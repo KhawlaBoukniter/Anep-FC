@@ -352,63 +352,63 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
   };
 
   const handleSubmit = async () => {
-  // if (!(await validateForm())) return;
+    // if (!(await validateForm())) return;
 
-  const allCompetences = [
-    ...requiredSkills,
-    ...additionalJobSkills,
-    ...complementarySkills,
-  ].reduce((acc, skill) => {
-    const existing = acc.find((s) => Number(s.id_competencea) === Number(skill.id_competencea));
-    return existing
-      ? acc.map((s) =>
-          Number(s.id_competencea) === Number(skill.id_competencea) ? { ...s, niveaua: skill.niveaua } : s
-        )
-      : [...acc, { id_competencea: skill.id_competencea, niveaua: skill.niveaua }];
-  }, [] as { id_competencea: number; niveaua: number }[]);
+    const allCompetences = [
+      ...requiredSkills,
+      ...additionalJobSkills,
+      ...complementarySkills,
+    ].reduce((acc, skill) => {
+      const existing = acc.find((s) => Number(s.id_competencea) === Number(skill.id_competencea));
+      return existing
+        ? acc.map((s) =>
+            Number(s.id_competencea) === Number(skill.id_competencea) ? { ...s, niveaua: skill.niveaua } : s
+          )
+        : [...acc, { id_competencea: skill.id_competencea, niveaua: skill.niveaua }];
+    }, [] as { id_competencea: number; niveaua: number }[]);
 
-  const finalData = {
-    id: formData.id_employe,
-    ...formData,
-    cin: profileData.CIN || undefined,
-    emplois: formData.emplois?.map((job) => ({ id_emploi: job.id_emploi })) || [],
-    competences: allCompetences,
-    profile: {
-      "NOM PRENOM": profileData["NOM PRENOM"] || undefined,
-      ADRESSE: profileData.ADRESSE || null,
-      DATE_NAISS: profileData.DATE_NAISS || undefined,
-      DAT_REC: profileData.DAT_REC || undefined,
-      CIN: profileData.CIN || undefined,
-      DETACHE: profileData.DETACHE || null,
-      SEXE: profileData.SEXE || undefined,
-      SIT_F_AG: profileData.SIT_F_AG || null,
-      STATUT: profileData.STATUT || null,
-      DAT_POS: profileData.DAT_POS || null,
-      LIBELLE_GRADE: profileData.LIBELLE_GRADE || null,
-      GRADE_ASSIMILE: profileData.GRADE_ASSIMILE || null,
-      LIBELLE_FONCTION: profileData.LIBELLE_FONCTION || null,
-      DAT_FCT: profileData.DAT_FCT || null,
-      LIBELLE_LOC: profileData.LIBELLE_LOC || null,
-      LIBELLE_REGION: profileData.LIBELLE_REGION || null,
-    },
+    const finalData = {
+      id: formData.id_employe,
+      ...formData,
+      cin: profileData.CIN || undefined,
+      emplois: formData.emplois?.map((job) => ({ id_emploi: job.id_emploi })) || [],
+      competences: allCompetences,
+      profile: {
+        "NOM PRENOM": profileData["NOM PRENOM"] || undefined,
+        ADRESSE: profileData.ADRESSE || null,
+        DATE_NAISS: profileData.DATE_NAISS || undefined,
+        DAT_REC: profileData.DAT_REC || undefined,
+        CIN: profileData.CIN || undefined,
+        DETACHE: profileData.DETACHE || null,
+        SEXE: profileData.SEXE || undefined,
+        SIT_F_AG: profileData.SIT_F_AG || null,
+        STATUT: profileData.STATUT || null,
+        DAT_POS: profileData.DAT_POS || null,
+        LIBELLE_GRADE: profileData.LIBELLE_GRADE || null,
+        GRADE_ASSIMILE: profileData.GRADE_ASSIMILE || null,
+        LIBELLE_FONCTION: profileData.LIBELLE_FONCTION || null,
+        DAT_FCT: profileData.DAT_FCT || null,
+        LIBELLE_LOC: profileData.LIBELLE_LOC || null,
+        LIBELLE_REGION: profileData.LIBELLE_REGION || null,
+      },
+    };
+
+    updateEmployee({ id: finalData.id, data: finalData }, {
+      onSuccess: () => {
+        toast({ title: "Succès", description: "Employé mis à jour avec succès." });
+        setCurrentStep(1);
+        setOpen(false);
+      },
+      onError: (error: any) => {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: error.response?.data?.message || "Échec de la mise à jour de l'employé.",
+        });
+        console.error("Update error details:", error.response?.data);
+      },
+    });
   };
-
-  updateEmployee({ id: finalData.id, data: finalData }, {
-    onSuccess: () => {
-      toast({ title: "Succès", description: "Employé mis à jour avec succès." });
-      setCurrentStep(1);
-      setOpen(false);
-    },
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: error.response?.data?.message || "Échec de la mise à jour de l'employé.",
-      });
-      console.error("Update error details:", error.response?.data);
-    },
-  });
-};
 
   const handleClose = () => {
     setCurrentStep(1);
@@ -557,7 +557,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
               <div className="space-y-2">
                 <Label htmlFor="sexe">Sexe</Label>
                 <Select
-                  value={profileData.SEXE || ""}
+                  value={employee.profile?.SEXE || ""}
                   onValueChange={(value) => handleProfileInputChange("SEXE", value)}
                 >
                   <SelectTrigger>
@@ -572,7 +572,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
               <div className="space-y-2">
                 <Label htmlFor="sit_f_ag">Situation familiale</Label>
                 <Select
-                  value={profileData.SIT_F_AG || ""}
+                  value={employee.profile?.SIT_F_AG || ""}
                   onValueChange={(value) => handleProfileInputChange("SIT_F_AG", value)}
                 >
                   <SelectTrigger>
@@ -589,7 +589,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
               <div className="space-y-2">
                 <Label htmlFor="detache">Détaché</Label>
                 <Select
-                  value={profileData.DETACHE || ""}
+                  value={employee.profile?.DETACHE || ""}
                   onValueChange={(value) => handleProfileInputChange("DETACHE", value)}
                 >
                   <SelectTrigger>
@@ -604,7 +604,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
               <div className="space-y-2">
                 <Label htmlFor="statut">Statut</Label>
                 <Select
-                  value={profileData.STATUT || ""}
+                  value={employee.profile?.STATUT || ""}
                   onValueChange={(value) => handleProfileInputChange("STATUT", value)}
                 >
                   <SelectTrigger>
@@ -722,7 +722,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                 <Input
                   id="libelle_grade"
                   placeholder="Entrez le libellé du grade"
-                  value={profileData.LIBELLE_GRADE || ""}
+                  value={employee.profile?.LIBELLE_GRADE || ""}
                   onChange={(e) => handleProfileInputChange("LIBELLE_GRADE", e.target.value)}
                 />
               </div>
@@ -731,7 +731,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                 <Input
                   id="grade_assimile"
                   placeholder="Entrez le grade assimilé"
-                  value={profileData.GRADE_ASSIMILE || ""}
+                  value={employee.profile?.GRADE_ASSIMILE || ""}
                   onChange={(e) => handleProfileInputChange("GRADE_ASSIMILE", e.target.value)}
                 />
               </div>
@@ -740,7 +740,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                 <Input
                   id="libelle_fonction"
                   placeholder="Entrez le libellé de la fonction"
-                  value={profileData.LIBELLE_FONCTION || ""}
+                  value={employee.profile?.LIBELLE_FONCTION || ""}
                   onChange={(e) => handleProfileInputChange("LIBELLE_FONCTION", e.target.value)}
                 />
               </div>
@@ -758,7 +758,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                 <Input
                   id="libelle_loc"
                   placeholder="Entrez la localisation"
-                  value={profileData.LIBELLE_LOC || ""}
+                  value={employee.profile?.LIBELLE_LOC || ""}
                   onChange={(e) => handleProfileInputChange("LIBELLE_LOC", e.target.value)}
                 />
               </div>
@@ -767,7 +767,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                 <Input
                   id="libelle_region"
                   placeholder="Entrez la région"
-                  value={profileData.LIBELLE_REGION || ""}
+                  value={employee.profile?.LIBELLE_REGION || ""}
                   onChange={(e) => handleProfileInputChange("LIBELLE_REGION", e.target.value)}
                 />
               </div>
