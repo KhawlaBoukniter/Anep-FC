@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/t
 import { Employee, Emploi, Profile, Competence } from "../types/employee.ts";
 import clsx from "clsx";
 import CompetencesByLevel from "./CompetencesByLevel.tsx";
+import { useNavigate } from "react-router-dom";
 
 interface ExtendedEmployee extends Employee {
   profile: Profile | null;
@@ -47,7 +48,7 @@ export function EmployeesList() {
   const [openPopover, setOpenPopover] = useState(false);
   const employeesPerPage = 10;
   const inputRef = useRef<HTMLInputElement>(null);
-
+  const navigate = useNavigate();
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
 
   const handleSyncProfiles = async () => {
@@ -566,158 +567,17 @@ export function EmployeesList() {
                           <div className="flex gap-1 justify-end">
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                      <Eye className="h-4 w-4 text-green-600" />
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-                                    <DialogHeader>
-                                      <DialogTitle>{employee.nom_complet || "-"}</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="pr-2">
-                                      <div className="grid grid-cols-2 gap-4 text-sm my-6">
-                                        <div>
-                                          <span className="font-medium text-gray-700">Emplois:</span>
-                                          <p className="text-gray-600">
-                                            {(employee.emplois || []).map((e) => e.nom_emploi).join(", ") || "-"}
-                                          </p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Email:</span>
-                                          <p className="text-gray-600">{employee.email || "-"}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">CIN:</span>
-                                          <p className="text-gray-600">{employee.cin || "-"}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Ville:</span>
-                                          <p className="text-gray-600">{employee.profile?.LIBELLE_LOC || "-"}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Région:</span>
-                                          <p className="text-gray-600">{employee.profile?.LIBELLE_REGION || "-"}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Statut:</span>
-                                          <p className="text-gray-600">{employee.profile?.STATUT || "-"}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Direction:</span>
-                                          <p className="text-gray-600">
-                                            {(employee.emplois || []).map((e) => e.entite).join(", ") || "-"}
-                                          </p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Téléphone 1:</span>
-                                          <p className="text-gray-600">{employee.telephone1 || "-"}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Téléphone 2:</span>
-                                          <p className="text-gray-600">{employee.telephone2 || "-"}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Adresse:</span>
-                                          <p className="text-gray-600">{employee.profile?.ADRESSE || "-"}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Date de Recrutement:</span>
-                                          <p className="text-gray-600">
-                                            {employee.profile?.DAT_REC
-                                              ? new Date(employee.profile.DAT_REC).toLocaleDateString("fr-FR")
-                                              : "-"}
-                                          </p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Date de Naissance:</span>
-                                          <p className="text-gray-600">
-                                            {employee.profile?.DATE_NAISS
-                                              ? new Date(employee.profile.DATE_NAISS).toLocaleDateString("fr-FR")
-                                              : "-"}
-                                          </p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Rôle:</span>
-                                          <p className="text-gray-600">{employee.role}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Catégorie:</span>
-                                          <p className="text-gray-600">{employee.categorie || "-"}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Spécialité:</span>
-                                          <p className="text-gray-600">{employee.specialite || "-"}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Expérience:</span>
-                                          <p className="text-gray-600">{employee.experience_employe || "-"} ans</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Détaché:</span>
-                                          <p className="text-gray-600">{employee.profile?.DETACHE || "-"}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Sexe:</span>
-                                          <p className="text-gray-600">{employee.profile?.SEXE || "-"}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Situation Familiale:</span>
-                                          <p className="text-gray-600">{employee.profile?.SIT_F_AG || "-"}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Grade:</span>
-                                          <p className="text-gray-600">{employee.profile?.LIBELLE_GRADE || "-"}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Grade Assimilé:</span>
-                                          <p className="text-gray-600">{employee.profile?.GRADE_ASSIMILE || "-"}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Fonction:</span>
-                                          <p className="text-gray-600">{employee.profile?.LIBELLE_FONCTION || "-"}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Date de Fonction:</span>
-                                          <p className="text-gray-600">
-                                            {employee.profile?.DAT_FCT
-                                              ? new Date(employee.profile.DAT_FCT).toLocaleDateString("fr-FR")
-                                              : "-"}
-                                          </p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Créé le:</span>
-                                          <p className="text-gray-600">
-                                            {employee.created_at ? new Date(employee.created_at).toLocaleDateString("fr-FR") : "-"}
-                                          </p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Mis à jour le:</span>
-                                          <p className="text-gray-600">
-                                            {employee.updated_at ? new Date(employee.updated_at).toLocaleDateString("fr-FR") : "-"}
-                                          </p>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium text-gray-700">Statut Employé:</span>
-                                          <Badge variant={employee.archived ? "destructive" : "secondary"}>
-                                            {employee.archived ? "Archivé" : "Actif"}
-                                          </Badge>
-                                        </div>
-                                      </div>
-                                      <div className="mt-12">
-                                        {(employee.competences && employee.competences.length > 0) ? (
-                                          <CompetencesByLevel competences={employee.competences} />
-                                        ) : (
-                                          <span className="text-gray-400 italic">Aucune compétence</span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </DialogContent>
-                                </Dialog>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => navigate(`/profile/${employee.id_employe}`)}
+                                >
+                                  <Eye className="h-4 w-4 text-green-600" />
+                                </Button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Voir les détails</p>
+                                <p>Voir le profil</p>
                               </TooltipContent>
                             </Tooltip>
                             {!employee.archived && (
