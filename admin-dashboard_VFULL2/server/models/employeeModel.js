@@ -357,7 +357,7 @@ async function updateEmployee(id, employeeData) {
     try {
         await client.query("BEGIN");
 
-        const { emplois, competences, profile_id, ...data } = employeeData;
+        const { emplois, competences, profile, ...data } = employeeData;
 
         const updateEmployeeQuery = `
             UPDATE employe 
@@ -369,15 +369,15 @@ async function updateEmployee(id, employeeData) {
         `;
 
         const employeeValues = [
-            data.nom_complet,
-            data.email,
+            data.nom_complet || null,
+            data.email || null,
             data.telephone1 || null,
             data.telephone2 || null,
             data.categorie || null,
             data.specialite || null,
             data.experience_employe || null,
             data.archived || false,
-            profile_id || null,
+            data.profile_id || null,
             data.cin || null,
             id,
         ];
@@ -386,6 +386,77 @@ async function updateEmployee(id, employeeData) {
 
         if (employeeResult.rows.length === 0) {
             throw new Error("NOT_FOUND");
+        }
+
+        if (profile) {
+            if (data.profile_id) {
+                const updateProfileQuery = `
+                    UPDATE profile 
+                    SET "NOM PRENOM" = $1, "ADRESSE" = $2, "DATE NAISS" = $3, "DAT_REC" = $4, "CIN" = $5, 
+                        "DETACHE" = $6, "SEXE" = $7, "SIT_F_AG" = $8, "STATUT" = $9, "DAT_POS" = $10, 
+                        "LIBELLE GRADE" = $11, "GRADE ASSIMILE" = $12, "LIBELLE FONCTION" = $13, 
+                        "DAT_FCT" = $14, "LIBELLE LOC" = $15, "LIBELLE REGION" = $16
+                    WHERE id_profile = $17
+                `;
+                const profileValues = [
+                    profile["NOM PRENOM"] || null,
+                    profile.ADRESSE || null,
+                    profile.DATE_NAISS || null,
+                    profile.DAT_REC || null,
+                    profile.CIN || null,
+                    profile.DETACHE || null,
+                    profile.SEXE || null,
+                    profile.SIT_F_AG || null,
+                    profile.STATUT || null,
+                    profile.DAT_POS || null,
+                    profile.LIBELLE_GRADE || null,
+                    profile.GRADE_ASSIMILE || null,
+                    profile.LIBELLE_FONCTION || null,
+                    profile.DAT_FCT || null,
+                    profile.LIBELLE_LOC || null,
+                    profile.LIBELLE_REGION || null,
+                    data.profile_id,
+                ];
+                await client.query(updateProfileQuery, profileValues);
+            } else {
+                const checkProfileQuery = `
+                    SELECT id_profile FROM profile WHERE id_profile = (SELECT profile_id FROM employe WHERE id_employe = $1)
+                `;
+                const checkResult = await client.query(checkProfileQuery, [id]);
+
+                if (!checkResult.rows.length) {
+                    const insertProfileQuery = `
+                        INSERT INTO profile ("NOM PRENOM", "ADRESSE", "DATE NAISS", "DAT_REC", "CIN", "DETACHE", "SEXE", "SIT_F_AG", "STATUT", "DAT_POS", 
+                            "LIBELLE GRADE", "GRADE ASSIMILE", "LIBELLE FONCTION", "DAT_FCT", "LIBELLE LOC", "LIBELLE REGION")
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+                        RETURNING id_profile
+                    `;
+                    const profileValues = [
+                        profile["NOM PRENOM"] || null,
+                        profile.ADRESSE || null,
+                        profile.DATE_NAISS || null,
+                        profile.DAT_REC || null,
+                        profile.CIN || null,
+                        profile.DETACHE || null,
+                        profile.SEXE || null,
+                        profile.SIT_F_AG || null,
+                        profile.STATUT || null,
+                        profile.DAT_POS || null,
+                        profile.LIBELLE_GRADE || null,
+                        profile.GRADE_ASSIMILE || null,
+                        profile.LIBELLE_FONCTION || null,
+                        profile.DAT_FCT || null,
+                        profile.LIBELLE_LOC || null,
+                        profile.LIBELLE_REGION || null,
+                    ];
+                    const profileResult = await client.query(insertProfileQuery, profileValues);
+                    const newProfileId = profileResult.rows[0].id_profile;
+                    await client.query("UPDATE employe SET profile_id = $1 WHERE id_employe = $2", [
+                        newProfileId,
+                        id,
+                    ]);
+                }
+            }
         }
 
         await client.query("DELETE FROM emploi_employe WHERE id_employe = $1", [id]);
@@ -398,14 +469,21 @@ async function updateEmployee(id, employeeData) {
             }
         }
 
-        await client.query("DELETE FROM employe_competencea WHERE id_employe = $1", [id]);
         if (competences && competences.length > 0) {
+            const existingSkillsResult = await client.query(
+                "SELECT id_competencea, niveaua FROM employe_competencea WHERE id_employe = $1",
+                [id]
+            );
+            const existingSkills = existingSkillsResult.rows;
+
             for (const skill of competences) {
-                await client.query("INSERT INTO employe_competencea (id_employe, id_competencea, niveaua) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING", [
-                    id,
-                    skill.id_competencea,
-                    skill.niveaua,
-                ]);
+                const existingSkill = existingSkills.find((s) => s.id_competencea === skill.id_competencea);
+                if (!existingSkill) {
+                    await client.query(
+                        "INSERT INTO employe_competencea (id_employe, id_competencea, niveaua) VALUES ($1, $2, $3) ON CONFLICT (id_employe, id_competencea) DO UPDATE SET niveaua = $3",
+                        [id, skill.id_competencea, skill.niveaua]
+                    );
+                }
             }
         }
 
