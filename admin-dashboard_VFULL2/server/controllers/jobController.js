@@ -1,10 +1,9 @@
 const jobModel = require("../models/jobModel");
 
-// GET /api/jobs - Récupérer tous les emplois
 exports.getAllJobs = async (req, res) => {
   try {
-    const { search } = req.query;
-    const jobs = await jobModel.getAllJobs(search);
+    const { search, archived } = req.query;
+    const jobs = await jobModel.getAllJobs(search, archived === "true");
     res.json(jobs);
   } catch (error) {
     console.error("Erreur lors de la récupération des emplois:", error);
@@ -12,7 +11,6 @@ exports.getAllJobs = async (req, res) => {
   }
 };
 
-// GET /api/jobs/:id - Récupérer un emploi par ID
 exports.getJob = async (req, res) => {
   try {
     const { id } = req.params;
@@ -29,7 +27,6 @@ exports.getJob = async (req, res) => {
   }
 };
 
-// POST /api/jobs - Créer un nouvel emploi
 exports.createJob = async (req, res) => {
   try {
     const { error, value } = jobModel.jobSchema.validate(req.body);
@@ -53,12 +50,11 @@ exports.createJob = async (req, res) => {
   }
 };
 
-// PUT /api/jobs/:id - Mettre à jour un emploi
 exports.updateJob = async (req, res) => {
   try {
     const { id } = req.params;
     const { error, value } = jobModel.jobSchema.validate(req.body);
-    
+
     if (error) {
       console.error("Validation error:", error.details[0].message);
       return res.status(400).json({ error: error.details[0].message });
@@ -71,7 +67,7 @@ exports.updateJob = async (req, res) => {
     res.json(completeJob);
   } catch (error) {
     console.error("Error during job update:", error.stack || error);
-    
+
     if (error.message === "Emploi non trouvé") {
       res.status(404).json({ error: error.message });
     } else {
@@ -80,7 +76,6 @@ exports.updateJob = async (req, res) => {
   }
 };
 
-// DELETE /api/jobs/:id - Supprimer un emploi
 exports.deleteJob = async (req, res) => {
   try {
     const { id } = req.params;
@@ -90,12 +85,46 @@ exports.deleteJob = async (req, res) => {
       return res.status(404).json({ error: "Emploi non trouvé" });
     }
 
-    res.json({ 
-      message: "Emploi supprimé avec succès", 
-      job: { id: deletedJob.id_emploi.toString() } 
+    res.json({
+      message: "Emploi supprimé avec succès",
+      job: { id: deletedJob.id_emploi.toString() },
     });
   } catch (error) {
     console.error("Erreur lors de la suppression de l'emploi:", error);
     res.status(500).json({ error: "Erreur lors de la suppression de l'emploi" });
+  }
+};
+
+exports.archiveJob = async (req, res) => {
+  try {
+    console.log("Archive job request for id:", req.params.id);
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "ID invalide." });
+
+    await jobModel.archiveJob(id);
+    res.status(204).json({ message: "Emploi archivé avec succès." });
+  } catch (error) {
+    console.error("Controller error in archiveJob:", error.stack);
+    if (error.message === "Emploi non trouvé") {
+      return res.status(404).json({ message: "Emploi non trouvé." });
+    }
+    res.status(500).json({ message: "Erreur serveur.", details: error.message });
+  }
+};
+
+exports.unarchiveJob = async (req, res) => {
+  try {
+    console.log("Unarchive job request for id:", req.params.id);
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "ID invalide." });
+
+    await jobModel.unarchiveJob(id);
+    res.status(204).json({ message: "Emploi désarchivé avec succès." });
+  } catch (error) {
+    console.error("Controller error in unarchiveJob:", error.stack);
+    if (error.message === "Emploi non trouvé") {
+      return res.status(404).json({ message: "Emploi non trouvé." });
+    }
+    res.status(500).json({ message: "Erreur serveur.", details: error.message });
   }
 };

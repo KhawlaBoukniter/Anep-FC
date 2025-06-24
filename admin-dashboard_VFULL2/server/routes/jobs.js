@@ -17,4 +17,10 @@ router.put("/:id", jobController.updateJob);
 // DELETE /api/jobs/:id - Supprimer un emploi
 router.delete("/:id", jobController.deleteJob);
 
+// PUT /api/jobs/:id/archive - Archiver un emploi
+router.put("/:id/archive", jobController.archiveJob);
+
+// PUT /api/jobs/:id/unarchive - Désarchiver un emploi
+router.put("/:id/unarchive", jobController.unarchiveJob);
+
 module.exports = router;

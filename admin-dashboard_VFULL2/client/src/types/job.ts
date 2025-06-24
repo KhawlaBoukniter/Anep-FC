@@ -13,6 +13,7 @@ interface Job {
   experience?: number | null;
   codeemploi: string;
   poidsemploi?: number;
+  archived: boolean;
   required_skills?: Competence[];
 }
 

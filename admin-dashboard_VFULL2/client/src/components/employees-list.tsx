@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useRef } from "react";
 import { useEmployees, useArchiveEmployee, useUnarchiveEmployee } from "../hooks/useEmployees.js";
 import { useJobs } from "../hooks/useJobs.js";
@@ -19,7 +18,6 @@ import { Employee, Emploi, Profile, Competence } from "../types/employee.ts";
 import clsx from "clsx";
 import CompetencesByLevel from "./CompetencesByLevel.tsx";
 
-// Extended interface to include profile
 interface ExtendedEmployee extends Employee {
   profile: Profile | null;
 }
@@ -38,7 +36,6 @@ interface FilterOption {
 export function EmployeesList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<Filter[]>([]);
-  const [showArchived, setShowArchived] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [unarchiveDialogOpen, setUnarchiveDialogOpen] = useState(false);
@@ -81,7 +78,7 @@ export function EmployeesList() {
 
   const { data: employeesData = [], isLoading, error } = useEmployees({
     search: searchTerm,
-    archived: showArchived,
+    archived: filters.some(f => f.type === "Archivage" && f.values.includes("Archivés")),
   });
   const { mutate: archiveEmployee } = useArchiveEmployee();
   const { mutate: unarchiveEmployee } = useUnarchiveEmployee();
@@ -112,9 +109,16 @@ export function EmployeesList() {
     const matchesFilters = filters.every((filter) => {
       if (filter.type === "Emploi") return filter.values.some((val) => emplois.some((e) => e?.nom_emploi?.toLowerCase().includes(val.toLowerCase())));
       if (filter.type === "Ville") return filter.values.some((val) => employee.profile?.LIBELLE_LOC?.toLowerCase().includes(val.toLowerCase()));
-      if (filter.type === "Département") return filter.values.some((val) => emplois.some((e) => e?.entite?.toLowerCase().includes(val.toLowerCase())));
+      if (filter.type === "Direction") return filter.values.some((val) => emplois.some((e) => e?.entite?.toLowerCase().includes(val.toLowerCase())));
       if (filter.type === "Région") return filter.values.some((val) => employee.profile?.LIBELLE_REGION?.toLowerCase().includes(val.toLowerCase()));
       if (filter.type === "Statut") return filter.values.some((val) => employee.profile?.STATUT?.toLowerCase() === val.toLowerCase());
+      if (filter.type === "Archivage") {
+        return filter.values.every((val) => {
+          if (val === "Archivés") return employee.archived === true;
+          if (val === "Désarchivés") return employee.archived === false;
+          return true;
+        });
+      }
       return true;
     });
 
@@ -219,9 +223,10 @@ export function EmployeesList() {
   const filterOptions: FilterOption[] = [
     { label: "Emploi", value: "Emploi", options: uniqueJobs },
     { label: "Ville", value: "Ville", options: uniqueVilles },
-    { label: "Département", value: "Département", options: uniqueDepartements },
+    { label: "Direction", value: "Direction", options: uniqueDepartements },
     { label: "Région", value: "Région", options: uniqueRegions },
     { label: "Statut", value: "Statut", options: uniqueStatuses },
+    { label: "Archivage", value: "Archivage", options: ["Archivés", "Désarchivés"] },
   ];
 
   const availableOptions = filterOptions.find((opt) => opt.value === newFilterType)?.options || [];
@@ -232,12 +237,14 @@ export function EmployeesList() {
         return "bg-blue-50 text-blue-700 border-blue-200";
       case "Ville":
         return "bg-green-50 text-green-700 border-green-200";
-      case "Département":
+      case "Direction":
         return "bg-yellow-50 text-yellow-700 border-yellow-200";
       case "Région":
         return "bg-purple-50 text-purple-700 border-purple-200";
       case "Statut":
         return "bg-red-50 text-red-700 border-red-200";
+      case "Archivage":
+        return "bg-gray-50 text-gray-700 border-gray-200";
       default:
         return "bg-gray-50 text-gray-700 border-gray-200";
     }
@@ -296,7 +303,7 @@ export function EmployeesList() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute  right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
                     onClick={() => clearFilter("search")}
                   >
                     <XCircle className="h-4 w-4 text-gray-400 hover:text-gray-600" />
@@ -304,17 +311,6 @@ export function EmployeesList() {
                 )}
               </div>
               <div className="flex gap-2 w-full md:w-auto">
-                <Button
-                  variant="outline"
-                  className="flex items-center bg-white gap-2 rounded-lg border-blue-700 hover:bg-gray-100 transition-all"
-                  onClick={() => {
-                    setShowArchived(!showArchived);
-                    setCurrentPage(1);
-                  }}
-                >
-                  {showArchived ? <User className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
-                  {showArchived ? "Afficher Actifs" : "Afficher Archivés"}
-                </Button>
                 <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
                   <DialogTrigger asChild>
                     <Button
@@ -466,13 +462,7 @@ export function EmployeesList() {
                     <Badge
                       key={`${filter.type}-${value}`}
                       variant="secondary"
-                      className={clsx("flex items-center gap-1", {
-                        "bg-blue-50 text-blue-700 border-blue-200": filter.type === "Emploi",
-                        "bg-green-50 text-green-700 border-green-200": filter.type === "Ville",
-                        "bg-yellow-50 text-yellow-700 border-yellow-200": filter.type === "Département",
-                        "bg-purple-50 text-purple-700 border-purple-200": filter.type === "Région",
-                        "bg-red-50 text-red-700 border-red-200": filter.type === "Statut",
-                      })}
+                      className={clsx("flex items-center gap-1", getFilterColor(filter.type))}
                     >
                       {filter.type}: {value}
                       <X
@@ -503,7 +493,9 @@ export function EmployeesList() {
         <Card className="bg-gray-100">
           <CardHeader>
             <div className="flex items-center justify-between text-blue-900">
-              <CardTitle className="text-xl ">{showArchived ? "Employés Archivés" : "Liste des Employés"}</CardTitle>
+              <CardTitle className="text-xl">
+                {filters.some(f => f.type === "Archivage" && f.values.includes("Archivés")) ? "Employés Archivés" : "Liste des Employés"}
+              </CardTitle>
               <Badge variant="secondary">{filteredEmployees.length} résultat(s)</Badge>
             </div>
           </CardHeader>
@@ -613,7 +605,7 @@ export function EmployeesList() {
                                           <p className="text-gray-600">{employee.profile?.STATUT || "-"}</p>
                                         </div>
                                         <div>
-                                          <span className="font-medium text-gray-700">Département:</span>
+                                          <span className="font-medium text-gray-700">Direction:</span>
                                           <p className="text-gray-600">
                                             {(employee.emplois || []).map((e) => e.entite).join(", ") || "-"}
                                           </p>
@@ -648,9 +640,7 @@ export function EmployeesList() {
                                         </div>
                                         <div>
                                           <span className="font-medium text-gray-700">Rôle:</span>
-                                          <Badge className={getRoleColor(employee.role)} variant="secondary">
-                                            {employee.role}
-                                          </Badge>
+                                          <p className="text-gray-600">{employee.role}</p>
                                         </div>
                                         <div>
                                           <span className="font-medium text-gray-700">Catégorie:</span>
@@ -740,7 +730,7 @@ export function EmployeesList() {
                                 </TooltipContent>
                               </Tooltip>
                             )}
-                            {showArchived ? (
+                            {filters.some(f => f.type === "Archivage" && f.values.includes("Archivés")) ? (
                               <>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -801,7 +791,7 @@ export function EmployeesList() {
                   Affichage de {indexOfFirstEmployee + 1} à{" "}
                   {Math.min(indexOfLastEmployee, filteredEmployees.length)} sur {filteredEmployees.length} employés
                 </div>
-                <div className="flex flex-wrap justify-center text- gap-1 md:gap-2">
+                <div className="flex flex-wrap justify-center gap-1 md:gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -859,7 +849,9 @@ export function EmployeesList() {
               <div className="text-center py-8">
                 <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {showArchived ? "Aucun employé archivé trouvé" : "Aucun employé actif trouvé"}
+                  {filters.some(f => f.type === "Archivage" && f.values.includes("Archivés"))
+                    ? "Aucun employé archivé trouvé"
+                    : "Aucun employé actif trouvé"}
                 </h3>
                 <p className="text-gray-600">
                   Essayez de modifier vos critères de recherche ou d'ajouter un nouvel employé.

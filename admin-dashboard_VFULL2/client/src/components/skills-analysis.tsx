@@ -55,6 +55,7 @@ export function SkillsAnalysis() {
   const [hasAnalyzed, setHasAnalyzed] = useState(false)
   const [analysisType, setAnalysisType] = useState<"union" | "intersection">("union")
   const [currentPage, setCurrentPage] = useState(1)
+  const [isAnalyzeDisabled, setIsAnalyzeDisabled] = useState(false)
   const resultsPerPage = 10
   const inputRef = useRef<HTMLInputElement>(null)
   const { data, isLoading, error } = useSkillsAnalysis()
@@ -145,6 +146,7 @@ export function SkillsAnalysis() {
     setAnalysisResults(results)
     setHasAnalyzed(true)
     setCurrentPage(1)
+    setIsAnalyzeDisabled(true) // Disable "Analyser" button after click
   }
 
   const resetAnalysis = () => {
@@ -155,6 +157,7 @@ export function SkillsAnalysis() {
     setOpenSkillPopover(false)
     setAnalysisType("union")
     setCurrentPage(1)
+    setIsAnalyzeDisabled(false) // Re-enable "Analyser" button after reset
   }
 
   const handleDownloadExcel = () => {
@@ -251,7 +254,6 @@ export function SkillsAnalysis() {
                     setSearchSkill(value)
                     setOpenSkillPopover(value.length > 0)
                   }}
-
                 />
                 {openSkillPopover && (
                   <CommandList className="absolute top-10 w-full border shadow-md bg-white z-10">
@@ -280,21 +282,19 @@ export function SkillsAnalysis() {
               <Button 
                 variant={analysisType === "union" ? "default" : "outline"}
                 onClick={() => setAnalysisType("union")}
-                className={analysisType === "union" ? "bg-purple-600 w-full  py-[22px] hover:bg-purple-700 " : "w-full bg-yellow-500 py-[22px]"} 
-                
+                className={analysisType === "union" ? "bg-purple-200  w-full py-[22px] " : "w-full bg-purple-600 py-[22px] hover:bg-purple-700 text-white"} 
               >
                 Union
               </Button>
               <Button
                 variant={analysisType === "intersection" ? "default" : "outline"}
                 onClick={() => setAnalysisType("intersection")}
-                className={analysisType === "intersection" ? "bg-purple-600 w-full  py-[22px] hover:bg-purple-700" : "w-full bg-yellow-500  py-[22px]"}
+                className={analysisType === "intersection" ? "bg-purple-200  w-full py-[22px]" : "w-full bg-purple-600 py-[22px] hover:bg-purple-700 text-white"}
               >
                 Intersection
               </Button>
             </div>
           </div>
-
           </div>
           
           {selectedSkills.length > 0 && (
@@ -328,7 +328,7 @@ export function SkillsAnalysis() {
                     <div>
                       <Label className="mb-2 block text-purple-800">Niveaux requis</Label>
                       {[1, 2, 3, 4].map((level) => (
-                        <div key={level} className="flex items-center space-x-2 mb-2 ">
+                        <div key={level} className="flex items-center space-x-2 mb-2">
                           <Checkbox 
                             className="border border-yellow-500"
                             id={`${skill.name}-required-${level}`}
@@ -348,14 +348,19 @@ export function SkillsAnalysis() {
           <div className="flex gap-3">
             <Button
               onClick={analyzeSkills}
-              disabled={selectedSkills.length === 0 || selectedSkills.some((s) => s.acquiredLevels.length === 0 || s.requiredLevels.length === 0)}
+              disabled={isAnalyzeDisabled || selectedSkills.length === 0 || selectedSkills.some((s) => s.acquiredLevels.length === 0 || s.requiredLevels.length === 0)}
               className="bg-purple-600 hover:bg-purple-700 text-white"
             >
               <BarChart3 className="h-4 w-4 mr-2 text-yellow-400" />
               Analyser
             </Button>
             {hasAnalyzed && (
-              <Button variant="outline" onClick={resetAnalysis} className="bg-yellow-500">
+              <Button 
+                variant="outline" 
+                onClick={resetAnalysis} 
+                disabled={!isAnalyzeDisabled}
+                className="bg-yellow-500"
+              >
                 Réinitialiser
               </Button>
             )}
