@@ -91,15 +91,12 @@ export const useUpdateEmployee = () => {
 
   return useMutation({
     mutationFn: async ({ id, data }) => {
-      const existingSkills = data.competences.filter((skill) => skill.id_competencea >= 0).map((skill) => ({
-        id_competencea: skill.id_competencea,
-        niveaua: skill.niveaua,
-      }));
-
       const finalData = {
         ...data,
-        competences: existingSkills,
-        profile_id: data.profile_id,
+        profile_id: data.profile?.profile_id || data.profile_id,
+        competences: data.competences || [],
+        emplois: data.emplois || [],
+        profile: data.profile || {},
       };
 
       return employeeService.update(id, finalData);
@@ -112,7 +109,7 @@ export const useUpdateEmployee = () => {
       console.error("Error updating employee:", error);
     },
   });
-};
+}
 
 // Hook pour supprimer un employé
 export const useDeleteEmployee = () => {

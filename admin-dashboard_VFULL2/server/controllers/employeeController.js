@@ -62,17 +62,38 @@ async function updateEmployee(req, res) {
         const id = parseInt(req.params.id);
         if (isNaN(id)) return res.status(400).json({ message: "ID invalide." });
 
-        const { emplois, competences, profile_id, cin, ...data } = req.body;
+        const { emplois, competences, profile, ...data } = req.body;
         const filteredData = {
             ...data,
-            profile_id: profile_id || null,
-            cin: cin || null,
-            emplois: emplois?.map(({ id_emploi }) => ({ id_emploi: Number(id_emploi) })),
-            competences: competences?.map(({ id_competencea, niveaua }) => ({
-                id_competencea: Number(id_competencea),
-                niveaua: Number(niveaua),
-            })),
+            profile_id: data.profile_id || null,
+            cin: data.cin || null,
+            emplois: emplois?.map(({ id_emploi }) => ({ id_emploi: Number(id_emploi) })) || [],
         };
+
+        if (profile) {
+            const profileFields = {
+                "NOM PRENOM": profile["NOM PRENOM"] || null,
+                ADRESSE: profile.ADRESSE || null,
+                DATE_NAISS: profile.DATE_NAISS || null,
+                DAT_REC: profile.DAT_REC || null,
+                CIN: profile.CIN || null,
+                DETACHE: profile.DETACHE || null,
+                SEXE: profile.SEXE || null,
+                SIT_F_AG: profile.SIT_F_AG || null,
+                STATUT: profile.STATUT || null,
+                DAT_POS: profile.DAT_POS || null,
+                LIBELLE_GRADE: profile.LIBELLE_GRADE || null,
+                GRADE_ASSIMILE: profile.GRADE_ASSIMILE || null,
+                LIBELLE_FONCTION: profile.LIBELLE_FONCTION || null,
+                DAT_FCT: profile.DAT_FCT || null,
+                LIBELLE_LOC: profile.LIBELLE_LOC || null,
+                LIBELLE_REGION: profile.LIBELLE_REGION || null,
+            };
+            filteredData.profile = profileFields;
+        }
+
+        const allCompetences = competences || [];
+        filteredData.competences = allCompetences;
 
         const { error, value } = employeeSchema.validate(filteredData, { abortEarly: false });
         if (error) {
