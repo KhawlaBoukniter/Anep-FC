@@ -160,7 +160,7 @@ export default function ProfilePage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="shadow-lg bg-blue-50 shadow-blue-900 hover:shadow-blue-800  hover:shadow-xl transition-shadow duration-300 rounded-xl border border-gray-200">
+                    <Card className="shadow-lg bg-blue-50 shadow-blue-900 hover:shadow--800  hover:shadow-xl transition-shadow duration-300 rounded-xl border border-gray-200">
                         <CardHeader>
                             <CardTitle className="text-xl font-bold glow-light" style={{ color: '#06668C' }}>Compétences</CardTitle>
                         </CardHeader>
