@@ -17,10 +17,10 @@ export default function CompetencesByLevel({ competences }: { competences: Compe
   };
 
   const levelColors = {
-    1: { bg: "bg-red-50", border: "border-red-300", text: "text-red-700", icon: "text-red-400" },
-    2: { bg: "bg-yellow-50", border: "border-yellow-300", text: "text-yellow-700", icon: "text-yellow-400" },
-    3: { bg: "bg-blue-50", border: "border-blue-300", text: "text-blue-700", icon: "text-blue-400" },
-    4: { bg: "bg-green-50", border: "border-green-300", text: "text-green-700", icon: "text-green-400" },
+    1: { bg: "bg-red-200", border: "border-red-300", text: "text-red-700", icon: "text-red-400" },
+    2: { bg: "bg-yellow-200", border: "border-yellow-300", text: "text-yellow-700", icon: "text-yellow-400" },
+    3: { bg: "bg-blue-200", border: "border-blue-300", text: "text-blue-700", icon: "text-blue-400" },
+    4: { bg: "bg-green-200", border: "border-green-300", text: "text-green-700", icon: "text-green-400" },
   };
 
   return (

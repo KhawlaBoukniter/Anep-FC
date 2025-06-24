@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "react-query"
 import Dashboard from "./pages/Dashboard"
+import ProfilePage from "./pages/profile.tsx" 
 import "./App.css"
 
 // Configuration du client React Query
@@ -26,7 +27,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            {/* Ajouter d'autres routes ici si nécessaire */}
+            <Route path="/profile/:employeeId" element={<ProfilePage />} />
           </Routes>
         </div>
       </Router>
