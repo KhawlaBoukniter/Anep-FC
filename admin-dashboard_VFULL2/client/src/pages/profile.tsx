@@ -264,7 +264,7 @@ export default function ProfilePage() {
                 </Button>
                 <Badge
                     variant={employee.archived ? "destructive" : "secondary"}
-                    className={`text-sm font-medium px-3 py-1 transition-colors duration-200 ${employee.archived ? "bg-red-100 text-red-800 hover:bg-red-200" : "bg-green-100 text-green-800 hover:bg-green-200"}`}
+                    className={`text-sm  font-bold px-3 py-1 transition-colors duration-200 ${employee.archived ? "bg-red-100 text-red-800 hover:bg-red-200 shadow-lg shadow-red-900 " : "bg-blue-100 text-blue-800 hover:bg-blue-200 shadow-lg shadow-blue-900 "}`}
                 >
                     {employee.archived ? "Archivé" : "Actif"}
                 </Badge>
