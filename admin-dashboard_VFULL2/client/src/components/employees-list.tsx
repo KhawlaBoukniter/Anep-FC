@@ -357,7 +357,6 @@ export function EmployeesList() {
                   </Button>
                 )}
               </div>
-              <div className="flex gap-2 w-full md:w-auto">
                 <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
                   <DialogTrigger asChild>
                     <Button
@@ -487,6 +486,7 @@ export function EmployeesList() {
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
+              <div className="flex gap-2 w-full md:w-auto">
                 <Button
                   variant="default"
                   onClick={handleSyncProfiles}
@@ -588,7 +588,7 @@ export function EmployeesList() {
                   >
                     Voir les changements
                   </Button>
-                )}
+        )}
 
         {/* Employees table */}
         <Card className="bg-gray-100">
