@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Input } from "./ui/input.tsx";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "./ui/command.tsx";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table.tsx";
-import { Eye, Search, Filter, Users, MapPin, User, Shield, X, Archive, ArchiveRestore, XCircle, Plus } from "lucide-react";
+import { Eye, Search, Filter, Users, MapPin, User, Shield, X, Archive, ArchiveRestore, XCircle, Plus, CheckCircle, AlertTriangle, Info } from "lucide-react";
 import { AddEmployeeModal } from "./add-employee-modal.tsx";
 import { EditEmployeeModal } from "./edit-employee-modal.tsx";
 import { DeleteEmployeeModal } from "./delete-employee-modal.tsx";
@@ -89,7 +89,7 @@ export function EmployeesList() {
       const summary = `Import terminé. ${data.inserted} ajouté(s), ${data.updated} modifié(s), ${data.unchanged} inchangé(s).`;
       setSyncStatus(summary);
       if (data.updates && data.updates.length > 0) {
-        setShowChanges(true); // Ouvre le dialogue des changements
+        setShowChanges(true); 
       }
     } catch (err) {
       console.error("Erreur d'importation :", err);
@@ -510,6 +510,33 @@ export function EmployeesList() {
                   >
                     Importer profils
                   </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-10 w-10 text-blue-600 hover:text-blue-800">
+                        <Info className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-lg p-5 bg-white border border-gray-200 shadow-lg rounded-lg">
+                      <div className="text-sm text-gray-800 space-y-2">
+                        <div>
+                          <h3 className="font-bold text-base text-gray-900 mb-1">📄 Colonnes attendues :</h3>
+                          <ul className="list-disc list-inside text-sm text-left">
+                            <li>CIN</li>
+                            <li>NOM PRENOM</li>
+                            <li>DATE NAISS, DAT_REC, DAT_POS, DAT_FCT</li>
+                            <li>ADRESSE, DETACHE, SEXE, SIT_F_AG, STATUT</li>
+                            <li>LIBELLE GRADE, GRADE ASSIMILE</li>
+                            <li>LIBELLE FONCTION</li>
+                            <li>LIBELLE LOC, LIBELLE REGION</li>
+                          </ul>
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-base text-gray-900 mb-1">📁 Extensions acceptées :</h3>
+                          <p className="text-sm text-gray-700">.csv, .xlsx, .xls</p>
+                        </div>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
                 </label>
                 <AddEmployeeModal />
               </div>
