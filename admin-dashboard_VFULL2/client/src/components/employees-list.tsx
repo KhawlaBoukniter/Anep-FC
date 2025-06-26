@@ -34,6 +34,11 @@ interface FilterOption {
   options: string[];
 }
 
+interface ChangeDetail {
+  identifier: string;
+  changedFields: { field: string; before: string; after: string }[];
+}
+
 export function EmployeesList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<Filter[]>([]);
@@ -50,6 +55,47 @@ export function EmployeesList() {
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
+  const [changeDetails, setChangeDetails] = useState<ChangeDetail[] | null>(null);
+  const [showChanges, setShowChanges] = useState(false);
+
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFileToUpload(e.target.files[0]);
+    }
+  };
+
+  const handleImportProfiles = async () => {
+    if (!fileToUpload) {
+      console.log("Aucun fichier sélectionné");
+      return;
+    }
+
+    console.log("Fichier sélectionné :", fileToUpload.name, fileToUpload.size);
+
+    const formData = new FormData();
+    formData.append("file", fileToUpload);
+
+    try {
+      const res = await fetch("/api/profiles/import", {
+        method: "POST",
+        body: formData,
+      });
+      console.log("Réponse serveur :", res.status, res.statusText);
+      const data = await res.json();
+      console.log("Données reçues :", data);
+      setChangeDetails(data.updates || []);
+      const summary = `Import terminé. ${data.inserted} ajouté(s), ${data.updated} modifié(s), ${data.unchanged} inchangé(s).`;
+      setSyncStatus(summary);
+      if (data.updates && data.updates.length > 0) {
+        setShowChanges(true); // Ouvre le dialogue des changements
+      }
+    } catch (err) {
+      console.error("Erreur d'importation :", err);
+      setSyncStatus("Erreur lors de l'importation du fichier");
+    }
+  };
 
   const handleSyncProfiles = async () => {
     try {
@@ -448,6 +494,23 @@ export function EmployeesList() {
                 >
                   Synchroniser
                 </Button>
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="import-profiles"
+                />
+                <label htmlFor="import-profiles">
+                  <Button
+                    variant="outline"
+                    className="rounded-lg border-gray-500 bg-white hover:bg-gray-100 transition-all ml-2"
+                    onClick={handleImportProfiles}
+                    disabled={!fileToUpload}
+                  >
+                    Importer profils
+                  </Button>
+                </label>
                 <AddEmployeeModal />
               </div>
             </div>
@@ -489,6 +552,16 @@ export function EmployeesList() {
             )}
           </CardContent>
         </Card>
+
+        {changeDetails && changeDetails.length > 0 && (
+                  <Button
+                    variant="link"
+                    className="text-blue-600 hover:text-blue-800 ml-2"
+                    onClick={() => setShowChanges(true)}
+                  >
+                    Voir les changements
+                  </Button>
+                )}
 
         {/* Employees table */}
         <Card className="bg-gray-100">

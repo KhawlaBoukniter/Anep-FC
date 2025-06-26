@@ -16,7 +16,7 @@ import { useDeleteEmployee } from "../hooks/useEmployees";
 import { useToast } from "../hooks/use-toast.ts";
 
 interface DeleteEmployeeModalProps {
-  employeeId: string;
+  employeeId: number;
   employeeName: string;
 }
 
