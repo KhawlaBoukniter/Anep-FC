@@ -7,28 +7,24 @@ const db = require("../config/database");
 function normalizeDate(dateStr) {
     if (!dateStr) return null;
 
-    // Si c'est un objet Date, extraire la date sans ajustement horaire
     let dateString = typeof dateStr === "object" && dateStr instanceof Date
         ? `${dateStr.getFullYear()}-${String(dateStr.getMonth() + 1).padStart(2, '0')}-${String(dateStr.getDate()).padStart(2, '0')}`
         : dateStr.toString().trim();
 
-    console.log(`normalizeDate input: ${dateStr} -> ${dateString}`); // Débogage
+    console.log(`normalizeDate input: ${dateStr} -> ${dateString}`);
 
-    // Tentative de parsing pour DD/MM/YYYY
     const ddMmYyyy = dateString.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
     if (ddMmYyyy) {
         const [, day, month, year] = ddMmYyyy;
         return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
     }
 
-    // Tentative de parsing pour MM/DD/YYYY
     const mmDdYyyy = dateString.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
     if (mmDdYyyy) {
         const [, month, day, year] = mmDdYyyy;
         return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
     }
 
-    // Si déjà YYYY-MM-DD, garder tel quel
     const yyyyMmDd = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (yyyyMmDd) {
         return dateString;
@@ -132,13 +128,17 @@ async function importProfiles(req, res) {
                          VALUES (${Object.keys(formatted).map((_, i) => `$${i + 1}`).join(",")})`,
                         Object.values(formatted)
                     );
+                    await db.query(
+                        `INSERT INTO import_history (identifier, action, previous_data, new_data)
+                        VALUES ($1, 'insert', NULL, $2)`,
+                        [CIN || nomPrenom, JSON.stringify(formatted)]
+                    );
                     inserted++;
                     console.log("✅ Nouveau profil ajouté :", CIN || nomPrenom);
                 } else {
                     let hasChanged = false;
                     const before = { ...current };
 
-                    // Normaliser les dates de la base
                     for (const key in before) {
                         if (before.hasOwnProperty(key) && key.match(/DATE|DAT/) && before[key]) {
                             before[key] = normalizeDate(before[key]);
@@ -151,10 +151,9 @@ async function importProfiles(req, res) {
                         const beforeValue = (before[key] || "").toString().trim();
                         const afterValue = (after[key] || "").toString().trim();
                         if (beforeValue !== afterValue && beforeValue !== "" && afterValue !== "") {
-                            // Tolérer un décalage d'un jour pour toutes les dates
                             if (key.match(/DATE|DAT/) && isDateOneDayApart(beforeValue, afterValue)) {
                                 console.log(`Décalage d'un jour toléré pour ${key}: ${beforeValue} -> ${afterValue}`);
-                                continue; // Ignorer la modification
+                                continue;
                             }
                             hasChanged = true;
                             changedFields.push({ field: key, before: beforeValue, after: afterValue });
@@ -167,6 +166,11 @@ async function importProfiles(req, res) {
                             `UPDATE profile SET ${Object.keys(formatted).map((k, i) => `"${k}" = $${i + 1}`).join(", ")} 
                              WHERE "CIN" = $${Object.keys(formatted).length + 1} OR "NOM PRENOM" = $${Object.keys(formatted).length + 2}`,
                             [...Object.values(formatted), CIN || null, nomPrenom || null]
+                        );
+                        await db.query(
+                            `INSERT INTO import_history (identifier, action, previous_data, new_data)
+                            VALUES ($1, 'update', $2, $3)`,
+                            [CIN || nomPrenom, JSON.stringify(before), JSON.stringify(formatted)]
                         );
                         updates.push({ identifier: CIN || nomPrenom, before, after, changedFields });
                         updated++;
@@ -188,4 +192,32 @@ async function importProfiles(req, res) {
     }
 }
 
-module.exports = { importProfiles };
+async function undoLastImport(req, res) {
+    try {
+        const { rows } = await db.query(
+            `SELECT * FROM import_history ORDER BY imported_at DESC LIMIT 100`
+        );
+
+        for (const record of rows) {
+            if (record.action === "insert") {
+                await db.query(`DELETE FROM profile WHERE "CIN" = $1 OR "NOM PRENOM" = $1`, [record.identifier]);
+            } else if (record.action === "update") {
+                const previous = record.previous_data;
+                await db.query(
+                    `UPDATE profile SET ${Object.keys(previous).map((k, i) => `"${k}" = $${i + 1}`).join(", ")} 
+           WHERE "CIN" = $${Object.keys(previous).length + 1} OR "NOM PRENOM" = $${Object.keys(previous).length + 2}`,
+                    [...Object.values(previous), record.identifier, record.identifier]
+                );
+            }
+        }
+
+        await db.query(`DELETE FROM import_history`);
+        res.status(200).json({ message: "Dernier import annulé avec succès." });
+    } catch (err) {
+        console.error("❌ Erreur lors de l'annulation :", err);
+        res.status(500).json({ message: "Erreur lors de l'annulation", error: err.message });
+    }
+}
+
+
+module.exports = { importProfiles, undoLastImport };
