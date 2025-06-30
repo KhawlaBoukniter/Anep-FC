@@ -1,4 +1,4 @@
-const pool = require("../config/database");
+const { pool } = require("../config/database");
 
 async function getAllEmployees({ search, role, archived }) {
     const params = [archived !== undefined ? archived : false];
