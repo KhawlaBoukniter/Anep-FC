@@ -177,7 +177,7 @@ async function getEmployeeById(id) {
                         'id_emploi', em.id_emploi,
                         'nom_emploi', em.nom_emploi,
                         'codeemploi', em.codeemploi,
-                        'entite' , em.entite
+                        'entite', em.entite
                     )
                 ) FILTER (WHERE em.id_emploi IS NOT NULL),
                 '[]'
@@ -188,7 +188,8 @@ async function getEmployeeById(id) {
                         'id_competencea', ec.id_competencea,
                         'code_competencea', c.code_competencea,
                         'competencea', c.competencea,
-                        'niveaua', ec.niveaua
+                        'niveaua', ec.niveaua,
+                        'niveau_requis', ecr.niveaur
                     )
                 ) FILTER (WHERE ec.id_competencea IS NOT NULL),
                 '[]'
@@ -199,61 +200,72 @@ async function getEmployeeById(id) {
         LEFT JOIN emploi em ON ee.id_emploi = em.id_emploi
         LEFT JOIN employe_competencea ec ON e.id_employe = ec.id_employe
         LEFT JOIN competencesa c ON ec.id_competencea = c.id_competencea
+        LEFT JOIN emploi_competencer ecr ON c.code_competencea = (
+            SELECT cr.code_competencer 
+            FROM competencesr cr 
+            WHERE cr.id_competencer = ecr.id_competencer
+        ) AND ecr.id_emploi = ee.id_emploi
         WHERE e.id_employe = $1
         GROUP BY e.id_employe, p.id_profile
     `;
 
-    const result = await pool.query(query, [id]);
-    if (result.rows.length === 0) return null;
+    try {
+        const result = await pool.query(query, [id]);
+        if (result.rows.length === 0) return null;
 
-    const row = result.rows[0];
-    return {
-        id: row.id_employe.toString(),
-        nom_complet: row.nom_complet,
-        email: row.email,
-        role: row.role,
-        telephone1: row.telephone1,
-        telephone2: row.telephone2,
-        categorie: row.categorie,
-        specialite: row.specialite,
-        experience_employe: row.experience_employe,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-        archived: row.archived,
-        profile_id: row.profile_id,
-        cin: row.cin,
-        emplois: (row.emplois || []).map(job => ({
-            id_emploi: job.id_emploi.toString(),
-            nom_emploi: job.nom_emploi,
-            codeemploi: job.codeemploi,
-            entite: job.entite,
-        })),
-        competences: (row.competences || []).map(skill => ({
-            id_competencea: skill.id_competencea.toString(),
-            code_competencea: skill.code_competencea,
-            competencea: skill.competencea,
-            niveaua: skill.niveaua,
-        })),
-        profile: row.id_profile ? {
-            id_profile: row.id_profile,
-            NOM_PRENOM: row["NOM PRENOM"],
-            ADRESSE: row["ADRESSE"],
-            DATE_NAISS: row["DATE NAISS"],
-            DAT_REC: row["DAT_REC"],
-            CIN: row["CIN"],
-            DETACHE: row["DETACHE"],
-            SEXE: row["SEXE"],
-            SIT_F_AG: row["SIT_F_AG"],
-            STATUT: row["STATUT"],
-            DAT_POS: row["DAT_POS"],
-            LIBELLE_GRADE: row["LIBELLE GRADE"],
-            GRADE_ASSIMILE: row["GRADE ASSIMILE"],
-            LIBELLE_FONCTION: row["LIBELLE FONCTION"],
-            DAT_FCT: row["DAT_FCT"],
-            LIBELLE_LOC: row["LIBELLE LOC"],
-            LIBELLE_REGION: row["LIBELLE REGION"],
-        } : null,
-    };
+        const row = result.rows[0];
+        return {
+            id: row.id_employe.toString(),
+            nom_complet: row.nom_complet,
+            email: row.email,
+            role: row.role,
+            telephone1: row.telephone1,
+            telephone2: row.telephone2,
+            categorie: row.categorie,
+            specialite: row.specialite,
+            experience_employe: row.experience_employe,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+            archived: row.archived,
+            profile_id: row.profile_id,
+            cin: row.cin,
+            emplois: (row.emplois || []).map(job => ({
+                id_emploi: job.id_emploi.toString(),
+                nom_emploi: job.nom_emploi,
+                codeemploi: job.codeemploi,
+                entite: job.entite,
+            })),
+            competences: (row.competences || []).map(skill => ({
+                id_competencea: skill.id_competencea ? skill.id_competencea.toString() : null,
+                code_competencea: skill.code_competencea,
+                competencea: skill.competencea,
+                niveaua: skill.niveaua,
+                niveau_requis: skill.niveau_requis,
+            })).filter(skill => skill.id_competencea !== null), // Remove null competencies
+            profile: row.id_profile ? {
+                id_profile: row.id_profile,
+                NOM_PRENOM: row["NOM PRENOM"],
+                ADRESSE: row["ADRESSE"],
+                DATE_NAISS: row["DATE NAISS"],
+                DAT_REC: row["DAT_REC"],
+                CIN: row["CIN"],
+                DETACHE: row["DETACHE"],
+                SEXE: row["SEXE"],
+                SIT_F_AG: row["SIT_F_AG"],
+                STATUT: row["STATUT"],
+                DAT_POS: row["DAT_POS"],
+                LIBELLE_GRADE: row["LIBELLE GRADE"],
+                GRADE_ASSIMILE: row["GRADE ASSIMILE"],
+                LIBELLE_FONCTION: row["LIBELLE FONCTION"],
+                DAT_FCT: row["DAT_FCT"],
+                LIBELLE_LOC: row["LIBELLE LOC"],
+                LIBELLE_REGION: row["LIBELLE REGION"],
+            } : null,
+        };
+    } catch (error) {
+        console.error("Database query error in getEmployeeById:", error.stack);
+        throw error;
+    }
 }
 
 async function createEmployee(employeeData) {
