@@ -14,6 +14,7 @@ import useApiAxios from "../config/axios";
 import PropTypes from "prop-types";
 import { AddModuleModal } from "./AddModuleModal.tsx";
 import clsx from "clsx";
+import { EditModuleModal } from "./EditModuleModal.tsx";
 
 const socket = io("https://anep-proejct.onrender.com");
 
@@ -668,17 +669,10 @@ export function ModulesList() {
                         <div className="flex gap-1 justify-center">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => navigate(`/EditCourse/${course._id}`)}
-                              >
-                                <Edit className="h-4 w-4 text-blue-600" />
-                              </Button>
+                              <EditModuleModal module={course} />
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Éditer le cours</p>
+                              <p>Modifier le module</p>
                             </TooltipContent>
                           </Tooltip>
                           <Tooltip>
