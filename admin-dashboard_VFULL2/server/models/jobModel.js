@@ -1,4 +1,4 @@
-const pool = require("../config/database");
+const { pool } = require("../config/database");
 const Joi = require("joi");
 
 // Schéma de validation pour un emploi
