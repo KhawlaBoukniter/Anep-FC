@@ -78,6 +78,16 @@ CREATE TABLE employe_competencea (
     niveaua int CHECK (niveaua in (1, 2, 3, 4))
 );
 
+CREATE TABLE import_history (
+  id SERIAL PRIMARY KEY,
+  imported_at TIMESTAMP DEFAULT NOW(),
+  identifier TEXT NOT NULL,
+  action TEXT CHECK (action IN ('insert', 'update')),
+  previous_data JSONB,
+  new_data JSONB
+);
+
+
 ALTER TABLE employe_competencea DROP CONSTRAINT employe_competencea_niveaua_check;
 ALTER TABLE employe_competencea ADD CONSTRAINT employe_competencea_niveaua_check CHECK (niveaua IN (0, 1, 2, 3, 4));
 
@@ -108,6 +118,9 @@ ALTER TABLE competencesr ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTA
 
 ALTER TABLE emploi ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE emploi ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+alter table profile add column created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+alter table profile add column updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
 ALTER TABLE emploi_employe
 ADD CONSTRAINT fk_emploi_employe_emploi

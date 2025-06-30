@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Input } from "./ui/input.tsx";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "./ui/command.tsx";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table.tsx";
-import { Eye, Search, Filter, Users, MapPin, User, Shield, X, Archive, ArchiveRestore, XCircle, Plus } from "lucide-react";
+import { Eye, Search, Filter, Users, MapPin, User, Shield, X, Archive, ArchiveRestore, XCircle, Plus, CheckCircle, AlertTriangle, Info } from "lucide-react";
 import { AddEmployeeModal } from "./add-employee-modal.tsx";
 import { EditEmployeeModal } from "./edit-employee-modal.tsx";
 import { DeleteEmployeeModal } from "./delete-employee-modal.tsx";
@@ -34,6 +34,11 @@ interface FilterOption {
   options: string[];
 }
 
+interface ChangeDetail {
+  identifier: string;
+  changedFields: { field: string; before: string; after: string }[];
+}
+
 export function EmployeesList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<Filter[]>([]);
@@ -50,6 +55,47 @@ export function EmployeesList() {
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
+  const [changeDetails, setChangeDetails] = useState<ChangeDetail[] | null>(null);
+  const [showChanges, setShowChanges] = useState(false);
+
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFileToUpload(e.target.files[0]);
+    }
+  };
+
+  const handleImportProfiles = async () => {
+    if (!fileToUpload) {
+      console.log("Aucun fichier sélectionné");
+      return;
+    }
+
+    console.log("Fichier sélectionné :", fileToUpload.name, fileToUpload.size);
+
+    const formData = new FormData();
+    formData.append("file", fileToUpload);
+
+    try {
+      const res = await fetch("/api/profiles/import", {
+        method: "POST",
+        body: formData,
+      });
+      console.log("Réponse serveur :", res.status, res.statusText);
+      const data = await res.json();
+      console.log("Données reçues :", data);
+      setChangeDetails(data.updates || []);
+      const summary = `Import terminé. ${data.inserted} ajouté(s), ${data.updated} modifié(s), ${data.unchanged} inchangé(s).`;
+      setSyncStatus(summary);
+      if (data.updates && data.updates.length > 0) {
+        setShowChanges(true); 
+      }
+    } catch (err) {
+      console.error("Erreur d'importation :", err);
+      setSyncStatus("Erreur lors de l'importation du fichier");
+    }
+  };
 
   const handleSyncProfiles = async () => {
     try {
@@ -285,210 +331,284 @@ export function EmployeesList() {
         </div>
 
         {/* Search and filters */}
-        <Card className="bg-gray-100">
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-900" />
-                <Input
-                  placeholder="Rechercher par nom, email, CIN ou emploi..."
-                  value={searchTerm}
+       <Card className="bg-white shadow-lg rounded-xl border border-gray-200">
+  <CardContent className="p-6">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col md:flex-row gap-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-600" />
+          <Input
+            placeholder="Rechercher par nom, email, CIN ou emploi..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="pl-12 pr-12 rounded-xl border-blue-700 bg-gray-50 focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+            aria-label="Rechercher"
+          />
+          {searchTerm && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 h-10 w-10"
+              onClick={() => clearFilter("search")}
+            >
+              <XCircle className="h-5 w-5 text-gray-500 hover:text-gray-700" />
+            </Button>
+          )}
+        </div>
+        <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              variant="outline"
+              className="flex items-center gap-2 bg-gray-50 rounded-xl border-blue-700 hover:bg-gray-100 transition-all duration-200"
+            >
+              <Filter className="h-5 w-5" /> Ajouter Filtre
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md rounded-2xl bg-white shadow-xl border border-gray-100 animate-in fade-in duration-300">
+            <DialogHeader className="border-b border-gray-100 p-6">
+              <DialogTitle className="text-2xl font-semibold text-gray-900">Ajouter un filtre</DialogTitle>
+            </DialogHeader>
+            <div className="p-6 space-y-6">
+              <div className="relative">
+                <select
+                  value={newFilterType}
                   onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setCurrentPage(1);
+                    setNewFilterType(e.target.value);
+                    setNewFilterValues([]);
+                    setSearchValue("");
                   }}
-                  className="pl-10 pr-10 rounded-lg border-blue-700 bg-white focus:ring-2 focus:ring-blue-500 transition-all"
-                  aria-label="Rechercher"
-                />
-                {searchTerm && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
-                    onClick={() => clearFilter("search")}
-                  >
-                    <XCircle className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                  </Button>
-                )}
-              </div>
-              <div className="flex gap-2 w-full md:w-auto">
-                <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="flex items-center gap-2 bg-white rounded-lg border-blue-700 hover:bg-gray-100 transition-all"
+                  className="w-full p-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-700 bg-white appearance-none"
+                  aria-label="Sélectionner le type de filtre"
+                >
+                  <option value="">Choisir un type de filtre</option>
+                  {filterOptions.map((option) => (
+                    <option
+                      key={option.value}
+                      value={option.value}
+                      disabled={filters.some((f) => f.type === option.value)}
                     >
-                      <Filter className="h-4 w-4" /> Ajouter Filtre
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md rounded-xl bg-white shadow-2xl border border-gray-200 animate-in fade-in duration-200">
-                    <DialogHeader className="border-b border-gray-100 p-4">
-                      <DialogTitle className="text-xl font-bold text-gray-900">Ajouter un filtre</DialogTitle>
-                    </DialogHeader>
-                    <div className="p-6 space-y-6">
-                      <div className="relative">
-                        <select
-                          value={newFilterType}
-                          onChange={(e) => {
-                            setNewFilterType(e.target.value);
-                            setNewFilterValues([]);
-                            setSearchValue("");
-                          }}
-                          className="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-700 bg-white appearance-none"
-                          aria-label="Sélectionner le type de filtre"
-                        >
-                          <option value="">Choisir un type de filtre</option>
-                          {filterOptions.map((option) => (
-                            <option
-                              key={option.value}
-                              value={option.value}
-                              disabled={filters.some((f) => f.type === option.value)}
-                            >
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-                          </svg>
-                        </div>
-                      </div>
-                      {newFilterType && (
-                        <div className="space-y-4">
-                          <Input
-                            ref={inputRef}
-                            placeholder={`Saisir ou rechercher ${newFilterType.toLowerCase()}...`}
-                            value={searchValue}
-                            onChange={(e) => {
-                              setSearchValue(e.target.value);
-                              setOpenPopover(e.target.value.length > 0);
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
+                  <svg className="fill-current h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                  </svg>
+                </div>
+              </div>
+              {newFilterType && (
+                <div className="space-y-5">
+                  <Input
+                    ref={inputRef}
+                    placeholder={`Saisir ou rechercher ${newFilterType.toLowerCase()}...`}
+                    value={searchValue}
+                    onChange={(e) => {
+                      setSearchValue(e.target.value);
+                      setOpenPopover(e.target.value.length > 0);
+                    }}
+                    onKeyDown={handleKeyDown}
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                    aria-label={`Rechercher ${newFilterType.toLowerCase()}`}
+                  />
+                  {openPopover && (
+                    <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                      {availableOptions
+                        .filter((option) => option.toLowerCase().includes(searchValue.toLowerCase()))
+                        .map((option) => (
+                          <div
+                            key={option}
+                            onClick={() => {
+                              if (!newFilterValues.includes(option)) {
+                                setNewFilterValues((prev) => [...prev, option]);
+                                setSearchValue("");
+                                setOpenPopover(false);
+                              }
                             }}
-                            onKeyDown={handleKeyDown}
-                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all"
-                            aria-label={`Rechercher ${newFilterType.toLowerCase()}`}
-                          />
-                          {openPopover && (
-                            <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                              {availableOptions
-                                .filter((option) => option.toLowerCase().includes(searchValue.toLowerCase()))
-                                .map((option) => (
-                                  <div
-                                    key={option}
-                                    onClick={() => {
-                                      if (!newFilterValues.includes(option)) {
-                                        setNewFilterValues((prev) => [...prev, option]);
-                                        setSearchValue("");
-                                        setOpenPopover(false);
-                                      }
-                                    }}
-                                    className={clsx(
-                                      "p-2 cursor-pointer hover:bg-gray-100 transition-colors",
-                                      newFilterValues.includes(option) && "opacity-50 cursor-not-allowed"
-                                    )}
-                                  >
-                                    {option}
-                                  </div>
-                                ))}
-                              {availableOptions.filter((option) => option.toLowerCase().includes(searchValue.toLowerCase())).length === 0 && (
-                                <div className="p-2 text-gray-500">Aucun résultat. Appuyez sur Entrée pour ajouter.</div>
-                              )}
-                            </div>
-                          )}
-                          {newFilterValues.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {newFilterValues.map((value) => (
-                                <Badge
-                                  key={value}
-                                  variant="secondary"
-                                  className={clsx(
-                                    "flex items-center gap-1 p-1 text-sm font-medium rounded-full transition-all",
-                                    getFilterColor(newFilterType)
-                                  )}
-                                >
-                                  {value}
-                                  <X
-                                    className="h-3 w-3 cursor-pointer hover:bg-gray-300 rounded-full p-0.5"
-                                    onClick={() => setNewFilterValues((prev) => prev.filter((v) => v !== value))}
-                                    aria-label={`Supprimer ${value}`}
-                                  />
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                            className={clsx(
+                              "p-3 cursor-pointer hover:bg-gray-50 transition-colors",
+                              newFilterValues.includes(option) && "opacity-50 cursor-not-allowed"
+                            )}
+                          >
+                            {option}
+                          </div>
+                        ))}
+                      {availableOptions.filter((option) => option.toLowerCase().includes(searchValue.toLowerCase())).length === 0 && (
+                        <div className="p-3 text-gray-500">Aucun résultat. Appuyez sur Entrée pour ajouter.</div>
                       )}
                     </div>
-                    <DialogFooter className="border-t border-gray-100 p-4 flex justify-end gap-3">
-                      <Button
-                        variant="outline"
-                        onClick={() => setFilterDialogOpen(false)}
-                        className="rounded-lg border-gray-300 hover:bg-gray-100 text-gray-700 px-4 py-2 transition-all"
-                      >
-                        Annuler
-                      </Button>
-                      <Button
-                        variant="default"
-                        onClick={() => {
-                          addFilter();
-                          setFilterDialogOpen(false);
-                        }}
-                        disabled={!newFilterType || newFilterValues.length === 0}
-                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow-md transition-all"
-                      >
-                        Ajouter
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-                <Button
-                  variant="default"
-                  onClick={handleSyncProfiles}
-                  className="rounded-lg bg-blue-900 hover:bg-blue-800 text-white shadow-md transition-all"
-                >
-                  Synchroniser
-                </Button>
-                <AddEmployeeModal />
-              </div>
+                  )}
+                  {newFilterValues.length > 0 && (
+                    <div className="flex flex-wrap gap-3">
+                      {newFilterValues.map((value) => (
+                        <Badge
+                          key={value}
+                          variant="secondary"
+                          className={clsx(
+                            "flex items-center gap-2 p-2 text-sm font-medium rounded-full transition-all",
+                            getFilterColor(newFilterType)
+                          )}
+                        >
+                          {value}
+                          <X
+                            className="h-4 w-4 cursor-pointer hover:bg-gray-300 rounded-full p-0.5"
+                            onClick={() => setNewFilterValues((prev) => prev.filter((v) => v !== value))}
+                            aria-label={`Supprimer ${value}`}
+                          />
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            {syncStatus && (
-              <div className="mt-2 p-2 text-sm text-center bg-green-100 text-green-800 rounded-md" role="alert">
-                {syncStatus}
+            <DialogFooter className="border-t border-gray-100 p-6 flex justify-end gap-4">
+              <Button
+                variant="outline"
+                onClick={() => setFilterDialogOpen(false)}
+                className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2 transition-all duration-200"
+              >
+                Annuler
+              </Button>
+              <Button
+                variant="default"
+                onClick={() => {
+                  addFilter();
+                  setFilterDialogOpen(false);
+                }}
+                disabled={!newFilterType || newFilterValues.length === 0}
+                className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 py-2 shadow-md transition-all duration-200"
+              >
+                Ajouter
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+      <div className="flex flex-col md:flex-row gap-4">
+        <Button
+          variant="destructive"
+          onClick={async () => {
+            const confirmUndo = window.confirm("Voulez-vous vraiment annuler les derniers changements ?");
+            if (!confirmUndo) return;
+            try {
+              const res = await fetch("/api/undo-last-import", { method: "POST" });
+              const data = await res.json();
+              alert(data.message || "Import annulé.");
+            } catch (err) {
+              console.error("Erreur :", err);
+              alert("Échec de l'annulation.");
+            }
+          }}
+          className="rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md transition-all duration-200 w-full md:w-auto"
+        >
+          Annuler dernier import
+        </Button>
+        <Button
+          variant="default"
+          onClick={handleSyncProfiles}
+          className="rounded-xl bg-blue-900 hover:bg-blue-800 text-white shadow-md transition-all duration-200 w-full md:w-auto"
+        >
+          Synchroniser
+        </Button>
+        <input
+          type="file"
+          accept=".csv,.xlsx,.xls"
+          onChange={handleFileChange}
+          className="hidden"
+          id="import-profiles"
+        />
+        <label htmlFor="import-profiles">
+          <Button
+            variant="outline"
+            className="rounded-xl border-gray-500 bg-gray-50 hover:bg-gray-100 transition-all duration-200 w-full md:w-auto"
+            onClick={handleImportProfiles}
+            disabled={!fileToUpload}
+          >
+            Importer profils
+          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-12 w-12 text-blue-600 hover:text-blue-800">
+                <Info className="h-6 w-6" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-lg p-6 bg-white border border-gray-200 shadow-xl rounded-xl">
+              <div className="text-sm text-gray-800 space-y-3">
+                <div>
+                  <h3 className="font-bold text-lg text-gray-900 mb-2">📄 Colonnes attendues :</h3>
+                  <ul className="list-disc list-inside text-sm text-left">
+                    <li>CIN</li>
+                    <li>NOM PRENOM</li>
+                    <li>DATE NAISS, DAT_REC, DAT_POS, DAT_FCT</li>
+                    <li>ADRESSE, DETACHE, SEXE, SIT_F_AG, STATUT</li>
+                    <li>LIBELLE GRADE, GRADE ASSIMILE</li>
+                    <li>LIBELLE FONCTION</li>
+                    <li>LIBELLE LOC, LIBELLE REGION</li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-gray-900 mb-2">📁 Extensions acceptées :</h3>
+                  <p className="text-sm text-gray-700">.csv, .xlsx, .xls</p>
+                </div>
               </div>
-            )}
-            {filters.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {filters.map((filter) =>
-                  filter.values.map((value) => (
-                    <Badge
-                      key={`${filter.type}-${value}`}
-                      variant="secondary"
-                      className={clsx("flex items-center gap-1", getFilterColor(filter.type))}
-                    >
-                      {filter.type}: {value}
-                      <X
-                        className="h-3 w-3 cursor-pointer hover:bg-gray-300 rounded"
-                        onClick={() => clearFilter(filter.type, value)}
-                        aria-label={`Supprimer filtre ${filter.type} ${value}`}
-                      />
-                    </Badge>
-                  ))
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2 rounded-lg border-gray-300 hover:bg-gray-100 transition-all"
-                  onClick={() => {
-                    setFilters([]);
-                    setCurrentPage(1);
-                  }}
-                >
-                  Effacer tous les filtres
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </TooltipContent>
+          </Tooltip>
+        </label>
+        <AddEmployeeModal />
+      </div>
+    </div>
+    {syncStatus && (
+      <div className="mt-4 p-3 text-sm text-center bg-green-100 text-green-800 rounded-xl" role="alert">
+        {syncStatus}
+      </div>
+    )}
+    {filters.length > 0 && (
+      <div className="mt-4 flex flex-wrap gap-3">
+        {filters.map((filter) =>
+          filter.values.map((value) => (
+            <Badge
+              key={`${filter.type}-${value}`}
+              variant="secondary"
+              className={clsx("flex items-center gap-2", getFilterColor(filter.type))}
+            >
+              {filter.type}: {value}
+              <X
+                className="h-4 w-4 cursor-pointer hover:bg-gray-300 rounded"
+                onClick={() => clearFilter(filter.type, value)}
+                aria-label={`Supprimer filtre ${filter.type} ${value}`}
+              />
+            </Badge>
+          ))
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-2 rounded-xl border-gray-300 hover:bg-gray-50 transition-all duration-200"
+          onClick={() => {
+            setFilters([]);
+            setCurrentPage(1);
+          }}
+        >
+          Effacer tous les filtres
+        </Button>
+      </div>
+    )}
+  </CardContent>
+</Card>
+
+        {changeDetails && changeDetails.length > 0 && (
+                  <Button
+                    variant="link"
+                    className="text-blue-600 hover:text-blue-800 ml-2"
+                    onClick={() => setShowChanges(true)}
+                  >
+                    Voir les changements
+                  </Button>
+        )}
 
         {/* Employees table */}
         <Card className="bg-gray-100">
