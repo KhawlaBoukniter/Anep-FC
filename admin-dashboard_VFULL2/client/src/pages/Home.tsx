@@ -28,7 +28,7 @@ const HomePage: React.FC = () => {
                 <div className="relative z-20 text-center text-white px-4 max-w-4xl" >
                     <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
                         Bienvenue sur Notre
-                        <span className="block text-[#06668C] bg-white px-4 py-2 rounded-lg inline-block mt-2">Plateforme</span>
+                        <span className="block text-[#06668C] bg-white shadow-lg  px-4 py-2 rounded-lg inline-block mt-2">Plateforme</span>
                     </h1>
                     <p className="text-xl md:text-2xl mb-8 opacity-90">
                         Découvrez nos services exceptionnels et rejoignez des milliers de clients satisfaits
