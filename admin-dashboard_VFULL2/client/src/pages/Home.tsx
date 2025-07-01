@@ -6,19 +6,20 @@ import Carousel from "../components/carousel.tsx"
 const HomePage: React.FC = () => {
     return (
         <div className="min-h-screen flex flex-col">
-            {/* Header */}
-            <Header />
+            
 
             {/* Hero Section avec vidéo en arrière-plan */}
             <section className="relative h-screen flex items-center justify-center overflow-hidden" style={{
                     backgroundImage: `url("/images/bg.jpg")`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
-                    height: '500px',
+                    height: '590px',
                     width: '100%',
                 }}>
+                    
                 {/* Fallback background si la vidéo ne charge pas */}
-                {/* <div className="absolute inset-0 bg-gradient-to-r from-[#06668C] to-green-600 z-0"></div> */}
+                <div className="absolute inset-0 bg-gradient-to-b from-[#ffffff] z-0">{/* Header */}
+            <Header /></div>
 
                 {/* Overlay sombre pour améliorer la lisibilité */}
                 <div className="absolute inset-0 bg-black bg-opacity-40 z-10"></div>

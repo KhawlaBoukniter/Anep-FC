@@ -3,7 +3,7 @@ import type React from "react"
 const Header: React.FC = () => {
     return (
         <header className="top-0 z-50">
-            <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="mx-auto px-4 py-4 flex items-center justify-between">
                 {/* Logo */}
                 <div className="flex items-center">
                     <div className="w-20 h-12  rounded-full flex items-center justify-center">
