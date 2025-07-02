@@ -17,7 +17,7 @@ const notificationSchema = new mongoose.Schema({
 const userSchema = new mongoose.Schema({
     email: {
         type: String,
-        required: true,
+        sparse: true,
         unique: true
     },
     password: {
@@ -34,6 +34,7 @@ const userSchema = new mongoose.Schema({
         default: null,
     },
     name: { type: String },
+    profileId: { type: Number },
     PPR: { type: Number },
     CIN: { type: String },
     DATE_NAISSANCE: { type: Date },

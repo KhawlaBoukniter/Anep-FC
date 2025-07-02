@@ -1,6 +1,6 @@
 const { skillSchema } = require("../validators/reqSkillValidator")
 const skillModel = require("../models/reqSkillModel")
-const pool = require("../config/database")
+const { pool } = require("../config/database")
 
 
 async function getLatestCode(req, res) {
@@ -132,36 +132,36 @@ async function unarchiveSkill(req, res) {
 }
 
 async function getRequiredSkills(req, res) {
-    try {
-        const { jobIds } = req.query;
-        if (!jobIds) {
-            return res.status(400).json({ error: "Les IDs des emplois sont requis." });
-        }
-        const jobIdArray = jobIds.split(",").map(Number);
-        const query = `
+  try {
+    const { jobIds } = req.query;
+    if (!jobIds) {
+      return res.status(400).json({ error: "Les IDs des emplois sont requis." });
+    }
+    const jobIdArray = jobIds.split(",").map(Number);
+    const query = `
       SELECT cr.id_competencer, cr.code_competencer, cr.competencer
       FROM competencesR cr
       JOIN emploi_competencer ec ON cr.id_competencer = ec.id_competencer
       WHERE ec.id_emploi = ANY($1)
     `;
-        const result = await pool.query(query, [jobIdArray]);
-        res.status(200).json(result.rows);
-    } catch (error) {
-        console.error("Erreur lors de la récupération des compétences requises:", error);
-        res.status(500).json({ error: "Erreur serveur." });
-    }
+    const result = await pool.query(query, [jobIdArray]);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error("Erreur lors de la récupération des compétences requises:", error);
+    res.status(500).json({ error: "Erreur serveur." });
+  }
 }
 
 module.exports = {
-    getLatestCode,
-    getSkills,
-    getSkill,
-    createSkill,
-    updateSkill,
-    deleteSkill,
-    archiveSkill,
-    unarchiveSkill,
-    getRequiredSkills
+  getLatestCode,
+  getSkills,
+  getSkill,
+  createSkill,
+  updateSkill,
+  deleteSkill,
+  archiveSkill,
+  unarchiveSkill,
+  getRequiredSkills
 
 }
- 
+
