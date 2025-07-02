@@ -802,29 +802,34 @@ export function ModulesList() {
                         <TableCell className="text-center">{course.archived ? "Oui" : "Non"}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-center">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <EditModuleModal module={course} onCourseUpdated={() => queryClient.invalidateQueries(["courses"])} />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Modifier le module</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleDelete(course._id)}
-                                >
-                                  <Trash className="h-4 w-4 text-red-600" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Supprimer le cours</p>
-                              </TooltipContent>
-                            </Tooltip>
+                            {!course.archived && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <EditModuleModal module={course} onCourseUpdated={() => queryClient.invalidateQueries(["courses"])} />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Modifier le module</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                            {course.archived && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => handleDelete(course._id)}
+                                  >
+                                    <Trash className="h-4 w-4 text-red-600" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Supprimer le cours</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                            
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
