@@ -6,7 +6,7 @@ const userController = require('../controllers/userController');
 const { authenticateUser } = require('../utils/auth');
 
 // POST request to add a new vacation
-router.post('/vacations', authenticateUser, async (req, res) => {
+router.post('/vacations', async (req, res) => {
     const { vacations } = req.body;
     const userId = req.user.id; // Assuming you have middleware to get user ID
 
@@ -32,7 +32,7 @@ router.post('/vacations', authenticateUser, async (req, res) => {
     }
 });
 // DELETE request to remove a vacation
-router.delete('/vacations/:vacation_id', authenticateUser, async (req, res) => {
+router.delete('/vacations/:vacation_id', async (req, res) => {
     const userId = req.user.id;
     try {
         const user = await User.findById(userId);
@@ -65,13 +65,17 @@ router.get('/:user_id/vacations', authenticateUser, async (req, res) => {
         res.status(500).send('Server Error');
     }
 });
+
+
+router.post('/map-by-profile-ids', userController.mapProfilesToUsers);
+
 // Import users from Excel route
-router.post('/import', authenticateUser, userController.importUsersFromExcel);
+router.post('/import', userController.importUsersFromExcel);
 
 // Apply specific routes
 const specificRoutes = [
-    { method: 'get', path: '/notifications', middleware: [authenticateUser], handler: userController.getNotifications },
-    { method: 'get', path: '/admin/notifications', middleware: [authenticateUser], handler: userController.getAdminNotifications },
+    { method: 'get', path: '/notifications', handler: userController.getNotifications },
+    { method: 'get', path: '/admin/notifications', handler: userController.getAdminNotifications },
     { method: 'post', path: '/mark-notification-read', handler: userController.markNotificationRead },
 ];
 
@@ -81,8 +85,8 @@ specificRoutes.forEach(({ method, path, middleware = [], handler }) => {
 
 // Apply generic routes
 const genericRoutes = [
-    { method: 'get', path: '/', middleware: [authenticateUser], handler: userController.getAllUsers },
-    { method: 'get', path: '/:id', middleware: [authenticateUser], handler: userController.getUser },
+    { method: 'get', path: '/', handler: userController.getAllUsers },
+    { method: 'get', path: '/:id', handler: userController.getUser },
     { method: 'post', path: '/', handler: userController.createUser },
     { method: 'put', path: '/:id', handler: userController.updateUser },
     { method: 'delete', path: '/:id', handler: userController.deleteUser },
