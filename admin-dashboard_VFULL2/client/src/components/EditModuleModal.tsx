@@ -6,7 +6,7 @@ import { Button } from "./ui/button.tsx";
 import { Input } from "./ui/input.tsx";
 import { Label } from "./ui/label.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.tsx";
-import { ChevronLeft, ChevronRight, Plus, Copy, X, Edit } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Copy, X, Edit, Check } from "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command.tsx";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog.tsx";
@@ -17,42 +17,65 @@ import useApiAxios from "../config/axios";
 import { useToast } from "../hooks/use-toast.ts";
 import { Checkbox } from "./ui/checkbox.tsx";
 import debounce from "lodash/debounce";
+import api from "../services/api.js";
+import { useProfilesPG } from "../hooks/useProfilesPG.ts";
 
 interface Course {
   _id: string;
   title: string;
-  offline: boolean;
+  offline: "online" | "offline" | "hybrid"; 
   description: string;
-  hidden: boolean;
+  hidden: "visible" | "hidden";
   budget: number;
   location: string;
   imageUrl: string;
-  notification: [];
-  times: [
-      {
-        startTime: "",
-        endTime: "",
-        instructorType: "",
-        instructor: "",
-        instructorName: "",
-        externalInstructorDetails: {
-          phone: "",
-          position: "",
-          cv: null,
-        },
-      },
-    ];
-    image: string;
-    assignedUsers: [];
-    interestedUsers: []
+  notification: any[]; 
+  times: {
+    startTime: string;
+    endTime: string;
+    instructorType: "intern" | "extern";
+    instructor: string;
+    instructorName: string;
+    externalInstructorDetails: {
+      phone: string;
+      position: string;
+      cv: File | null;
+    };
+  }[];
+  image: File | null;
+  assignedUsers: Profile[] | string[];
+  interestedUsers: Profile[] | string[];
+}
+
+interface Profile {
+  id_profile: number;
+  name: string; 
+  "NOM PRENOM": string;
+  ADRESSE: string | null;
+  DATE_NAISS: string | null;
+  DAT_REC: string | null;
+  CIN: string | null;
+  DETACHE: string | null;
+  SEXE: string | null;
+  SIT_F_AG: string | null;
+  STATUT: string | null;
+  DAT_POS: string | null;
+  LIBELLE_GRADE: string | null;
+  GRADE_ASSIMILE: string | null;
+  LIBELLE_FONCTION: string | null;
+  DAT_FCT: string | null;
+  LIBELLE_LOC: string | null;
+  LIBELLE_REGION: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 interface EditModuleModalProps {
   module: Course;
+  onCourseUpdated?: () => void;
 }
 
-export function EditModuleModal({ module }: EditModuleModalProps) {
-
+export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -63,13 +86,13 @@ export function EditModuleModal({ module }: EditModuleModalProps) {
   const userInputRef = useRef<HTMLInputElement>(null);
 
   if (!module) {
-        toast({
-            variant: "destructive",
-            title: "Erreur",
-            description: "Aucun module sélectionné.",
-        });
-        return null;
-    }
+    toast({
+      variant: "destructive",
+      title: "Erreur",
+      description: "Aucun module sélectionné.",
+    });
+    return null;
+  }
 
   const [course, setCourse] = useState<Partial<Course>>({
     _id: module._id,
@@ -87,56 +110,82 @@ export function EditModuleModal({ module }: EditModuleModalProps) {
     interestedUsers: module.interestedUsers,
   });
 
-  const [users, setUsers] = useState([]);
-  const [assignedUsers, setAssignedUsers] = useState([]);
-  const [interestedUsers, setInterestedUsers] = useState([]);
-  const [internalInstructors, setInternalInstructors] = useState([]);
+  const [users, setUsers] = useState<Profile[]>([]);
+  const [assignedUsers, setAssignedUsers] = useState<Profile[]>([]);
+  const [interestedUsers, setInterestedUsers] = useState<Profile[]>([]);
+  const [internalInstructors, setInternalInstructors] = useState<{ label: string; id: number }[]>([]);
   const [filter, setFilter] = useState({
-    fonction: null,
-    localite: null,
-    service: null,
-    departementDivision: null,
-    affectation: null,
-    gradeAssimile: null,
-    gradeFonction: null,
+    fonction: null as { label: string } | null,
+    localite: null as { label: string } | null,
+    gradeAssimile: null as { label: string } | null,
+    region: null as { label: string } | null,
   });
-  const [allCourses, setAllCourses] = useState([]);
+  const [allCourses, setAllCourses] = useState<Course[]>([]);
   const baseUrl = "https://anep-proejct.onrender.com";
 
+  const { data: profiles = [], isLoading, error } = useProfilesPG();
+
   useEffect(() => {
-    const fetchUsersAndCourse = async () => {
+    const fetchCourses = async () => {
       try {
-        const usersResponse = await useApiAxios.get("/users");
         const allCoursesResponse = await useApiAxios.get("/courses");
-
-        setUsers(usersResponse.data);
-        setInternalInstructors(
-          usersResponse.data.map((instructor) => ({
-            label: instructor.name,
-            id: instructor._id,
-          }))
-        );
         setAllCourses(allCoursesResponse.data);
-
       } catch (error) {
-        console.error("Failed to fetch data", error);
+        console.error("Failed to fetch courses", error);
         toast({
           variant: "destructive",
           title: "Erreur",
-          description: "Impossible de récupérer les données.",
+          description: "Impossible de récupérer les cours.",
         });
       }
     };
-    fetchUsersAndCourse();
+    fetchCourses();
   }, [toast]);
 
   useEffect(() => {
-    if (course.interestedUsers) {
-      setInterestedUsers(course.interestedUsers);
+    if (profiles.length) {
+      setUsers(profiles);
+      setInternalInstructors(
+        profiles.map((profile) => ({
+          label: profile.name,
+          id: profile.id_profile,
+        }))
+      );
+      console.log(profiles)
+      if (module.assignedUsers?.length || module.interestedUsers?.length) {
+        const mapUsers = (userIds: string[] | Profile[]): Profile[] => {
+          return (Array.isArray(userIds) ? userIds : []).map((id) => {
+            if (typeof id === "string") {
+              return profiles.find((p) => p.id_profile.toString() === id);
+            }
+            return id;
+          }).filter((user): user is Profile => !!user);
+        };
+        setAssignedUsers(mapUsers(module.assignedUsers));
+        setInterestedUsers(mapUsers(module.interestedUsers));
+      }
     }
-  }, [course]);
+  }, [profiles, module]);
 
-  const onDrop = useCallback((acceptedFiles) => {
+  // useEffect(() => {
+  //   if (course.interestedUsers) {
+  //     setInterestedUsers(course.interestedUsers);
+  //   }
+  // }, [course]);
+  
+  // useEffect(() => {
+  //   if (profiles.length) {
+  //     setUsers(profiles);
+  //     setInternalInstructors(
+  //       profiles.map((profile) => ({
+  //         label: profile["NOM PRENOM"],
+  //         id: profile.id_profile,
+  //       }))
+  //     );
+  //   }
+  // }, [profiles]);
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
       setCourse((prev) => ({
@@ -148,11 +197,11 @@ export function EditModuleModal({ module }: EditModuleModalProps) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = (field: keyof Course, value: any) => {
     setCourse((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSessionChange = (index, field, value, isExternalDetail = false) => {
+  const handleSessionChange = (index: number, field: string, value: any, isExternalDetail = false) => {
     const updatedTimes = [...course.times];
     if (field === "instructorType") {
       updatedTimes[index] = {
@@ -167,7 +216,7 @@ export function EditModuleModal({ module }: EditModuleModalProps) {
         },
       };
     } else if (field === "instructor") {
-      updatedTimes[index].instructor = value?.id || "";
+      updatedTimes[index].instructor = value?.id.toString() || "";
       updatedTimes[index].instructorName = value?.label || "";
     } else if (isExternalDetail) {
       updatedTimes[index].externalInstructorDetails[field] = value;
@@ -194,95 +243,103 @@ export function EditModuleModal({ module }: EditModuleModalProps) {
     }));
   };
 
-  const handleDuplicateSession = (index) => {
-    const session = course.times[index];
+  const handleDuplicateSession = (index: number) => {
+    const session = course.times![index];
     setCourse((prev) => ({
       ...prev,
-      times: [...prev.times, { ...session }],
+      times: [...(prev.times || []), { ...session }],
     }));
   };
 
-  const handleRemoveSession = (index) => {
+  const handleRemoveSession = (index: number) => {
     setCourse((prev) => ({
       ...prev,
-      times: prev.times.filter((_, i) => i !== index),
+      times: (prev.times || []).filter((_, i) => i !== index),
     }));
   };
 
-  const handleFilterChange = debounce((field, value) => {
+  const handleFilterChange = debounce((field: string, value: any) => {
     setFilter((prev) => ({ ...prev, [field]: value }));
   }, 300);
 
-  const uniqueOptions = (field) => {
-    const unique = new Set(users.map((user) => user[field]));
-    return Array.from(unique).map((value) => ({ label: value }));
+  const uniqueOptions = (field: string) => {
+    const uniqueSet = new Set();
+    const options = [{ label: "All" }];
+
+    profiles.forEach((profile) => {
+      const rawValue =
+        field === "fonction"
+          ? profile["LIBELLE FONCTION"]
+          : field === "localite"
+          ? profile["LIBELLE LOC"]
+          : field === "gradeAssimile"
+          ? profile["GRADE ASSIMILE"]
+          : field === "region"
+          ? profile["LIBELLE REGION"]
+          : null;
+
+      if (rawValue && !uniqueSet.has(rawValue)) {
+        uniqueSet.add(rawValue);
+        options.push({ label: rawValue });
+      }
+    });
+
+    return options;
   };
+
 
   const filteredUsers = users.filter(
     (user) =>
-      (!filter.fonction || user.FONCTION === filter.fonction?.label) &&
-      (!filter.localite || user.Localite === filter.localite?.label) &&
-      (!filter.service || user.SERVICE === filter.service?.label) &&
-      (!filter.departementDivision ||
-        user.DEPARTEMENT_DIVISION === filter.departementDivision?.label) &&
-      (!filter.affectation || user.AFFECTATION === filter.affectation?.label) &&
-      (!filter.gradeAssimile ||
-        user.GRADE_ASSIMILE === filter.gradeAssimile?.label) &&
-      (!filter.gradeFonction ||
-        user.GRADE_fonction === filter.gradeFonction?.label) &&
-      !assignedUsers.some((assignedUser) => assignedUser._id === user._id)
+      (!filter.fonction || filter.fonction.label === "All" || user["LIBELLE FONCTION"] === filter.fonction?.label) &&
+      (!filter.localite || filter.localite.label === "All" || user["LIBELLE LOC"] === filter.localite?.label) &&
+      (!filter.gradeAssimile || filter.gradeAssimile.label === "All" || user["GRADE ASSIMILE"] === filter.gradeAssimile?.label) &&
+      (!filter.region || filter.region.label === "All" || user["LIBELLE REGION"] === filter.region?.label) &&
+      !assignedUsers.some((assignedUser) => assignedUser.id_profile === user.id_profile)
   );
 
-  const checkConflicts = (userId, startTime, endTime) => {
-    const user = users.find((user) => user._id === userId);
+  const checkConflicts = (userId: string, startTime: string, endTime: string) => {
+    const user = users.find((user) => user.id_profile.toString() === userId);
     if (!user) return null;
 
     for (const course of allCourses) {
-      if (course._id !== id && course.assignedUsers.includes(userId)) {
-        for (const time of course.times) {
-          if (
-            (new Date(startTime) >= new Date(time.startTime) &&
-              new Date(startTime) <= new Date(time.endTime)) ||
-            (new Date(endTime) >= new Date(time.startTime) &&
-              new Date(endTime) <= new Date(time.endTime))
-          ) {
-            return { type: "course", course };
+      if (course._id !== module._id) {
+        const assignedUserIds = Array.isArray(course.assignedUsers)
+          ? course.assignedUsers.map((u) => (typeof u === "string" ? u : u.id_profile.toString()))
+          : [];
+        if (assignedUserIds.includes(userId)) {
+          for (const time of course.times) {
+            if (
+              (new Date(startTime) >= new Date(time.startTime) &&
+                new Date(startTime) <= new Date(time.endTime)) ||
+              (new Date(endTime) >= new Date(time.startTime) &&
+                new Date(endTime) <= new Date(time.endTime))
+            ) {
+              return { type: "course", course };
+            }
           }
         }
       }
     }
-
-    for (const vacation of user.vacations) {
-      if (
-        (new Date(startTime) >= new Date(vacation.start) &&
-          new Date(startTime) <= new Date(vacation.end)) ||
-        (new Date(endTime) >= new Date(vacation.start) &&
-          new Date(endTime) <= new Date(vacation.end))
-      ) {
-        return { type: "vacation", vacation };
-      }
-    }
-
     return null;
   };
 
-  const handleAssignUser = (userId) => {
-    const userToAssign = interestedUsers.find((user) => user && user._id === userId);
+  const handleAssignUser = (userId: string) => {
+    const userToAssign = interestedUsers.find((user) => user.id_profile.toString() === userId);
     if (userToAssign) {
-      setAssignedUsers((prev) => [...prev, userToAssign].filter((user) => user));
+      setAssignedUsers((prev) => [...prev, userToAssign].filter((user): user is Profile => !!user));
     }
   };
 
-  const filteredInterestedUsers = course.interestedUsers.filter(
+  const filteredInterestedUsers = interestedUsers.filter(
     (interestedUser) =>
-      !assignedUsers.some((assignedUser) => assignedUser._id === interestedUser._id)
+      !assignedUsers.some((assignedUser) => assignedUser.id_profile === interestedUser.id_profile)
   );
 
-  const handleUserToggle = (user) => {
+  const handleUserToggle = (user: Profile) => {
     setAssignedUsers((prev) => {
-      const exists = prev.some((u) => u._id === user._id);
+      const exists = prev.some((u) => u.id_profile === user.id_profile);
       return exists
-        ? prev.filter((u) => u._id !== user._id)
+        ? prev.filter((u) => u.id_profile !== user.id_profile)
         : [...prev, user];
     });
     setSearchUser("");
@@ -291,79 +348,119 @@ export function EditModuleModal({ module }: EditModuleModalProps) {
   };
 
   const handleSubmit = async () => {
-    if (!course.title || !course.offline || !course.hidden || course.budget === "" || !course.location || !course.times.length) {
+  if (
+    !course.title ||
+    !["online", "offline", "hybrid"].includes(course.offline || "") ||
+    !["visible", "hidden"].includes(course.hidden || "") ||
+    course.budget == null ||
+    !course.location ||
+    !course.times?.length
+  ) {
+    toast({
+      variant: "destructive",
+      title: "Erreur",
+      description: "Veuillez remplir tous les champs obligatoires avec des valeurs valides.",
+    });
+    return;
+  }
+  for (const time of course.times || []) {
+    if (!time.startTime || !time.endTime || !time.instructorName) {
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Veuillez remplir tous les champs obligatoires.",
+        description: "Tous les créneaux doivent avoir une heure de début, de fin et un instructeur.",
       });
       return;
     }
-    for (const time of course.times) {
-      if (!time.startTime || !time.endTime || !time.instructorName) {
+  }
+
+  const courseData = {
+    ...course,
+    assignedUsers: assignedUsers.map((user) => user.id_profile.toString()), // Temporary placeholder
+  };
+
+  try {
+    // Step 1: Map id_profile to User._id
+    const profileIds = assignedUsers.map((user) => user.id_profile);
+    console.log("Sending profileIds to map:", profileIds); // Debug log
+    const userMappingResponse = await useApiAxios.post("/users/map-by-profile-ids", {
+      profileIds,
+    });
+    console.log("User Mapping Response:", userMappingResponse.data); // Debug log
+    const mappedUserIds = userMappingResponse.data.map((item: { userId: string }) => item.userId);
+
+    if (mappedUserIds.length !== profileIds.length) {
+      console.warn("Mismatch detected:", {
+        sent: profileIds.length,
+        received: mappedUserIds.length,
+        missing: profileIds.filter((id) => !mappedUserIds.includes(id.toString())),
+      });
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Certains profils n'ont pas d'utilisateurs correspondants. Veuillez synchroniser les données ou contacter l'administrateur.",
+      });
+      return;
+    }
+
+    courseData.assignedUsers = mappedUserIds; // Update with valid ObjectId strings
+
+    if (course.image) {
+      const formData = new FormData();
+      formData.append("image", course.image);
+      course.times.forEach((session, index) => {
+        if (session.externalInstructorDetails?.cv) {
+          formData.append(`cv_${index}`, session.externalInstructorDetails.cv);
+        }
+      });
+
+      const imageUploadResponse = await useApiAxios.post("/courses/uploadImage", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      if (imageUploadResponse.status === 200) {
+        courseData.imageUrl = imageUploadResponse.data.imageUrl;
+      } else {
         toast({
           variant: "destructive",
           title: "Erreur",
-          description: "Tous les créneaux doivent avoir une heure de début, de fin et un instructeur.",
+          description: `Échec du téléchargement de l'image: ${imageUploadResponse.status}`,
         });
         return;
       }
     }
 
-    const courseData = {
-      ...course,
-      assignedUsers: assignedUsers.map((user) => user._id),
-    };
-
-    try {
-      if (course.image) {
-        const formData = new FormData();
-        formData.append("image", course.image);
-        course.times.forEach((session, index) => {
-          if (session.externalInstructorDetails?.cv) {
-            formData.append(`cv_${index}`, session.externalInstructorDetails.cv);
-          }
+    for (const user of assignedUsers) {
+      const conflictCourse = checkConflicts(user.id_profile.toString(), course.times[0].startTime, course.times[0].endTime);
+      if (conflictCourse) {
+        await useApiAxios.put(`/courses/${conflictCourse.course._id}`, {
+          ...conflictCourse.course,
+          assignedUsers: (conflictCourse.course.assignedUsers as any[])
+            .map((u) => (typeof u === "string" ? u : u.id_profile.toString()))
+            .filter((u) => u !== user.id_profile.toString()),
         });
-
-        const imageUploadResponse = await useApiAxios.post("/courses/uploadImage", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-
-        if (imageUploadResponse.status === 200) {
-          courseData.imageUrl = imageUploadResponse.data.imageUrl;
-        } else {
-          toast({
-            variant: "destructive",
-            title: "Erreur",
-            description: `Échec du téléchargement de l'image: ${imageUploadResponse.status}`,
-          });
-          return;
-        }
       }
-
-      for (const user of assignedUsers) {
-        const conflictCourse = checkConflicts(user._id, course.times[0].startTime, course.times[0].endTime);
-        if (conflictCourse) {
-          await useApiAxios.put(`/courses/${conflictCourse._id}`, {
-            ...conflictCourse,
-            assignedUsers: conflictCourse.assignedUsers.filter((u) => u._id !== user._id),
-          });
-        }
-      }
-
-      await useApiAxios.put(`/courses/${module._id}`, courseData);
-      toast({ title: "Succès", description: "Cours mis à jour avec succès." });
-      setCurrentStep(1);
-      setOpen(false);
-    } catch (error) {
-      console.error("Failed to update course", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Échec de la mise à jour du cours.",
-      });
     }
-  };
+
+    console.log("Sending courseData to update:", courseData); // Debug log
+    await useApiAxios.put(`/courses/${module._id}`, courseData);
+    toast({ title: "Succès", description: "Cours mis à jour avec succès." });
+    setCurrentStep(1);
+    setOpen(false);
+
+    if (onCourseUpdated) {
+      onCourseUpdated();
+    }
+      
+  } catch (error) {
+    console.error("Failed to update course", error.response?.data || error);
+    toast({
+      variant: "destructive",
+      title: "Erreur",
+      description: error.response?.data?.message || "Échec de la mise à jour du cours.",
+    });
+  }
+};
 
   const handleClose = () => {
     setCourse({
@@ -394,11 +491,8 @@ export function EditModuleModal({ module }: EditModuleModalProps) {
     setFilter({
       fonction: null,
       localite: null,
-      service: null,
-      departementDivision: null,
-      affectation: null,
       gradeAssimile: null,
-      gradeFonction: null,
+      region: null,
     });
     setCurrentStep(1);
     setOpen(false);
@@ -468,7 +562,7 @@ export function EditModuleModal({ module }: EditModuleModalProps) {
                 <Input
                   id="title"
                   placeholder="Entrez le titre du cours"
-                  value={course.title}
+                  value={course.title || ""}
                   onChange={(e) => handleInputChange("title", e.target.value)}
                   required
                 />
@@ -478,7 +572,7 @@ export function EditModuleModal({ module }: EditModuleModalProps) {
                 <Input
                   id="location"
                   placeholder="Entrez le lieu"
-                  value={course.location}
+                  value={course.location || ""}
                   onChange={(e) => handleInputChange("location", e.target.value)}
                   required
                 />
@@ -515,7 +609,7 @@ export function EditModuleModal({ module }: EditModuleModalProps) {
               <div className="space-y-2">
                 <Label htmlFor="offline">En ligne/Présentiel</Label>
                 <Select
-                  value={course.offline}
+                  value={course.offline || ""}
                   onValueChange={(value) => handleInputChange("offline", value)}
                 >
                   <SelectTrigger>
@@ -540,7 +634,7 @@ export function EditModuleModal({ module }: EditModuleModalProps) {
               <div className="space-y-2">
                 <Label htmlFor="hidden">Visibilité</Label>
                 <Select
-                  value={course.hidden}
+                  value={course.hidden || ""}
                   onValueChange={(value) => handleInputChange("hidden", value)}
                 >
                   <SelectTrigger>
@@ -558,8 +652,8 @@ export function EditModuleModal({ module }: EditModuleModalProps) {
                   id="budget"
                   type="number"
                   placeholder="Entrez le budget"
-                  value={course.budget}
-                  onChange={(e) => handleInputChange("budget", e.target.value)}
+                  value={course.budget ?? ""}
+                  onChange={(e) => handleInputChange("budget", Number(e.target.value))}
                   required
                 />
               </div>
@@ -568,7 +662,7 @@ export function EditModuleModal({ module }: EditModuleModalProps) {
           {currentStep === 2 && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Planification</h3>
-              {course.times.map((session, index) => (
+              {(course.times || []).map((session, index) => (
                 <div key={index} className="border rounded-lg p-4 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -638,7 +732,7 @@ export function EditModuleModal({ module }: EditModuleModalProps) {
                                   >
                                     <Check
                                       className={`mr-2 h-4 w-4 ${
-                                        session.instructor === instructor.id
+                                        session.instructor === instructor.id.toString()
                                           ? "opacity-100"
                                           : "opacity-0"
                                       }`}
@@ -696,7 +790,7 @@ export function EditModuleModal({ module }: EditModuleModalProps) {
                           id={`cv-${index}`}
                           type="file"
                           onChange={(e) =>
-                            handleSessionChange(index, "cv", e.target.files[0], true)
+                            handleSessionChange(index, "cv", e.target.files?.[0], true)
                           }
                           required
                         />
@@ -732,165 +826,164 @@ export function EditModuleModal({ module }: EditModuleModalProps) {
             </div>
           )}
           {currentStep === 3 && (
-  <div className="space-y-6">
-    <h3 className="text-lg font-semibold text-gray-900">Assigner des Utilisateurs</h3>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {[
-        { label: "Fonction", field: "fonction" },
-        { label: "Localité", field: "localite" },
-        { label: "Service", field: "service" },
-        { label: "Département/Division", field: "departementDivision" },
-        { label: "Affectation", field: "affectation" },
-        { label: "Grade Assimilé", field: "gradeAssimile" },
-        { label: "Grade Fonction", field: "gradeFonction" },
-      ].map(({ label, field }) => (
-        <div key={field} className="space-y-2 overflow-hidden">
-          <Label htmlFor={field} className="text-sm font-medium text-gray-700">
-            {label}
-          </Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full justify-between border-gray-300 hover:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-md text-sm text-gray-600 hover:text-gray-800"
-              >
-                {filter[field]?.label || `Sélectionner ${label.toLowerCase()}`}
-                <ChevronRight className="ml-2 h-4 w-4 opacity-70" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-0 bg-white shadow-lg rounded-md">
-              <Command>
-                <CommandInput placeholder="Rechercher..." className="text-sm" />
-                <CommandList>
-                  <CommandEmpty>Aucune option trouvée.</CommandEmpty>
-                  <CommandGroup>
-                    {uniqueOptions(field === "gradeFonction" ? "GRADE_fonction" : field.toUpperCase()).map((option) => (
-                      <CommandItem
-                        key={option.label}
-                        value={option.label}
-                        onSelect={() => handleFilterChange(field, option)}
-                        className="text-sm hover:bg-gray-100"
-                      >
-                        <Check
-                          className={`mr-2 h-4 w-4 ${
-                            filter[field]?.label === option.label ? "opacity-100" : "opacity-0"
-                          }`}
-                        />
-                        {option.label}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
-      ))}
-    </div>
-    <div className="space-y-4">
-      <Label htmlFor="users" className="text-lg font-semibold text-gray-900">
-        Assigner des Utilisateurs
-      </Label>
-      <Popover open={openUserPopover} onOpenChange={setOpenUserPopover}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className="w-full justify-between border-gray-300 hover:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-md text-sm text-gray-600 hover:text-gray-800"
-            onClick={() => setOpenUserPopover(true)}
-          >
-            {assignedUsers.length
-              ? `${assignedUsers.length} utilisateur(s) assigné(s)`
-              : "Sélectionner des utilisateurs"}
-            <ChevronRight className="ml-2 h-4 w-4 opacity-70" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[400px] p-0 bg-white shadow-lg rounded-md">
-          <Command>
-            <CommandInput
-              ref={userInputRef}
-              placeholder="Rechercher un utilisateur..."
-              value={searchUser}
-              onValueChange={setSearchUser}
-              className="text-sm"
-            />
-            <CommandList>
-              <CommandEmpty>Aucun utilisateur trouvé.</CommandEmpty>
-              <CommandGroup>
-                {filteredUsers.map((user) => {
-                  const conflict = checkConflicts(
-                    user._id,
-                    course.times[0]?.startTime,
-                    course.times[0]?.endTime
-                  );
-                  return (
-                    <CommandItem
-                      key={user._id}
-                      value={user.name}
-                      onSelect={() => handleUserToggle(user)}
-                      className={`text-sm ${conflict ? (conflict.type === "course" ? "text-red-500" : "text-yellow-500") : ""}`}
+            <div className="space-y-6">
+              {isLoading && <p>Chargement des profils...</p>}
+              {error && (
+                <p className="text-red-500">
+                  Erreur lors du chargement des profils : {(error as Error).message}
+                </p>
+              )}
+              <h3 className="text-lg font-semibold text-gray-900">Assigner des Utilisateurs</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { label: "Fonction", field: "fonction" },
+                  { label: "Localité", field: "localite" },
+                  { label: "Grade Assimilé", field: "gradeAssimile" },
+                  { label: "Région", field: "region" },
+                ].map(({ label, field }) => (
+                  <div key={field} className="space-y-2 overflow-hidden">
+                    <Label htmlFor={field} className="text-sm font-medium text-gray-700">
+                      {label}
+                    </Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-between border-gray-300 hover:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-md text-sm text-gray-600 hover:text-gray-800"
+                        >
+                          {filter[field]?.label || `Sélectionner ${label.toLowerCase()}`}
+                          <ChevronRight className="ml-2 h-4 w-4 opacity-70" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0 bg-white shadow-lg rounded-md">
+                        <Command>
+                          <CommandInput placeholder="Rechercher..." className="text-sm" />
+                          <CommandList>
+                            <CommandEmpty>Aucune option trouvée.</CommandEmpty>
+                            <CommandGroup>
+                              {uniqueOptions(field).map((option) => (
+                                <CommandItem
+                                  key={option.label}
+                                  value={option.label}
+                                  onSelect={() => handleFilterChange(field, option)}
+                                  className="text-sm hover:bg-gray-100"
+                                >
+                                  <Check
+                                    className={`mr-2 h-4 w-4 ${
+                                      filter[field]?.label === option.label ? "opacity-100" : "opacity-0"
+                                    }`}
+                                  />
+                                  {option.label}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-4">
+                <Label htmlFor="users" className="text-lg font-semibold text-gray-900">
+                  Assigner des Utilisateurs
+                </Label>
+                <Popover open={openUserPopover} onOpenChange={setOpenUserPopover}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between border-gray-300 hover:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-md text-sm text-gray-600 hover:text-gray-800"
+                      onClick={() => setOpenUserPopover(true)}
                     >
-                      <Checkbox
-                        className={`mr-2 h-4 w-4 ${
-                          assignedUsers.some((u) => u._id === user._id) ? "opacity-100" : "opacity-0"
-                        }`}
+                      {assignedUsers.length
+                        ? `${assignedUsers.length} utilisateur(s) assigné(s)`
+                        : "Sélectionner des utilisateurs"}
+                      <ChevronRight className="ml-2 h-4 w-4 opacity-70" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0 bg-white shadow-lg rounded-md">
+                    <Command>
+                      <CommandInput
+                        ref={userInputRef}
+                        placeholder="Rechercher un utilisateur..."
+                        value={searchUser}
+                        onValueChange={setSearchUser}
+                        className="text-sm"
                       />
-                      <span>{user.name}</span>
-                      {conflict && conflict.type === "course" && (
-                        <span className="ml-2 text-red-500 text-xs">
-                          (Conflit avec : {conflict.course.title})
-                        </span>
-                      )}
-                      {conflict && conflict.type === "vacation" && (
-                        <span className="ml-2 text-yellow-500 text-xs">(En vacances)</span>
-                      )}
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-      <div className="flex flex-wrap gap-2 mt-2">
-        {assignedUsers.map((user) => (
-          <div
-            key={user._id}
-            className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium"
-          >
-            {user.name}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-4 w-4 text-blue-600 hover:text-blue-800"
-              onClick={() => handleUserToggle(user)}
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          </div>
-        ))}
-      </div>
-    </div>
-    <h3 className="text-lg font-semibold text-gray-900">Utilisateurs Intéressés</h3>
-    <div className="space-y-2">
-      {filteredInterestedUsers.map((user) => (
-        <div
-          key={user._id}
-          className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors"
-        >
-          <span className="text-sm text-gray-700">{user.name}</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleAssignUser(user._id)}
-            className="text-blue-600 border-blue-600 hover:bg-blue-50 text-sm"
-          >
-            Assigner
-          </Button>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
+                      <CommandList>
+                        <CommandEmpty>Aucun utilisateur trouvé.</CommandEmpty>
+                        <CommandGroup>
+                          {filteredUsers.map((user) => {
+                            const conflict = checkConflicts(
+                              user.id_profile.toString(),
+                              course.times?.[0]?.startTime || "",
+                              course.times?.[0]?.endTime || ""
+                            );
+                            return (
+                              <CommandItem
+                                key={user.id_profile}
+                                value={user.name}
+                                onSelect={() => handleUserToggle(user)}
+                                className={`text-sm ${conflict ? (conflict.type === "course" ? "text-red-500" : "text-yellow-500") : ""}`}
+                              >
+                                <Checkbox
+                                  checked={assignedUsers.some((u) => u.id_profile === user.id_profile)}
+                                  className="mr-2 h-4 w-4"
+                                />
+                                <span>{user.name}</span>
+                                {conflict && conflict.type === "course" && (
+                                  <span className="ml-2 text-red-500 text-xs">
+                                    (Conflit avec : {conflict.course.title})
+                                  </span>
+                                )}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {assignedUsers.map((user) => (
+                    <div
+                      key={user.id_profile}
+                      className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium"
+                    >
+                      {user.name}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-4 w-4 text-blue-600 hover:text-blue-800"
+                        onClick={() => handleUserToggle(user)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Utilisateurs Intéressés</h3>
+              <div className="space-y-2">
+                {filteredInterestedUsers.map((user) => (
+                  <div
+                    key={user.id_profile}
+                    className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-sm text-gray-700">{user.name}</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAssignUser(user.id_profile.toString())}
+                      className="text-blue-600 border-blue-600 hover:bg-blue-50 text-sm"
+                    >
+                      Assigner
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="flex justify-between pt-6 border-t">
             <div className="flex gap-2">
               <Button variant="outline" onClick={handleClose}>
@@ -922,4 +1015,3 @@ export function EditModuleModal({ module }: EditModuleModalProps) {
     </Dialog>
   );
 }
-

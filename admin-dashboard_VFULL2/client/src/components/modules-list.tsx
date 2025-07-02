@@ -18,13 +18,60 @@ import { EditModuleModal } from "./EditModuleModal.tsx";
 
 const socket = io("https://anep-proejct.onrender.com");
 
+enum CourseMode {
+  Online = "online",
+  Hybrid = "hybrid",
+  Offline = "offline",
+}
+
 interface Course {
   _id: string;
   title: string;
-  offline: boolean;
+  offline: CourseMode;
   description: string;
-  hidden: boolean;
+  hidden: "visible" | "hidden";
   budget: number;
+  location: string;
+  imageUrl: string;
+  notification: any[]; 
+  times: {
+    startTime: string;
+    endTime: string;
+    instructorType: "intern" | "extern";
+    instructor: string;
+    instructorName: string;
+    externalInstructorDetails: {
+      phone: string;
+      position: string;
+      cv: File | null;
+    };
+  }[];
+  image: File | null;
+  assignedUsers: Profile[] | string[];
+  interestedUsers: Profile[] | string[];
+}
+
+interface Profile {
+  id_profile: number;
+  name: string; 
+  "NOM PRENOM": string;
+  ADRESSE: string | null;
+  DATE_NAISS: string | null;
+  DAT_REC: string | null;
+  CIN: string | null;
+  DETACHE: string | null;
+  SEXE: string | null;
+  SIT_F_AG: string | null;
+  STATUT: string | null;
+  DAT_POS: string | null;
+  LIBELLE_GRADE: string | null;
+  GRADE_ASSIMILE: string | null;
+  LIBELLE_FONCTION: string | null;
+  DAT_FCT: string | null;
+  LIBELLE_LOC: string | null;
+  LIBELLE_REGION: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 interface UserPresence {
@@ -327,7 +374,12 @@ export function ModulesList() {
       course.description.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesFilters = filters.every((filter) => {
-      if (filter.type === "Mode") return filter.values.some((val) => (val === "Hors ligne" && course.offline) || (val === "En ligne" && !course.offline));
+      if (filter.type === "Mode")
+        return filter.values.some((val) =>
+          (val === "En ligne" && course.offline === CourseMode.Online) ||
+          (val === "Hybride" && course.offline === CourseMode.Hybrid) ||
+          (val === "Présentiel" && course.offline === CourseMode.Offline)
+        );
       if (filter.type === "Statut") return filter.values.some((val) => (val === "Caché" && course.hidden) || (val === "Visible" && !course.hidden));
       return true;
     });
@@ -395,7 +447,11 @@ export function ModulesList() {
   };
 
   const filterOptions: FilterOption[] = [
-    { label: "Mode", value: "Mode", options: ["En ligne", "Hors ligne"] },
+    {
+      label: "Mode",
+      value: "Mode",
+      options: ["En ligne", "Hybride", "Présentiel"],
+    },
     { label: "Statut", value: "Statut", options: ["Visible", "Caché"] },
   ];
 
@@ -659,17 +715,23 @@ export function ModulesList() {
                   {currentCourses.map((course) => (
                     <TableRow key={course._id} className="hover:bg-gray-50">
                       <TableCell className="font-medium text-sm text-center">{course.title}</TableCell>
-                      <TableCell className="text-center">{course.offline ? "Hors ligne" : "En ligne"}</TableCell>
+                      <TableCell className="text-center">
+                        {course.offline === CourseMode.Online
+                          ? "En ligne"
+                          : course.offline === CourseMode.Hybrid
+                          ? "Hybride"
+                          : "Présentiel"}
+                      </TableCell>
                       <TableCell className="text-center">
                         <div dangerouslySetInnerHTML={{ __html: course.description }} />
                       </TableCell>
-                      <TableCell className="text-center">{course.hidden ? "Caché" : "Visible"}</TableCell>
+                      <TableCell className="text-center">{course.hidden === "hidden" ? "Caché" : "Visible"}</TableCell>
                       <TableCell className="text-center">{course.budget}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-1 justify-center">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <EditModuleModal module={course} />
+                              <EditModuleModal module={course} onCourseUpdated={fetchCourses} />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>Modifier le module</p>
