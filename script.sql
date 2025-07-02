@@ -122,6 +122,7 @@ ALTER TABLE emploi ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 alter table profile add column created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 alter table profile add column updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
+ALTER TABLE employe ADD COLUMN password VARCHAR(255);
 ALTER TABLE emploi_employe
 ADD CONSTRAINT fk_emploi_employe_emploi
 FOREIGN KEY (id_emploi) REFERENCES emploi(id_emploi) ON DELETE CASCADE;
