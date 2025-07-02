@@ -6,46 +6,6 @@ interface LoginModalProps {
     onClose: () => void;
 }
 
-// Fonction fictive pour simuler la vérification de l'email dans la base de données
-const checkEmailInDatabase = async (email: string): Promise<{ exists: boolean; hasPassword: boolean }> => {
-    // Simuler un appel API (remplacez ceci par votre propre logique d'API)
-    // Par exemple : const response = await fetch(`/api/check-email?email=${email}`);
-    // Pour cet exemple, on simule :
-    // - Email "test@example.com" existe avec un mot de passe
-    // - Email "new@example.com" existe sans mot de passe
-    // - Autres emails n'existent pas
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simuler un délai réseau
-    if (email === "test@example.com") {
-        return { exists: true, hasPassword: true };
-    } else if (email === "new@example.com") {
-        return { exists: true, hasPassword: false };
-    } else {
-        return { exists: false, hasPassword: false };
-    }
-};
-
-// Fonction fictive pour simuler la vérification du mot de passe dans la base de données
-const checkPasswordInDatabase = async (email: string, password: string): Promise<boolean> => {
-    // Simuler un appel API pour vérifier le mot de passe
-    // Par exemple : const response = await fetch(`/api/check-password?email=${email}&password=${password}`);
-    // Pour cet exemple, on simule que le mot de passe "password123" est correct pour "test@example.com"
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simuler un délai réseau
-    return email === "test@example.com" && password === "password123";
-};
-
-// Fonction fictive pour simuler l'enregistrement d'un nouveau mot de passe
-const savePasswordInDatabase = async (email: string, password: string, confirmPassword: string): Promise<boolean> => {
-    // Simuler un appel API pour enregistrer le mot de passe
-    // Par exemple : const response = await fetch(`/api/save-password`, { method: 'POST', body: JSON.stringify({ email, password }) });
-    // Vérifier que les mots de passe correspondent
-    if (password !== confirmPassword) {
-        return false;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simuler un délai réseau
-    // Simuler un enregistrement réussi
-    return true;
-};
-
 const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
     const navigate = useNavigate();
     const [step, setStep] = useState<"email" | "password" | "newPassword">("email");
@@ -61,7 +21,11 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
         setError("");
 
         try {
-            const { exists, hasPassword } = await checkEmailInDatabase(email);
+            const response = await fetch(`/api/employees/check-email?email=${encodeURIComponent(email)}`);
+            if (!response.ok) {
+                throw new Error("Erreur lors de la vérification de l'email");
+            }
+            const { exists, hasPassword } = await response.json();
             if (!exists) {
                 setError("L'email est erroné, vérifiez votre email");
             } else if (hasPassword) {
@@ -82,7 +46,15 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
         setError("");
 
         try {
-            const isValid = await checkPasswordInDatabase(email, password);
+            const response = await fetch("/api/employees/check-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password }),
+            });
+            if (!response.ok) {
+                throw new Error("Mot de passe incorrect");
+            }
+            const { isValid } = await response.json();
             if (isValid) {
                 navigate("/");
                 onClose();
@@ -102,7 +74,15 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
         setError("");
 
         try {
-            const isSaved = await savePasswordInDatabase(email, password, confirmPassword);
+            const response = await fetch("/api/employees/save-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password, confirmPassword }),
+            });
+            if (!response.ok) {
+                throw new Error("Erreur lors de l'enregistrement du mot de passe");
+            }
+            const { isSaved } = await response.json();
             if (isSaved) {
                 navigate("/");
                 onClose();
