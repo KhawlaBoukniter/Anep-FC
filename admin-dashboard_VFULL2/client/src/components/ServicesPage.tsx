@@ -2,7 +2,8 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-
+import Header from "../components/header.tsx";
+import Footer from "../components/footer.tsx";
 interface Service {
   id: number
   title: string
@@ -121,7 +122,9 @@ const ServicesPage: React.FC = () => {
   }, [])
 
   return (
+    
     <div className="min-h-screen bg-white">
+      <Header/>
       {/* Hero Section */}
       <section className="relative py-20 bg-gradient-to-br from-[#06668C] via-blue-700 to-green-600 text-white overflow-hidden">
         <div className="absolute inset-0 bg-black bg-opacity-20"></div>
@@ -238,24 +241,7 @@ const ServicesPage: React.FC = () => {
           </div>
         </div>
       </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-[#06668C] to-green-600 text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold mb-6">Prêt à démarrer votre projet ?</h2>
-          <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
-            Contactez-nous dès aujourd'hui pour discuter de vos besoins et obtenir un devis personnalisé
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-white text-[#06668C] px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-300 shadow-lg">
-              Demander un devis
-            </button>
-            <button className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-[#06668C] transition-all duration-300">
-              Nous contacter
-            </button>
-          </div>
-        </div>
-      </section>
+      <Footer/>
     </div>
   )
 }

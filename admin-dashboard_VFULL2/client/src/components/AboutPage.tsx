@@ -2,6 +2,8 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
+import Header from "../components/header.tsx";
+import Footer from "../components/footer.tsx";
 
 interface TeamMember {
   id: number
@@ -113,6 +115,7 @@ const AboutPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      <Header/>
       {/* Hero Section */}
       <section className="relative py-20 bg-gradient-to-br from-[#06668C] via-blue-700 to-green-600 text-white overflow-hidden">
         <div className="absolute inset-0 bg-black bg-opacity-20"></div>
@@ -331,6 +334,7 @@ const AboutPage: React.FC = () => {
           </div>
         </div>
       </section>
+      <Footer/>
     </div>
   )
 }
