@@ -4,7 +4,8 @@ const employeeController = require("../controllers/employeeController");
 
 router.get("/", employeeController.getEmployees);
 router.get("/check-email", employeeController.checkEmail);
-router.post("/check-password", employeeController.checkPassword);
+router.post("/login", employeeController.login);
+router.get("/verify-session", employeeController.verifySession);
 router.post("/save-password", employeeController.savePassword);
 router.get("/:id", employeeController.getEmployee);
 router.post("/", employeeController.createEmployee);

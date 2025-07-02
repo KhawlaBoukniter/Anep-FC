@@ -269,6 +269,23 @@ async function getEmployeeById(id) {
     }
 }
 
+async function getEmployeeByEmail(email) {
+    const query = `
+        SELECT id_employe, email FROM employe WHERE email = $1 AND archived = false
+    `;
+    try {
+        const result = await pool.query(query, [email]);
+        if (result.rows.length === 0) return null;
+        return {
+            id: result.rows[0].id_employe.toString(),
+            email: result.rows[0].email,
+        };
+    } catch (error) {
+        console.error("Database query error in getEmployeeByEmail:", error.stack);
+        throw error;
+    }
+}
+
 async function createEmployee(employeeData) {
     const client = await pool.connect();
     try {
@@ -608,18 +625,22 @@ async function checkEmailExists(email) {
 
 async function checkPassword(email, password) {
     const query = `
-        SELECT password FROM employe WHERE email = $1 AND archived = false
+        SELECT id_employe, email, password FROM employe WHERE email = $1 AND archived = false
     `;
     try {
         const result = await pool.query(query, [email]);
         if (result.rows.length === 0) {
-            return false;
+            return null;
         }
-        const hashedPassword = result.rows[0].password;
-        if (!hashedPassword) {
-            return false;
+        const user = result.rows[0];
+        if (!user.password) {
+            return null;
         }
-        return await bcrypt.compare(password, hashedPassword);
+        const isValid = await bcrypt.compare(password, user.password);
+        if (!isValid) {
+            return null;
+        }
+        return { id: user.id_employe.toString(), email: user.email };
     } catch (error) {
         console.error("Database error in checkPassword:", {
             message: error.message,
@@ -637,11 +658,14 @@ async function savePassword(email, password) {
         UPDATE employe 
         SET password = $1, updated_at = CURRENT_TIMESTAMP 
         WHERE email = $2 AND archived = false
-        RETURNING id_employe
+        RETURNING id_employe, email
     `;
     try {
         const result = await pool.query(query, [hashedPassword, email]);
-        return result.rows.length > 0;
+        if (result.rows.length === 0) {
+            return false;
+        }
+        return true;
     } catch (error) {
         console.error("Database error in savePassword:", {
             message: error.message,
@@ -656,6 +680,7 @@ async function savePassword(email, password) {
 module.exports = {
     getAllEmployees,
     getEmployeeById,
+    getEmployeeByEmail,
     createEmployee,
     updateEmployee,
     archiveEmployee,

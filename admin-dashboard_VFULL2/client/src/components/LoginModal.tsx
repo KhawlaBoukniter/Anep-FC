@@ -4,9 +4,10 @@ import { useState } from "react";
 
 interface LoginModalProps {
     onClose: () => void;
+    onLoginSuccess: (userData: { id: string; email: string }) => void;
 }
 
-const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
+const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
     const navigate = useNavigate();
     const [step, setStep] = useState<"email" | "password" | "newPassword">("email");
     const [email, setEmail] = useState("");
@@ -46,7 +47,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
         setError("");
 
         try {
-            const response = await fetch("/api/employees/check-password", {
+            const response = await fetch("/api/employees/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
@@ -54,15 +55,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
             if (!response.ok) {
                 throw new Error("Mot de passe incorrect");
             }
-            const { isValid } = await response.json();
-            if (isValid) {
-                navigate("/");
-                onClose();
-            } else {
-                setError("Mot de passe incorrect");
-            }
+            const { token, user } = await response.json();
+            localStorage.setItem("token", token);
+            onLoginSuccess({ id: user.id, email: user.email });
+            navigate("/");
         } catch (err) {
-            setError("Une erreur s'est produite lors de la vérification du mot de passe");
+            setError("Mot de passe incorrect ou erreur serveur");
         } finally {
             setIsLoading(false);
         }
@@ -82,10 +80,11 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
             if (!response.ok) {
                 throw new Error("Erreur lors de l'enregistrement du mot de passe");
             }
-            const { isSaved } = await response.json();
+            const { isSaved, token, user } = await response.json();
             if (isSaved) {
+                localStorage.setItem("token", token);
+                onLoginSuccess({ id: user.id, email: user.email });
                 navigate("/");
-                onClose();
             } else {
                 setError("Les mots de passe ne correspondent pas");
             }

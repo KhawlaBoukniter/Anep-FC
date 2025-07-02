@@ -1,11 +1,41 @@
 import type React from "react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import LoginModal from "./LoginModal.tsx";
 
 const Header: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+
+    useEffect(() => {
+        const checkAuth = async () => {
+            const token = localStorage.getItem("token");
+            if (token) {
+                try {
+                    const response = await fetch("/api/employees/verify-session", {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        setIsAuthenticated(true);
+                        setUser({ id: data.id, email: data.email });
+                    } else {
+                        localStorage.removeItem("token");
+                        setIsAuthenticated(false);
+                        setUser(null);
+                    }
+                } catch (error) {
+                    console.error("Error verifying session:", error);
+                    localStorage.removeItem("token");
+                    setIsAuthenticated(false);
+                    setUser(null);
+                }
+            }
+        };
+        checkAuth();
+    }, []);
 
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -15,8 +45,15 @@ const Header: React.FC = () => {
         setIsLoginModalOpen(!isLoginModalOpen);
     };
 
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        setIsAuthenticated(false);
+        setUser(null);
+        setIsMobileMenuOpen(false);
+    };
+
     return (
-        <header className="top-0 z-50 ">
+        <header className="top-0 z-50">
             <div className="mx-auto px-4 py-2 flex items-center justify-between">
                 {/* Logo - Aligné à gauche */}
                 <div className="flex-shrink-0">
@@ -38,16 +75,35 @@ const Header: React.FC = () => {
                     <Link to="/services" className="text-[#06668C] font-bold duration-200">
                         Nos Services
                     </Link>
+                    {isAuthenticated && (
+                        <>
+                            <Link to="/formation" className="text-[#06668C] font-bold duration-200">
+                                Formation
+                            </Link>
+                            <Link to="/profile" className="text-[#06668C] font-bold duration-200">
+                                Profile
+                            </Link>
+                        </>
+                    )}
                 </nav>
 
-                {/* Connexion - Aligné à droite */}
+                {/* Connexion/Déconnexion - Aligné à droite */}
                 <div className="flex items-center">
-                    <button
-                        onClick={toggleLoginModal}
-                        className="bg-[#06668c] text-white font-medium px-4 py-2 rounded-lg duration-200"
-                    >
-                        Connexion
-                    </button>
+                    {isAuthenticated ? (
+                        <button
+                            onClick={handleLogout}
+                            className="bg-[#06668c] text-white font-medium px-4 py-2 rounded-lg duration-200"
+                        >
+                            Déconnexion
+                        </button>
+                    ) : (
+                        <button
+                            onClick={toggleLoginModal}
+                            className="bg-[#06668c] text-white font-medium px-4 py-2 rounded-lg duration-200"
+                        >
+                            Connexion
+                        </button>
+                    )}
 
                     {/* Mobile menu button */}
                     <button
@@ -86,21 +142,58 @@ const Header: React.FC = () => {
                         >
                             Nos Services
                         </Link>
-                        <button
-                            className="text-[#06668C] font-bold duration-200 text-left"
-                            onClick={() => {
-                                toggleMobileMenu();
-                                toggleLoginModal();
-                            }}
-                        >
-                            Connexion
-                        </button>
+                        {isAuthenticated && (
+                            <>
+                                <Link
+                                    to="/formation"
+                                    className="text-[#06668C] font-bold duration-200"
+                                    onClick={toggleMobileMenu}
+                                >
+                                    Formation
+                                </Link>
+                                <Link
+                                    to="/profile"
+                                    className="text-[#06668C] font-bold duration-200"
+                                    onClick={toggleMobileMenu}
+                                >
+                                    Profile
+                                </Link>
+                                <button
+                                    className="text-[#06668C] font-bold duration-200 text-left"
+                                    onClick={handleLogout}
+                                >
+                                    Déconnexion
+                                </button>
+                            </>
+                        )}
+                        {!isAuthenticated && (
+                            <button
+                                className="text-[#06668C] font-bold duration-200 text-left"
+                                onClick={() => {
+                                    toggleMobileMenu();
+                                    toggleLoginModal();
+                                }}
+                            >
+                                Connexion
+                            </button>
+                        )}
                     </nav>
                 </div>
             )}
 
             {/* Login Modal */}
-            {isLoginModalOpen && <LoginModal onClose={toggleLoginModal} />}
+            {isLoginModalOpen && (
+                <LoginModal
+                    onClose={() => {
+                        toggleLoginModal();
+                    }}
+                    onLoginSuccess={(userData) => {
+                        setIsAuthenticated(true);
+                        setUser(userData);
+                        toggleLoginModal();
+                    }}
+                />
+            )}
         </header>
     );
 };
