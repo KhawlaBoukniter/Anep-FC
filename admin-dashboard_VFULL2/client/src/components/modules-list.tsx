@@ -1,7 +1,9 @@
+// src/components/ModulesList.tsx
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "react-query";
 import { Button } from "./ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.tsx";
 import { Badge } from "./ui/badge.tsx";
@@ -33,7 +35,7 @@ interface Course {
   budget: number;
   location: string;
   imageUrl: string;
-  notification: any[]; 
+  notification: any[];
   times: {
     startTime: string;
     endTime: string;
@@ -54,7 +56,7 @@ interface Course {
 
 interface Profile {
   id_profile: number;
-  name: string; 
+  name: string;
   "NOM PRENOM": string;
   ADRESSE: string | null;
   DATE_NAISS: string | null;
@@ -167,11 +169,12 @@ PresenceDialog.propTypes = {
 };
 
 export function ModulesList() {
-  const [courses, setCourses] = useState<Course[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<Filter[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [presenceDialogOpen, setPresenceDialogOpen] = useState(false);
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  const [unarchiveDialogOpen, setUnarchiveDialogOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [userPresence, setUserPresence] = useState<UserPresence[]>([]);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
@@ -186,10 +189,51 @@ export function ModulesList() {
   const coursesPerPage = 10;
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // React Query: Fetch courses
+  const { data: courses = [], isLoading, error } = useQuery(
+    ["courses", { search: searchTerm, archived: filters.some((f) => f.type === "Archivé" && f.values.includes("Oui")) }],
+    () => useApiAxios.get("/courses", { params: { archived: filters.some((f) => f.type === "Archivé" && f.values.includes("Oui")) } }).then((res) => res.data),
+    {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes
+      onSuccess: (data) => console.log("Successfully fetched courses:", data),
+      onError: (error) => console.error("Error fetching courses:", error),
+    }
+  );
+
+  // React Query: Archive course
+  const archiveCourse = useMutation(
+    (id: string) => useApiAxios.put(`/courses/${id}/archive`),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["courses"]);
+        setArchiveDialogOpen(false);
+        setSelectedCourse(null);
+      },
+      onError: (error) => {
+        console.error("Error archiving course:", error);
+      },
+    }
+  );
+
+  // React Query: Unarchive course
+  const unarchiveCourse = useMutation(
+    (id: string) => useApiAxios.put(`/courses/${id}/unarchive`),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["courses"]);
+        setUnarchiveDialogOpen(false);
+        setSelectedCourse(null);
+      },
+      onError: (error) => {
+        console.error("Error unarchiving course:", error);
+      },
+    }
+  );
 
   useEffect(() => {
-    fetchCourses();
-
     socket.on("notification", (message) => {
       alert(`Notification: ${message}`);
     });
@@ -199,37 +243,25 @@ export function ModulesList() {
     };
   }, []);
 
-  const handleArchive = async (id: string) => {
-    try {
-      await useApiAxios.put(`/courses/${id}/archive`);
-      setCourses(courses.map((course) => 
-        course._id === id ? { ...course, archived: true } : course
-      ));
-    } catch (error) {
-      console.error('Échec de l\'archivage du cours:', error);
+  const handleArchive = (course: Course) => {
+    setSelectedCourse(course);
+    setArchiveDialogOpen(true);
+  };
+
+  const confirmArchive = () => {
+    if (selectedCourse) {
+      archiveCourse.mutate(selectedCourse._id);
     }
   };
 
-  const handleUnarchive = async (id: string) => {
-    try {
-      await useApiAxios.put(`/courses/${id}/unarchive`);
-      setCourses(courses.map((course) => 
-        course._id === id ? { ...course, archived: false } : course
-      ));
-    } catch (error) {
-      console.error('Échec du désarchivage du cours:', error);
-    }
+  const handleUnarchive = (course: Course) => {
+    setSelectedCourse(course);
+    setUnarchiveDialogOpen(true);
   };
 
-
-  const fetchCourses = async () => {
-    try {
-      const response = await useApiAxios.get("/courses", {
-        params: { archived: false }
-      });
-      setCourses(response.data);
-    } catch (error) {
-      console.error("Échec de la récupération des cours:", error);
+  const confirmUnarchive = () => {
+    if (selectedCourse) {
+      unarchiveCourse.mutate(selectedCourse._id);
     }
   };
 
@@ -259,7 +291,7 @@ export function ModulesList() {
       if (data.updates && data.updates.length > 0) {
         setShowChanges(true);
       }
-      fetchCourses();
+      queryClient.invalidateQueries(["courses"]);
     } catch (err) {
       console.error("Erreur d'importation :", err);
       setSyncStatus("Erreur lors de l'importation du fichier");
@@ -277,7 +309,7 @@ export function ModulesList() {
             minute: "2-digit",
           })}. Mis à jour: ${data.updated}, Inséré: ${data.inserted}`
         );
-        fetchCourses();
+        queryClient.invalidateQueries(["courses"]);
       } else {
         setSyncStatus(`Erreur lors de la synchronisation: ${data.message || "Vérifiez le serveur."}`);
       }
@@ -334,7 +366,7 @@ export function ModulesList() {
   const handleDelete = async (id: string) => {
     try {
       await useApiAxios.delete(`/courses/${id}`);
-      setCourses(courses.filter((course) => course._id !== id));
+      queryClient.invalidateQueries(["courses"]);
     } catch (error) {
       console.error("Échec de la suppression du cours:", error);
     }
@@ -406,10 +438,10 @@ export function ModulesList() {
           (val === "Hybride" && course.offline === CourseMode.Hybrid) ||
           (val === "Présentiel" && course.offline === CourseMode.Offline)
         );
-      if (filter.type === "Statut") 
-        return filter.values.some((val) => (val === "Caché" && course.hidden) || (val === "Visible" && !course.hidden));
-      if (filter.type === 'Archivé')
-        return filter.values.some((val) => (val === 'Oui' && course.archived) || (val === 'Non' && !course.archived));
+      if (filter.type === "Statut")
+        return filter.values.some((val) => (val === "Caché" && course.hidden === "hidden") || (val === "Visible" && course.hidden === "visible"));
+      if (filter.type === "Archivé")
+        return filter.values.some((val) => (val === "Oui" && course.archived) || (val === "Non" && !course.archived));
       return true;
     });
 
@@ -458,7 +490,7 @@ export function ModulesList() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "IPP" && searchValue.trim() && !newFilterValues.includes(searchValue)) {
+    if (e.key === "Enter" && searchValue.trim() && !newFilterValues.includes(searchValue)) {
       setNewFilterValues((prev) => [...prev, searchValue]);
       setSearchValue("");
     }
@@ -470,6 +502,8 @@ export function ModulesList() {
         return "bg-blue-50 text-blue-700 border-blue-200";
       case "Statut":
         return "bg-green-50 text-green-700 border-green-200";
+      case "Archivé":
+        return "bg-gray-50 text-gray-700 border-gray-200";
       default:
         return "bg-gray-50 text-gray-700 border-gray-200";
     }
@@ -482,16 +516,16 @@ export function ModulesList() {
       options: ["En ligne", "Hybride", "Présentiel"],
     },
     { label: "Statut", value: "Statut", options: ["Visible", "Caché"] },
-    { label: 'Archivé', value: 'Archivé', options: ['Oui', 'Non'] },
+    { label: "Archivé", value: "Archivé", options: ["Oui", "Non"] },
   ];
 
   const availableOptions = filterOptions.find((opt) => opt.value === newFilterType)?.options || [];
 
   const stats = {
     total: courses.length,
-    online: courses.filter((c) => !c.offline).length,
-    offline: courses.filter((c) => c.offline).length,
-    hidden: courses.filter((c) => c.hidden).length,
+    online: courses.filter((c) => c.offline === CourseMode.Online).length,
+    offline: courses.filter((c) => c.offline === CourseMode.Offline).length,
+    hidden: courses.filter((c) => c.hidden === "hidden").length,
   };
 
   return (
@@ -683,7 +717,7 @@ export function ModulesList() {
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
-                <AddModuleModal onCourseCreated={fetchCourses}/>
+                <AddModuleModal onCourseCreated={() => queryClient.invalidateQueries(["courses"])} />
               </div>
             </div>
             {filters.length > 0 && (
@@ -724,152 +758,160 @@ export function ModulesList() {
         <Card className="bg-gray-100">
           <CardHeader>
             <div className="flex items-center justify-between text-blue-900">
-              <CardTitle className="text-xl">Liste des Cours</CardTitle>
+              <CardTitle className="text-xl">
+                {filters.some((f) => f.type === "Archivé" && f.values.includes("Oui")) ? "Cours Archivés" : "Liste des Cours"}
+              </CardTitle>
               <Badge variant="secondary">{filteredCourses.length} résultat(s)</Badge>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
-              <Table className="bg-white">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-blue-900 text-center">Titre du cours</TableHead>
-                    <TableHead className="text-blue-900 text-center">Mode</TableHead>
-                    <TableHead className="text-blue-900 text-center">Description</TableHead>
-                    <TableHead className="text-blue-900 text-center">Statut</TableHead>
-                    <TableHead className="text-blue-900 text-center">Budget</TableHead>
-                    <TableHead className="text-blue-900 text-center">Archivé</TableHead>
-                    <TableHead className="text-blue-900 text-center">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {currentCourses.map((course) => (
-                    <TableRow key={course._id} className="hover:bg-gray-50">
-                      <TableCell className="font-medium text-sm text-center">{course.title}</TableCell>
-                      <TableCell className="text-center">
-                        {course.offline === CourseMode.Online
-                          ? "En ligne"
-                          : course.offline === CourseMode.Hybrid
-                          ? "Hybride"
-                          : "Présentiel"}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div dangerouslySetInnerHTML={{ __html: course.description }} />
-                      </TableCell>
-                      <TableCell className="text-center">{course.hidden === "hidden" ? "Caché" : "Visible"}</TableCell>
-                      <TableCell className="text-center">{course.budget}</TableCell>
-                      <TableCell className="text-center">{course.archived ? "Oui" : "Non"}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-1 justify-center">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <EditModuleModal module={course} onCourseUpdated={fetchCourses} />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Modifier le module</p>
-                            </TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleDelete(course._id)}
-                              >
-                                <Trash className="h-4 w-4 text-red-600" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Supprimer le cours</p>
-                            </TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleNotify(course)}
-                              >
-                                <Bell className="h-4 w-4 text-blue-600" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Quick Notify</p>
-                            </TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleMenuOpen(course)}
-                              >
-                                <Users className="h-4 w-4 text-gray-600" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Gérer la présence</p>
-                            </TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleDownloadEvaluations(course._id)}
-                              >
-                                <FileText className="h-4 w-4 text-blue-600" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Télécharger les évaluations</p>
-                            </TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleDownloadAssignedUsers(course._id)}
-                              >
-                                <Download className="h-4 w-4 text-blue-600" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Télécharger les utilisateurs assignés</p>
-                            </TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => course.archived ? handleUnarchive(course._id) : handleArchive(course._id)}
-                              >
-                                {course.archived ? (
-                                  <ArchiveRestore className="h-4 w-4 text-green-600" />
-                                ) : (
-                                  <Archive className="h-4 w-4 text-yellow-600" />
-                                )}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{course.archived ? 'Désarchiver le cours' : 'Archiver le cours'}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </TableCell>
+            {isLoading ? (
+              <p>Chargement...</p>
+            ) : error ? (
+              <p className="text-red-600">Erreur: {(error as Error).message}</p>
+            ) : (
+              <div className="rounded-md border">
+                <Table className="bg-white">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-blue-900 text-center">Titre du cours</TableHead>
+                      <TableHead className="text-blue-900 text-center">Mode</TableHead>
+                      <TableHead className="text-blue-900 text-center">Description</TableHead>
+                      <TableHead className="text-blue-900 text-center">Statut</TableHead>
+                      <TableHead className="text-blue-900 text-center">Budget</TableHead>
+                      <TableHead className="text-blue-900 text-center">Archivé</TableHead>
+                      <TableHead className="text-blue-900 text-center">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {currentCourses.map((course) => (
+                      <TableRow key={course._id} className="hover:bg-gray-50">
+                        <TableCell className="font-medium text-sm text-center">{course.title}</TableCell>
+                        <TableCell className="text-center">
+                          {course.offline === CourseMode.Online
+                            ? "En ligne"
+                            : course.offline === CourseMode.Hybrid
+                            ? "Hybride"
+                            : "Présentiel"}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div dangerouslySetInnerHTML={{ __html: course.description }} />
+                        </TableCell>
+                        <TableCell className="text-center">{course.hidden === "hidden" ? "Caché" : "Visible"}</TableCell>
+                        <TableCell className="text-center">{course.budget}</TableCell>
+                        <TableCell className="text-center">{course.archived ? "Oui" : "Non"}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-1 justify-center">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <EditModuleModal module={course} onCourseUpdated={() => queryClient.invalidateQueries(["courses"])} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Modifier le module</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => handleDelete(course._id)}
+                                >
+                                  <Trash className="h-4 w-4 text-red-600" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Supprimer le cours</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => handleNotify(course)}
+                                >
+                                  <Bell className="h-4 w-4 text-blue-600" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Quick Notify</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => handleMenuOpen(course)}
+                                >
+                                  <Users className="h-4 w-4 text-gray-600" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Gérer la présence</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => handleDownloadEvaluations(course._id)}
+                                >
+                                  <FileText className="h-4 w-4 text-blue-600" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Télécharger les évaluations</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => handleDownloadAssignedUsers(course._id)}
+                                >
+                                  <Download className="h-4 w-4 text-blue-600" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Télécharger les utilisateurs assignés</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => course.archived ? handleUnarchive(course) : handleArchive(course)}
+                                >
+                                  {course.archived ? (
+                                    <ArchiveRestore className="h-4 w-4 text-green-600" />
+                                  ) : (
+                                    <Archive className="h-4 w-4 text-yellow-600" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{course.archived ? "Désarchiver le cours" : "Archiver le cours"}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
             {totalPages > 1 && (
               <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="text-sm text-gray-600 text-center md:text-left">
@@ -929,7 +971,7 @@ export function ModulesList() {
                 </div>
               </div>
             )}
-            {filteredCourses.length === 0 && (
+            {filteredCourses.length === 0 && !isLoading && !error && (
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun cours trouvé</h3>
@@ -949,6 +991,58 @@ export function ModulesList() {
             courseTitle={selectedCourse.title}
           />
         )}
+
+        {/* Archive Confirmation Dialog */}
+        <Dialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirmer l'archivage</DialogTitle>
+            </DialogHeader>
+            <p>Voulez-vous vraiment archiver le cours {selectedCourse?.title || "-"} ?</p>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setArchiveDialogOpen(false)}
+                className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2 transition-all duration-200"
+              >
+                Annuler
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmArchive}
+                className="rounded-xl bg-red-600 hover:bg-red-700 text-white px-6 py-2 transition-all duration-200"
+              >
+                Archiver
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Unarchive Confirmation Dialog */}
+        <Dialog open={unarchiveDialogOpen} onOpenChange={setUnarchiveDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirmer le désarchivage</DialogTitle>
+            </DialogHeader>
+            <p>Voulez-vous vraiment désarchiver le cours {selectedCourse?.title || "-"} ?</p>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setUnarchiveDialogOpen(false)}
+                className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2 transition-all duration-200"
+              >
+                Annuler
+              </Button>
+              <Button
+                variant="default"
+                onClick={confirmUnarchive}
+                className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 transition-all duration-200"
+              >
+                Désarchiver
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   );

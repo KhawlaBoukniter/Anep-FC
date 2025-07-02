@@ -16,7 +16,6 @@ import { DeleteEmployeeModal } from "./delete-employee-modal.tsx";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip.tsx";
 import { Employee, Emploi, Profile, Competence } from "../types/employee.ts";
 import clsx from "clsx";
-import CompetencesByLevel from "./CompetencesByLevel.tsx";
 import { useNavigate } from "react-router-dom";
 
 interface ExtendedEmployee extends Employee {

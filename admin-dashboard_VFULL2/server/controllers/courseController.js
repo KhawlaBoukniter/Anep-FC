@@ -8,7 +8,7 @@ const fs = require('fs').promises
 // Get all courses
 const getAllCourses = async (req, res) => {
     try {
-        const { hidden } = req.query;
+        const { hidden, archived } = req.query;
         const query = {};
 
         if (hidden) {
