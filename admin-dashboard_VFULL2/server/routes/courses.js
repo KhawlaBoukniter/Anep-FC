@@ -14,7 +14,10 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ storage });
+const upload = multer({ storage }).fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'cvs', maxCount: 10 },
+]);
 
 // Route groups
 const commentRoutes = [
@@ -35,9 +38,9 @@ const courseRoutes = [
 ];
 
 const fileRoutes = [
-    { method: 'post', path: '/uploadImage', middleware: [upload.single('image')], handler: courseController.uploadImage },
+    { method: 'post', path: '/uploadImage', middleware: [upload], handler: courseController.uploadImage },
     { method: 'get', path: '/:id/resources', handler: courseController.fetchFiles },
-    { method: 'post', path: '/:id/resources', middleware: [upload.single('file')], handler: courseController.filesUpload },
+    { method: 'post', path: '/:id/resources', handler: courseController.filesUpload },
 ];
 
 const userRoutes = [

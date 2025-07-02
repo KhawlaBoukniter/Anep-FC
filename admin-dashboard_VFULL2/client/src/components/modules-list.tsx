@@ -653,7 +653,7 @@ export function ModulesList() {
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
-                <AddModuleModal />
+                <AddModuleModal onCourseCreated={fetchCourses}/>
               </div>
             </div>
             {filters.length > 0 && (

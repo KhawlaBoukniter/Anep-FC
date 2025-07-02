@@ -2,6 +2,8 @@
 const Course = require('../models/Course');
 const User = require('../models/User');
 const XLSX = require('xlsx');
+const path = require('path')
+const fs = require('fs').promises
 
 // Get all courses
 const getAllCourses = async (req, res) => {
@@ -135,19 +137,40 @@ const hasTimeConflict = (course1, course2) => {
 };
 // Controller method for uploading an image
 const uploadImage = (req, res) => {
-    if (req.file) {
-        res.json({
-            success: true,
-            message: 'Image uploaded successfully!',
-            imageUrl: `/uploads/${req.file.filename}`
-        });
-    } else {
-        res.status(400).json({
-            success: false,
-            message: 'No image uploaded.'
-        });
+    try {
+        console.log('Received files:', req.files); // Debug: Log received files
+
+        // Check if files were uploaded
+        if (!req.files || (!req.files.image && !req.files.cvs)) {
+            return res.status(400).json({ error: 'No files uploaded' });
+        }
+
+        const fileUrls = {};
+
+        // Handle course image
+        if (req.files.image) {
+            const imageFile = req.files.image[0];
+            const imageUrl = `/uploads/${imageFile.filename}`;
+            fileUrls.imageUrl = imageUrl;
+        }
+
+        // Handle CVs
+        const cvUrls = [];
+        if (req.files.cvs) {
+            req.files.cvs.forEach((cvFile, index) => {
+                cvUrls.push(`/Uploads/${cvFile.filename}`);
+            });
+        }
+        fileUrls.cvUrls = cvUrls;
+
+        res.status(200).json(fileUrls);
+    } catch (error) {
+        console.error('Error in uploadImage:', error);
+        res.status(500).json({ error: 'Erreur interne', message: error.message });
     }
 };
+
+
 const getAllComments = async (req, res) => {
     try {
         const courses = await Course.find().select('comments');
