@@ -16,7 +16,7 @@ const Header: React.FC = () => {
     };
 
     return (
-        <header className="top-0 z-50 bg-[#ffffff]">
+        <header className="top-0 z-50 ">
             <div className="mx-auto px-4 py-2 flex items-center justify-between">
                 {/* Logo - Aligné à gauche */}
                 <div className="flex-shrink-0">
