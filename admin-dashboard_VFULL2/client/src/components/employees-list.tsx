@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useEmployees, useArchiveEmployee, useUnarchiveEmployee } from "../hooks/useEmployees.js";
 import { useJobs } from "../hooks/useJobs.js";
 import { Button } from "./ui/button.tsx";
@@ -40,7 +40,10 @@ interface ChangeDetail {
 
 export function EmployeesList() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState<Filter[]>([]);
+  const [filters, setFilters] = useState<Filter[]>(() => {
+    const savedFilters = localStorage.getItem("employeeFilters");
+    return savedFilters ? JSON.parse(savedFilters) : [];
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [unarchiveDialogOpen, setUnarchiveDialogOpen] = useState(false);
@@ -58,6 +61,10 @@ export function EmployeesList() {
   const [showChanges, setShowChanges] = useState(false);
 
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem("employeeFilters", JSON.stringify(filters));
+  }, [filters]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -590,6 +597,7 @@ export function EmployeesList() {
                   onClick={() => {
                     setFilters([]);
                     setCurrentPage(1);
+                    localStorage.removeItem("employeeFilters");
                   }}
                 >
                   Effacer tous les filtres
