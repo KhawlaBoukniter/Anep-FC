@@ -1,16 +1,22 @@
 import type React from "react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import LoginModal from "./LoginModal.tsx";
 
 const Header: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen);
     };
 
+    const toggleLoginModal = () => {
+        setIsLoginModalOpen(!isLoginModalOpen);
+    };
+
     return (
-        <header className="top-0 z-50">
+        <header className="top-0 z-50 bg-[#ffffff]">
             <div className="mx-auto px-4 py-2 flex items-center justify-between">
                 {/* Logo - Aligné à gauche */}
                 <div className="flex-shrink-0">
@@ -36,12 +42,12 @@ const Header: React.FC = () => {
 
                 {/* Connexion - Aligné à droite */}
                 <div className="flex items-center">
-                    <Link
-                        to="/login"
+                    <button
+                        onClick={toggleLoginModal}
                         className="bg-[#06668c] text-white font-medium px-4 py-2 rounded-lg duration-200"
                     >
                         Connexion
-                    </Link>
+                    </button>
 
                     {/* Mobile menu button */}
                     <button
@@ -80,16 +86,21 @@ const Header: React.FC = () => {
                         >
                             Nos Services
                         </Link>
-                        <Link
-                            to="/login"
-                            className="text-[#06668C] font-bold duration-200"
-                            onClick={toggleMobileMenu}
+                        <button
+                            className="text-[#06668C] font-bold duration-200 text-left"
+                            onClick={() => {
+                                toggleMobileMenu();
+                                toggleLoginModal();
+                            }}
                         >
                             Connexion
-                        </Link>
+                        </button>
                     </nav>
                 </div>
             )}
+
+            {/* Login Modal */}
+            {isLoginModalOpen && <LoginModal onClose={toggleLoginModal} />}
         </header>
     );
 };

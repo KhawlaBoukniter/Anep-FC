@@ -29,7 +29,7 @@ const HomePage: React.FC = () => {
                 <div className="relative z-20 text-center text-white px-4 max-w-4xl">
                     <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
                         Bienvenue sur Notre
-                        <span className="block text-[#11516a]  shadow-lg px-4 py-2 rounded-lg inline-block mt-2">
+                        <span className="block text-[#11516a] shadow-lg px-4 py-2 rounded-lg inline-block mt-2">
                             Plateforme
                         </span>
                     </h1>
@@ -60,7 +60,7 @@ const HomePage: React.FC = () => {
             <section className="py-16 bg-white">
                 <div className="container mx-auto px-4">
                     <div className="max-w-4xl mx-auto">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-centerSel">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                             <div>
                                 <h2 className="text-3xl font-bold text-[#06668C] mb-6">Pourquoi nous choisir ?</h2>
                                 <p className="text-gray-600 mb-6 leading-relaxed">

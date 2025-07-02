@@ -3,7 +3,6 @@ import { QueryClient, QueryClientProvider } from "react-query";
 import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home.tsx";
 import ProfilePage from "./pages/profile.tsx";
-import LoginModal from "./components/LoginModal.tsx";
 import "./App.css";
 
 // Configuration du client React Query
@@ -30,7 +29,6 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile/:employeeId" element={<ProfilePage />} />
-            <Route path="/login" element={<LoginModal />} />
             <Route path="/about" element={<div>Page À propos (à implémenter)</div>} />
             <Route path="/services" element={<div>Page Nos Services (à implémenter)</div>} />
           </Routes>

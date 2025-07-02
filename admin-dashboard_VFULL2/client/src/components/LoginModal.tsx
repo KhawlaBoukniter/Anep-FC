@@ -2,7 +2,11 @@ import type React from "react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
-const LoginModal: React.FC = () => {
+interface LoginModalProps {
+    onClose: () => void;
+}
+
+const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -11,13 +15,9 @@ const LoginModal: React.FC = () => {
         e.preventDefault();
         // Logique de connexion ici (par exemple, appel API)
         console.log("Email:", email, "Password:", password);
-        // Redirection après connexion réussie (exemple)
+        // Redirection après connexion réussie
         navigate("/dashboard");
-    };
-
-    const handleClose = () => {
-        // Rediriger vers la page d'accueil ou une autre page
-        navigate("/");
+        onClose(); // Ferme le modal après soumission
     };
 
     return (
@@ -26,7 +26,7 @@ const LoginModal: React.FC = () => {
                 <h2 className="text-2xl font-bold text-[#06668C] mb-4">Connexion</h2>
                 <div
                     className="text-gray-600 mb-4 cursor-pointer text-right"
-                    onClick={handleClose}
+                    onClick={onClose}
                 >
                     Fermer
                 </div>
