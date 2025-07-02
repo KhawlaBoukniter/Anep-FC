@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Input } from "./ui/input.tsx";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table.tsx";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip.tsx";
-import { Plus, Edit, Trash, Bell, Users, Download, FileText, Search, Filter, XCircle, Info, X } from "lucide-react";
+import { Plus, Edit, Trash, Bell, Users, Download, FileText, Search, Filter, XCircle, Info, X, Archive, ArchiveRestore } from "lucide-react";
 import useApiAxios from "../config/axios";
 import PropTypes from "prop-types";
 import { AddModuleModal } from "./AddModuleModal.tsx";
@@ -49,6 +49,7 @@ interface Course {
   image: File | null;
   assignedUsers: Profile[] | string[];
   interestedUsers: Profile[] | string[];
+  archived: boolean;
 }
 
 interface Profile {
@@ -198,9 +199,34 @@ export function ModulesList() {
     };
   }, []);
 
+  const handleArchive = async (id: string) => {
+    try {
+      await useApiAxios.put(`/courses/${id}/archive`);
+      setCourses(courses.map((course) => 
+        course._id === id ? { ...course, archived: true } : course
+      ));
+    } catch (error) {
+      console.error('Échec de l\'archivage du cours:', error);
+    }
+  };
+
+  const handleUnarchive = async (id: string) => {
+    try {
+      await useApiAxios.put(`/courses/${id}/unarchive`);
+      setCourses(courses.map((course) => 
+        course._id === id ? { ...course, archived: false } : course
+      ));
+    } catch (error) {
+      console.error('Échec du désarchivage du cours:', error);
+    }
+  };
+
+
   const fetchCourses = async () => {
     try {
-      const response = await useApiAxios.get("/courses");
+      const response = await useApiAxios.get("/courses", {
+        params: { archived: false }
+      });
       setCourses(response.data);
     } catch (error) {
       console.error("Échec de la récupération des cours:", error);
@@ -380,7 +406,10 @@ export function ModulesList() {
           (val === "Hybride" && course.offline === CourseMode.Hybrid) ||
           (val === "Présentiel" && course.offline === CourseMode.Offline)
         );
-      if (filter.type === "Statut") return filter.values.some((val) => (val === "Caché" && course.hidden) || (val === "Visible" && !course.hidden));
+      if (filter.type === "Statut") 
+        return filter.values.some((val) => (val === "Caché" && course.hidden) || (val === "Visible" && !course.hidden));
+      if (filter.type === 'Archivé')
+        return filter.values.some((val) => (val === 'Oui' && course.archived) || (val === 'Non' && !course.archived));
       return true;
     });
 
@@ -453,6 +482,7 @@ export function ModulesList() {
       options: ["En ligne", "Hybride", "Présentiel"],
     },
     { label: "Statut", value: "Statut", options: ["Visible", "Caché"] },
+    { label: 'Archivé', value: 'Archivé', options: ['Oui', 'Non'] },
   ];
 
   const availableOptions = filterOptions.find((opt) => opt.value === newFilterType)?.options || [];
@@ -708,6 +738,7 @@ export function ModulesList() {
                     <TableHead className="text-blue-900 text-center">Description</TableHead>
                     <TableHead className="text-blue-900 text-center">Statut</TableHead>
                     <TableHead className="text-blue-900 text-center">Budget</TableHead>
+                    <TableHead className="text-blue-900 text-center">Archivé</TableHead>
                     <TableHead className="text-blue-900 text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -727,6 +758,7 @@ export function ModulesList() {
                       </TableCell>
                       <TableCell className="text-center">{course.hidden === "hidden" ? "Caché" : "Visible"}</TableCell>
                       <TableCell className="text-center">{course.budget}</TableCell>
+                      <TableCell className="text-center">{course.archived ? "Oui" : "Non"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-1 justify-center">
                           <Tooltip>
@@ -810,6 +842,25 @@ export function ModulesList() {
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>Télécharger les utilisateurs assignés</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => course.archived ? handleUnarchive(course._id) : handleArchive(course._id)}
+                              >
+                                {course.archived ? (
+                                  <ArchiveRestore className="h-4 w-4 text-green-600" />
+                                ) : (
+                                  <Archive className="h-4 w-4 text-yellow-600" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{course.archived ? 'Désarchiver le cours' : 'Archiver le cours'}</p>
                             </TooltipContent>
                           </Tooltip>
                         </div>

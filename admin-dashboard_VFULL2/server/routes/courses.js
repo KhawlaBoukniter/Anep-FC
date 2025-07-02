@@ -5,6 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const { authenticateUser } = require('../utils/auth');
 const Course = require('../models/Course');
+
 // Multer configuration
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, 'uploads/'),
@@ -35,6 +36,8 @@ const courseRoutes = [
     { method: 'put', path: '/:id', handler: courseController.updateCourse },
     { method: 'delete', path: '/:id', handler: courseController.deleteCourse },
     { method: 'get', path: '/user/:userId', handler: courseController.getCoursesByUserId },
+    { method: 'put', path: '/:id/archive', handler: courseController.archiveCourse },
+    { method: 'put', path: '/:id/unarchive', handler: courseController.unarchiveCourse },
 ];
 
 const fileRoutes = [

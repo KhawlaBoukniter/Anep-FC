@@ -14,6 +14,9 @@ const getAllCourses = async (req, res) => {
         if (hidden) {
             query.hidden = hidden;
         }
+        if (archived !== undefined) {
+            query.archived = archived === 'true';
+        }
 
         const courses = await Course.find(query);
         res.status(200).json(courses);
@@ -559,6 +562,40 @@ const downloadEvaluations = async (req, res) => {
     }
 };
 
+const archiveCourse = async (req, res) => {
+    try {
+        const course = await Course.findByIdAndUpdate(
+            req.params.id,
+            { archived: true },
+            { new: true }
+        );
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+        res.status(200).json({ message: 'Course archived successfully', course });
+    } catch (error) {
+        console.error('Error archiving course:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+const unarchiveCourse = async (req, res) => {
+    try {
+        const course = await Course.findByIdAndUpdate(
+            req.params.id,
+            { archived: false },
+            { new: true }
+        );
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+        res.status(200).json({ message: 'Course unarchived successfully', course });
+    } catch (error) {
+        console.error('Error unarchiving course:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
 module.exports = {
     getAllCourses,
     getCourseById,
@@ -581,5 +618,7 @@ module.exports = {
     downloadEvaluations,
     getAllComments,
     userAssignedDownload,
+    archiveCourse,
+    unarchiveCourse
     // getCourseNameById,
 };
