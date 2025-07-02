@@ -193,8 +193,8 @@ export function ModulesList() {
 
   // React Query: Fetch courses
   const { data: courses = [], isLoading, error } = useQuery(
-    ["courses", { search: searchTerm, archived: filters.some((f) => f.type === "Archivé" && f.values.includes("Oui")) }],
-    () => useApiAxios.get("/courses", { params: { archived: filters.some((f) => f.type === "Archivé" && f.values.includes("Oui")) } }).then((res) => res.data),
+    ["courses", { search: searchTerm, archived: filters.some((f) => f.type === "Archivé" && f.values.length === 1 && f.values.includes("Oui")) }],
+    () => useApiAxios.get("/courses", { params: { archived: filters.some((f) => f.type === "Archivé" && f.values.length === 1 && f.values.includes("Oui")) ? true : false } }).then((res) => res.data),
     {
       staleTime: 5 * 60 * 1000, // 5 minutes
       cacheTime: 10 * 60 * 1000, // 10 minutes
@@ -431,7 +431,7 @@ export function ModulesList() {
       course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.description.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesFilters = filters.every((filter) => {
+    const matchesFilters = filters.length === 0 || filters.some((filter) => {
       if (filter.type === "Mode")
         return filter.values.some((val) =>
           (val === "En ligne" && course.offline === CourseMode.Online) ||
@@ -439,13 +439,14 @@ export function ModulesList() {
           (val === "Présentiel" && course.offline === CourseMode.Offline)
         );
       if (filter.type === "Statut")
-        return filter.values.some((val) => (val === "Caché" && course.hidden === "hidden") || (val === "Visible" && course.hidden === "visible"));
+        return filter.values.length === 0 || filter.values.some((val) => (val === "Caché" && course.hidden === "hidden") || (val === "Visible" && course.hidden === "visible"));
       if (filter.type === "Archivé")
-        return filter.values.some((val) => (val === "Oui" && course.archived) || (val === "Non" && !course.archived));
+        return filter.values.length === 0 || filter.values.some((val) => (val === "Oui" && course.archived) || (val === "Non" && !course.archived));
       return true;
     });
 
-    return matchesSearch && matchesFilters;
+    const isArchivedFilterActive = filters.some((f) => f.type === "Archivé" && f.values.includes("Oui"))
+    return matchesSearch && matchesFilters && (!course.archived || isArchivedFilterActive);
   });
 
   const totalPages = Math.ceil(filteredCourses.length / coursesPerPage);
@@ -540,7 +541,7 @@ export function ModulesList() {
                   <Users className="h-5 w-5 text-blue-800" />
                 </div>
                 <div>
-                  <p className="text-sm text-blue-800">Total Cours</p>
+                  <p className="text-sm text-blue-800">Total Modules</p>
                   <p className="text-2xl font-bold">{stats.total}</p>
                 </div>
               </div>
@@ -553,7 +554,7 @@ export function ModulesList() {
                   <FileText className="h-5 w-5 text-green-700" />
                 </div>
                 <div>
-                  <p className="text-sm text-green-700">Cours en ligne</p>
+                  <p className="text-sm text-green-700">Modules en ligne</p>
                   <p className="text-2xl font-bold">{stats.online}</p>
                 </div>
               </div>
@@ -759,7 +760,9 @@ export function ModulesList() {
           <CardHeader>
             <div className="flex items-center justify-between text-blue-900">
               <CardTitle className="text-xl">
-                {filters.some((f) => f.type === "Archivé" && f.values.includes("Oui")) ? "Cours Archivés" : "Liste des Cours"}
+                {filters.some((f) => f.type === "Archivé" && f.values.includes("Oui")) ? "Modules Archivés" : 
+                 filters.some((f) => f.type === "Archivé" && f.values.includes("Non")) ? "Modules Non Archivés" :
+                  "Liste des Modules"}
               </CardTitle>
               <Badge variant="secondary">{filteredCourses.length} résultat(s)</Badge>
             </div>
@@ -774,7 +777,7 @@ export function ModulesList() {
                 <Table className="bg-white">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-blue-900 text-center">Titre du cours</TableHead>
+                      <TableHead className="text-blue-900 text-center">Titre du module</TableHead>
                       <TableHead className="text-blue-900 text-center">Mode</TableHead>
                       <TableHead className="text-blue-900 text-center">Description</TableHead>
                       <TableHead className="text-blue-900 text-center">Statut</TableHead>
@@ -825,7 +828,7 @@ export function ModulesList() {
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>Supprimer le cours</p>
+                                  <p>Supprimer le module</p>
                                 </TooltipContent>
                               </Tooltip>
                             )}
@@ -921,7 +924,7 @@ export function ModulesList() {
               <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="text-sm text-gray-600 text-center md:text-left">
                   Affichage de {indexOfFirstCourse + 1} à{" "}
-                  {Math.min(indexOfLastCourse, filteredCourses.length)} sur {filteredCourses.length} cours
+                  {Math.min(indexOfLastCourse, filteredCourses.length)} sur {filteredCourses.length} modules
                 </div>
                 <div className="flex flex-wrap justify-center gap-1 md:gap-2">
                   <Button
@@ -979,8 +982,8 @@ export function ModulesList() {
             {filteredCourses.length === 0 && !isLoading && !error && (
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun cours trouvé</h3>
-                <p className="text-gray-600">Créez un nouveau cours pour commencer.</p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun module trouvé</h3>
+                <p className="text-gray-600">Créez un nouveau module pour commencer.</p>
               </div>
             )}
           </CardContent>
@@ -1003,7 +1006,7 @@ export function ModulesList() {
             <DialogHeader>
               <DialogTitle>Confirmer l'archivage</DialogTitle>
             </DialogHeader>
-            <p>Voulez-vous vraiment archiver le cours {selectedCourse?.title || "-"} ?</p>
+            <p>Voulez-vous vraiment archiver le module {selectedCourse?.title || "-"} ?</p>
             <DialogFooter>
               <Button
                 variant="outline"
@@ -1029,7 +1032,7 @@ export function ModulesList() {
             <DialogHeader>
               <DialogTitle>Confirmer le désarchivage</DialogTitle>
             </DialogHeader>
-            <p>Voulez-vous vraiment désarchiver le cours {selectedCourse?.title || "-"} ?</p>
+            <p>Voulez-vous vraiment désarchiver le module {selectedCourse?.title || "-"} ?</p>
             <DialogFooter>
               <Button
                 variant="outline"
