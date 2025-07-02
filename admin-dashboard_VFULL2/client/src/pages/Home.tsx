@@ -2,24 +2,25 @@ import type React from "react"
 import Header from "../components/header.tsx"
 import Footer from "../components/footer.tsx"
 import Carousel from "../components/carousel.tsx"
+import AnimatedCards from "../components/AnimatedCards.tsx"
 
 const HomePage: React.FC = () => {
     return (
         <div className="min-h-screen flex flex-col">
-            
+
 
             {/* Hero Section avec vidéo en arrière-plan */}
             <section className="relative h-screen flex items-center justify-center overflow-hidden" style={{
-                    backgroundImage: `url("/images/bg.jpg")`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    height: '590px',
-                    width: '100%',
-                }}>
-                    
+                backgroundImage: `url("/images/bg.jpg")`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                height: '590px',
+                width: '100%',
+            }}>
+
                 {/* Fallback background si la vidéo ne charge pas */}
                 <div className="absolute inset-0 bg-gradient-to-b from-[#ffffff] z-0">{/* Header */}
-            <Header /></div>
+                    <Header /></div>
 
                 {/* Overlay sombre pour améliorer la lisibilité */}
                 <div className="absolute inset-0 bg-black bg-opacity-40 z-10"></div>
@@ -38,7 +39,8 @@ const HomePage: React.FC = () => {
                     </button>
                 </div>
             </section>
-
+            {/* Section des cartes animées */}
+            <AnimatedCards />
             {/* Section Carousel */}
             <section className="py-16 bg-gray-50">
                 <div className="container mx-auto px-4">
