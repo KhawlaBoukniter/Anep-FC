@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "react-query";
 import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home.tsx";
+import ServicesPage from "./components/ServicesPage.tsx";
+import AboutPage from "./components/AboutPage.tsx";
 import ProfilePage from "./pages/profile.tsx";
 import "./App.css";
 
@@ -29,8 +31,8 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile/:employeeId" element={<ProfilePage />} />
-            <Route path="/about" element={<div>Page À propos (à implémenter)</div>} />
-            <Route path="/services" element={<div>Page Nos Services (à implémenter)</div>} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/services" element={<ServicesPage />} />
           </Routes>
         </div>
       </Router>
