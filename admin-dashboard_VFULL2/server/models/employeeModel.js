@@ -1,4 +1,5 @@
 const pool = require("../config/database");
+const bcrypt = require("bcrypt");
 
 async function getAllEmployees({ search, role, archived }) {
     const params = [archived !== undefined ? archived : false];
@@ -241,7 +242,7 @@ async function getEmployeeById(id) {
                 competencea: skill.competencea,
                 niveaua: skill.niveaua,
                 niveau_requis: skill.niveau_requis,
-            })).filter(skill => skill.id_competencea !== null), // Remove null competencies
+            })).filter(skill => skill.id_competencea !== null),
             profile: row.id_profile ? {
                 id_profile: row.id_profile,
                 NOM_PRENOM: row["NOM PRENOM"],
@@ -335,7 +336,7 @@ async function createEmployee(employeeData) {
 
         if (emplois && emplois.length > 0) {
             for (const job of emplois) {
-                console.log("Employee query values:", employeeValues);
+                console.log("Inserting job:", job);
                 await client.query(
                     "INSERT INTO emploi_employe (id_emploi, id_employe) VALUES ($1, $2) ON CONFLICT DO NOTHING",
                     [job.id_emploi, newEmployee.id_employe]
@@ -581,17 +582,68 @@ async function deleteEmployee(id) {
 
 async function checkEmailExists(email) {
     const query = `
-    SELECT EXISTS (
-      SELECT 1 FROM employe WHERE email = $1 AND archived = false
-    ) AS exists
-  `;
+        SELECT EXISTS (
+            SELECT 1 FROM employe WHERE email = $1 AND archived = false
+        ) AS exists,
+        (SELECT password IS NOT NULL FROM employe WHERE email = $1 AND archived = false) AS has_password
+    `;
     try {
         console.log("Executing query with email:", email);
         const result = await pool.query(query, [email]);
         console.log("Database response:", result.rows[0]);
-        return result.rows[0].exists;
+        return {
+            exists: result.rows[0].exists,
+            hasPassword: result.rows[0].has_password
+        };
     } catch (error) {
         console.error("Database error:", {
+            message: error.message,
+            stack: error.stack,
+            query: query,
+            params: [email],
+        });
+        throw error;
+    }
+}
+
+async function checkPassword(email, password) {
+    const query = `
+        SELECT password FROM employe WHERE email = $1 AND archived = false
+    `;
+    try {
+        const result = await pool.query(query, [email]);
+        if (result.rows.length === 0) {
+            return false;
+        }
+        const hashedPassword = result.rows[0].password;
+        if (!hashedPassword) {
+            return false;
+        }
+        return await bcrypt.compare(password, hashedPassword);
+    } catch (error) {
+        console.error("Database error in checkPassword:", {
+            message: error.message,
+            stack: error.stack,
+            query: query,
+            params: [email],
+        });
+        throw error;
+    }
+}
+
+async function savePassword(email, password) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const query = `
+        UPDATE employe 
+        SET password = $1, updated_at = CURRENT_TIMESTAMP 
+        WHERE email = $2 AND archived = false
+        RETURNING id_employe
+    `;
+    try {
+        const result = await pool.query(query, [hashedPassword, email]);
+        return result.rows.length > 0;
+    } catch (error) {
+        console.error("Database error in savePassword:", {
             message: error.message,
             stack: error.stack,
             query: query,
@@ -610,4 +662,6 @@ module.exports = {
     unarchiveEmployee,
     deleteEmployee,
     checkEmailExists,
+    checkPassword,
+    savePassword,
 };

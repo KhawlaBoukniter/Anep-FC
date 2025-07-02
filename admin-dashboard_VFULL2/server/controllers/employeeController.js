@@ -1,5 +1,6 @@
 const { employeeSchema } = require("../validators/employeeValidator");
 const employeeModel = require("../models/employeeModel");
+const bcrypt = require("bcrypt");
 
 async function getEmployees(req, res) {
     try {
@@ -176,11 +177,46 @@ async function checkEmail(req, res) {
             return res.status(400).json({ message: "Email requis." });
         }
         console.log("Checking existence of email:", email);
-        const exists = await employeeModel.checkEmailExists(email);
-        console.log("Email existence result:", exists);
-        res.json({ exists });
+        const { exists, hasPassword } = await employeeModel.checkEmailExists(email);
+        console.log("Email check result:", { exists, hasPassword });
+        res.json({ exists, hasPassword });
     } catch (error) {
-        console.error("Controller error:", error.stack);
+        console.error("Controller error in checkEmail:", error.stack);
+        res.status(500).json({ message: "Erreur serveur.", details: error.message });
+    }
+}
+
+async function checkPassword(req, res) {
+    try {
+        console.log("Received check password request:", req.body);
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ message: "Email et mot de passe requis." });
+        }
+        const isValid = await employeeModel.checkPassword(email, password);
+        console.log("Password check result:", isValid);
+        res.json({ isValid });
+    } catch (error) {
+        console.error("Controller error in checkPassword:", error.stack);
+        res.status(500).json({ message: "Erreur serveur.", details: error.message });
+    }
+}
+
+async function savePassword(req, res) {
+    try {
+        console.log("Received save password request:", req.body);
+        const { email, password, confirmPassword } = req.body;
+        if (!email || !password || !confirmPassword) {
+            return res.status(400).json({ message: "Email et mots de passe requis." });
+        }
+        if (password !== confirmPassword) {
+            return res.status(400).json({ message: "Les mots de passe ne correspondent pas." });
+        }
+        const isSaved = await employeeModel.savePassword(email, password);
+        console.log("Password save result:", isSaved);
+        res.json({ isSaved });
+    } catch (error) {
+        console.error("Controller error in savePassword:", error.stack);
         res.status(500).json({ message: "Erreur serveur.", details: error.message });
     }
 }
@@ -194,4 +230,6 @@ module.exports = {
     unarchiveEmployee,
     deleteEmployee,
     checkEmail,
+    checkPassword,
+    savePassword,
 };
