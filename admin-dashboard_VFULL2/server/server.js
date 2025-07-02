@@ -48,6 +48,15 @@ app.use('/api/req-skills', require('./routes/reqSkills'));
 app.use('/api/analysis', require('./routes/analysis'));
 app.use('/api/profiles', require('./routes/profileImportRoutes'));
 app.use('/api', require('./routes/syncRoutes'));
+app.get("/api/employee-profiles", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM profile");
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Erreur lors de la récupération des profils PG :", error);
+    res.status(500).json({ message: "Erreur serveur lors de la récupération des profils." });
+  }
+});
 
 // Test Message (Mongo)
 const mongoose = require('mongoose');
