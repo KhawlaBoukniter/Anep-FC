@@ -85,14 +85,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
   const [openUserPopover, setOpenUserPopover] = useState(false);
   const userInputRef = useRef<HTMLInputElement>(null);
 
-  if (!module) {
-    toast({
-      variant: "destructive",
-      title: "Erreur",
-      description: "Aucun module sélectionné.",
-    });
-    return null;
-  }
+ 
 
   const [course, setCourse] = useState<Partial<Course>>({
     _id: module._id,
@@ -506,6 +499,15 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     setCurrentStep((prev) => prev - 1);
   };
 
+   if (!module) {
+    toast({
+      variant: "destructive",
+      title: "Erreur",
+      description: "Aucun module sélectionné.",
+    });
+    return null;
+  }
+  
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
