@@ -541,7 +541,11 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                 <Input
                   id="date_naissance"
                   type="date"
-                  value={profileData.DATE_NAISS || ""}
+                  value={
+                    profileData.DATE_NAISS
+                      ? new Date(profileData.DATE_NAISS).toISOString().split("T")[0]
+                      : ""
+                  }
                   onChange={(e) => handleProfileInputChange("DATE_NAISS", e.target.value)}
                 />
               </div>
@@ -621,7 +625,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                 <Input
                   id="dat_rec"
                   type="date"
-                  value={profileData.DAT_REC || ""}
+                  value={profileData.DAT_REC ? new Date(profileData.DAT_REC).toISOString().split("T")[0] : "" }
                   onChange={(e) => handleProfileInputChange("DAT_REC", e.target.value)}
                 />
               </div>
@@ -713,7 +717,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                 <Input
                   id="dat_pos"
                   type="date"
-                  value={profileData.DAT_POS || ""}
+                  value={employee.profile?.["DAT_POS"] ? new Date(employee.profile?.["DAT_POS"]).toISOString().split("T")[0] : "" }
                   onChange={(e) => handleProfileInputChange("DAT_POS", e.target.value)}
                 />
               </div>
@@ -749,7 +753,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                 <Input
                   id="dat_fct"
                   type="date"
-                  value={profileData.DAT_FCT || ""}
+                  value={employee.profile?.["DAT_FCT"] ? new Date(employee.profile?.["DAT_FCT"]).toISOString().split("T")[0] : ""}
                   onChange={(e) => handleProfileInputChange("DAT_FCT", e.target.value)}
                 />
               </div>
