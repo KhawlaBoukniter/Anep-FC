@@ -1,5 +1,9 @@
 const { employeeSchema } = require("../validators/employeeValidator");
 const employeeModel = require("../models/employeeModel");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+
+const SECRET_KEY = process.env.JWT_SECRET || "your-secret-key"; // Replace with secure key in .env
 
 async function getEmployees(req, res) {
     try {
@@ -176,11 +180,73 @@ async function checkEmail(req, res) {
             return res.status(400).json({ message: "Email requis." });
         }
         console.log("Checking existence of email:", email);
-        const exists = await employeeModel.checkEmailExists(email);
-        console.log("Email existence result:", exists);
-        res.json({ exists });
+        const { exists, hasPassword } = await employeeModel.checkEmailExists(email);
+        console.log("Email check result:", { exists, hasPassword });
+        res.json({ exists, hasPassword });
     } catch (error) {
-        console.error("Controller error:", error.stack);
+        console.error("Controller error in checkEmail:", error.stack);
+        res.status(500).json({ message: "Erreur serveur.", details: error.message });
+    }
+}
+
+async function login(req, res) {
+    try {
+        console.log("Received login request:", req.body);
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ message: "Email et mot de passe requis." });
+        }
+        const user = await employeeModel.checkPassword(email, password);
+        if (!user) {
+            return res.status(401).json({ message: "Email ou mot de passe incorrect." });
+        }
+        const token = jwt.sign({ id: user.id, email: user.email }, SECRET_KEY, { expiresIn: "1h" });
+        console.log("Login successful, token generated for:", email);
+        res.json({ token, user: { id: user.id, email: user.email } });
+    } catch (error) {
+        console.error("Controller error in login:", error.stack);
+        res.status(500).json({ message: "Erreur serveur.", details: error.message });
+    }
+}
+
+async function verifySession(req, res) {
+    try {
+        const token = req.headers.authorization?.split(" ")[1];
+        if (!token) {
+            return res.status(401).json({ message: "Token requis." });
+        }
+        const decoded = jwt.verify(token, SECRET_KEY);
+        const user = await employeeModel.getEmployeeById(decoded.id);
+        if (!user) {
+            return res.status(401).json({ message: "Utilisateur non trouvé." });
+        }
+        res.json({ id: user.id, email: user.email });
+    } catch (error) {
+        console.error("Controller error in verifySession:", error.stack);
+        res.status(401).json({ message: "Token invalide ou expiré." });
+    }
+}
+
+async function savePassword(req, res) {
+    try {
+        console.log("Received save password request:", req.body);
+        const { email, password, confirmPassword } = req.body;
+        if (!email || !password || !confirmPassword) {
+            return res.status(400).json({ message: "Email et mots de passe requis." });
+        }
+        if (password !== confirmPassword) {
+            return res.status(400).json({ message: "Les mots de passe ne correspondent pas." });
+        }
+        const isSaved = await employeeModel.savePassword(email, password);
+        if (!isSaved) {
+            return res.status(400).json({ message: "Erreur lors de l'enregistrement du mot de passe." });
+        }
+        const user = await employeeModel.getEmployeeByEmail(email);
+        const token = jwt.sign({ id: user.id, email: user.email }, SECRET_KEY, { expiresIn: "1h" });
+        console.log("Password saved, token generated for:", email);
+        res.json({ isSaved: true, token, user: { id: user.id, email: user.email } });
+    } catch (error) {
+        console.error("Controller error in savePassword:", error.stack);
         res.status(500).json({ message: "Erreur serveur.", details: error.message });
     }
 }
@@ -194,4 +260,7 @@ module.exports = {
     unarchiveEmployee,
     deleteEmployee,
     checkEmail,
+    login,
+    verifySession,
+    savePassword,
 };

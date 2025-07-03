@@ -1,5 +1,5 @@
 const { pool } = require("../config/database");
-
+const bcrypt = require("bcrypt");
 async function getAllEmployees({ search, role, archived }) {
     const params = [archived !== undefined ? archived : false];
     let query = `
@@ -241,7 +241,7 @@ async function getEmployeeById(id) {
                 competencea: skill.competencea,
                 niveaua: skill.niveaua,
                 niveau_requis: skill.niveau_requis,
-            })).filter(skill => skill.id_competencea !== null), // Remove null competencies
+            })).filter(skill => skill.id_competencea !== null),
             profile: row.id_profile ? {
                 id_profile: row.id_profile,
                 NOM_PRENOM: row["NOM PRENOM"],
@@ -264,6 +264,23 @@ async function getEmployeeById(id) {
         };
     } catch (error) {
         console.error("Database query error in getEmployeeById:", error.stack);
+        throw error;
+    }
+}
+
+async function getEmployeeByEmail(email) {
+    const query = `
+        SELECT id_employe, email FROM employe WHERE email = $1 AND archived = false
+    `;
+    try {
+        const result = await pool.query(query, [email]);
+        if (result.rows.length === 0) return null;
+        return {
+            id: result.rows[0].id_employe.toString(),
+            email: result.rows[0].email,
+        };
+    } catch (error) {
+        console.error("Database query error in getEmployeeByEmail:", error.stack);
         throw error;
     }
 }
@@ -335,7 +352,7 @@ async function createEmployee(employeeData) {
 
         if (emplois && emplois.length > 0) {
             for (const job of emplois) {
-                console.log("Employee query values:", employeeValues);
+                console.log("Inserting job:", job);
                 await client.query(
                     "INSERT INTO emploi_employe (id_emploi, id_employe) VALUES ($1, $2) ON CONFLICT DO NOTHING",
                     [job.id_emploi, newEmployee.id_employe]
@@ -581,17 +598,75 @@ async function deleteEmployee(id) {
 
 async function checkEmailExists(email) {
     const query = `
-    SELECT EXISTS (
-      SELECT 1 FROM employe WHERE email = $1 AND archived = false
-    ) AS exists
-  `;
+        SELECT EXISTS (
+            SELECT 1 FROM employe WHERE email = $1 AND archived = false
+        ) AS exists,
+        (SELECT password IS NOT NULL FROM employe WHERE email = $1 AND archived = false) AS has_password
+    `;
     try {
         console.log("Executing query with email:", email);
         const result = await pool.query(query, [email]);
         console.log("Database response:", result.rows[0]);
-        return result.rows[0].exists;
+        return {
+            exists: result.rows[0].exists,
+            hasPassword: result.rows[0].has_password
+        };
     } catch (error) {
         console.error("Database error:", {
+            message: error.message,
+            stack: error.stack,
+            query: query,
+            params: [email],
+        });
+        throw error;
+    }
+}
+
+async function checkPassword(email, password) {
+    const query = `
+        SELECT id_employe, email, password FROM employe WHERE email = $1 AND archived = false
+    `;
+    try {
+        const result = await pool.query(query, [email]);
+        if (result.rows.length === 0) {
+            return null;
+        }
+        const user = result.rows[0];
+        if (!user.password) {
+            return null;
+        }
+        const isValid = await bcrypt.compare(password, user.password);
+        if (!isValid) {
+            return null;
+        }
+        return { id: user.id_employe.toString(), email: user.email };
+    } catch (error) {
+        console.error("Database error in checkPassword:", {
+            message: error.message,
+            stack: error.stack,
+            query: query,
+            params: [email],
+        });
+        throw error;
+    }
+}
+
+async function savePassword(email, password) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const query = `
+        UPDATE employe 
+        SET password = $1, updated_at = CURRENT_TIMESTAMP 
+        WHERE email = $2 AND archived = false
+        RETURNING id_employe, email
+    `;
+    try {
+        const result = await pool.query(query, [hashedPassword, email]);
+        if (result.rows.length === 0) {
+            return false;
+        }
+        return true;
+    } catch (error) {
+        console.error("Database error in savePassword:", {
             message: error.message,
             stack: error.stack,
             query: query,
@@ -604,10 +679,13 @@ async function checkEmailExists(email) {
 module.exports = {
     getAllEmployees,
     getEmployeeById,
+    getEmployeeByEmail,
     createEmployee,
     updateEmployee,
     archiveEmployee,
     unarchiveEmployee,
     deleteEmployee,
     checkEmailExists,
+    checkPassword,
+    savePassword,
 };
