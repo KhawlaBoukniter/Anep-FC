@@ -86,6 +86,7 @@ export function EmployeesList() {
     try {
       const res = await fetch("/api/profiles/import", {
         method: "POST",
+        credentials: 'include',
         body: formData,
       });
       console.log("Réponse serveur :", res.status, res.statusText);
@@ -107,6 +108,7 @@ export function EmployeesList() {
     try {
       const response = await fetch("/api/sync-profiles", {
         method: "POST",
+        credentials: 'include',
         headers: {
           "Content-Type": "application/json",
         },
@@ -501,7 +503,7 @@ export function EmployeesList() {
                     const confirmUndo = window.confirm("Voulez-vous vraiment annuler les derniers changements ?");
                     if (!confirmUndo) return;
                     try {
-                      const res = await fetch("/api/undo-last-import", { method: "POST" });
+                      const res = await fetch("/api/undo-last-import", { method: "POST" , credentials: 'include',});
                       const data = await res.json();
                       alert(data.message || "Import annulé.");
                     } catch (err) {

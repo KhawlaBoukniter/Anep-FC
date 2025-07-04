@@ -7,7 +7,7 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 
 // DB Connections
-const { connectDB, pool } = require('./config/database'); // Mongo + PostgreSQL
+const { connectDB, pool, testPostgresConnection } = require('./config/database'); // Mongo + PostgreSQL
 
 // Import socket
 const setupSocket = require('./utils/socketManager');
@@ -17,16 +17,26 @@ const app = express();
 const server = http.createServer(app);
 const { io, broadcastMessage } = setupSocket(server);
 
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+console.log("CORS origin:", corsOptions.origin);
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions))
+
+
 // Security
 app.use(helmet());
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 500,
 });
 app.use(limiter);
 
 // Middleware
-app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:3000", credentials: true }));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -93,11 +103,14 @@ app.use((err, req, res, next) => {
 // Start server
 const startServer = async () => {
   try {
-    await connectDB(); // Connect MongoDB
+    await testPostgresConnection();
+    await connectDB();
+
     const port = process.env.PORT || 5000;
     server.listen(port, () => {
       console.log(`🚀 Serveur démarré sur http://localhost:${port}`);
     });
+
     broadcastMessage('🛰 Notification test envoyée');
   } catch (err) {
     console.error('❌ Échec du démarrage:', err);

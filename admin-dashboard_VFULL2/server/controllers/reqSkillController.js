@@ -134,10 +134,18 @@ async function unarchiveSkill(req, res) {
 async function getRequiredSkills(req, res) {
   try {
     const { jobIds } = req.query;
+    console.log("jobids reçu:", jobIds);
+
     if (!jobIds) {
       return res.status(400).json({ error: "Les IDs des emplois sont requis." });
     }
-    const jobIdArray = jobIds.split(",").map(Number);
+    const jobIdArray = jobIds.split(",").map(id => {
+      const n = Number(id);
+      if (isNaN(n)) {
+        throw new Error(`Id d'emploi invalid: ${id}`)
+      }
+      return n
+    });
     const query = `
       SELECT cr.id_competencer, cr.code_competencer, cr.competencer
       FROM competencesR cr

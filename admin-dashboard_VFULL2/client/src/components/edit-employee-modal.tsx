@@ -83,9 +83,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
       if (formData.emplois && formData.emplois.length > 0) {
         try {
           const jobIds = formData.emplois.map((job) => job.id_emploi);
-          const response = await api.get("/req-skills/required", {
-            params: { jobIds: jobIds.join(",") },
-          });
+          const response = await api.get("/req-skills/required", { params: { jobIds: jobIds.join(",") } });
           const newRequiredSkills = response.data.map((skill) => ({
             id_competencea: Number(skill.id_competencer),
             code_competencea: skill.code_competencer,
@@ -149,6 +147,10 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
     };
     initializeRequiredSkills();
   }, [formData.emplois, employee.competences, toast]);
+
+  useEffect(() => {
+  console.log("formData.emplois:", formData.emplois);
+}, [formData.emplois]);
 
   useEffect(() => {
     setFormData((prev) => ({ ...prev, nom_complet: profileData["NOM PRENOM"] || "" }));
