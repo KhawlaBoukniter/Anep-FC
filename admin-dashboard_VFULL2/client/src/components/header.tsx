@@ -76,12 +76,12 @@ const Header: React.FC = () => {
                     <Link to="/services" className="text-[#06668C] font-bold duration-200">
                         Nos Services
                     </Link>
-                    {isAuthenticated && (
+                    {isAuthenticated && user && (
                         <>
                             <Link to="/formation" className="text-[#06668C] font-bold duration-200">
                                 Formation
                             </Link>
-                            <Link to="/profile" className="text-[#06668C] font-bold duration-200">
+                            <Link to={`/profile/${user.id}`} className="text-[#06668C] font-bold duration-200">
                                 Profile
                             </Link>
                         </>
@@ -143,7 +143,7 @@ const Header: React.FC = () => {
                         >
                             Nos Services
                         </Link>
-                        {isAuthenticated && (
+                        {isAuthenticated && user && (
                             <>
                                 <Link
                                     to="/formation"
@@ -153,7 +153,7 @@ const Header: React.FC = () => {
                                     Formation
                                 </Link>
                                 <Link
-                                    to="/profile"
+                                    to={`/profile/${user.id}`}
                                     className="text-[#06668C] font-bold duration-200"
                                     onClick={toggleMobileMenu}
                                 >
