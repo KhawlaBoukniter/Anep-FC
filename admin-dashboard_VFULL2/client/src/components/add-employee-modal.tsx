@@ -82,9 +82,7 @@ export function AddEmployeeModal() {
       if (formData.emplois && formData.emplois.length > 0) {
         try {
           const jobIds = formData.emplois.map((job) => job.id_emploi);
-          const response = await api.get("/req-skills/required", {
-            params: { jobIds: jobIds.join(",") },
-          });
+          const response = await api.get("/req-skills/required", { params: { jobIds: jobIds.join(",") } });
           const skills = response.data.map((skill) => ({
             id_competencea: skill.id_competencer,
             code_competencea: skill.code_competencer,
