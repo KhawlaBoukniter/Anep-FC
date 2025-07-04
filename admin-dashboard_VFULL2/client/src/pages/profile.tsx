@@ -145,7 +145,7 @@ export default function ProfilePage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-1 space-y-6">
-                    <Card className="shadow-lg shadow-blue-900 hover:shadow-xl hover:shadow-blue-900 transition-shadow duration-300 rounded-xl border bg-blue-50" style={{ borderColor: '#0066cc' }}>
+                    <Card className="shadow-lg h-full shadow-blue-900 hover:shadow-xl hover:shadow-blue-900 transition-shadow duration-300 rounded-xl border bg-blue-50" style={{ borderColor: '#0066cc' }}>
                         <CardHeader className="text-center">
                             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-900 to-blue-100 mx-auto flex items-center justify-center mb-4">
                                 <User className="h-12 w-12 text-white" />
@@ -231,45 +231,47 @@ export default function ProfilePage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="shadow-lg bg-blue-50 shadow-blue-900 hover:shadow-blue-800 hover:shadow-xl transition-shadow duration-300 rounded-xl border border-gray-200">
-                        <CardHeader>
-                            <div className="flex justify-between items-center">
-                                <CardTitle className="text-xl font-bold glow-light" style={{ color: '#0066cc' }}>Compétences</CardTitle>
-                                <Button
-                                    onClick={() => setShowCompetences(!showCompetences)}
-                                    variant="ghost"
-                                    className="flex items-center gap-2"
-                                >
-                                    {showCompetences ? (
-                                        <>
-                                            <span>Masquer les compétences</span>
-                                            <ChevronUp className="h-4 w-4" />
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span>Afficher les compétences</span>
-                                            <ChevronDown className="h-4 w-4" />
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            {employee.competences && employee.competences.length > 0 ? (
-                                showCompetences ? (
-                                    <CompetencesTable
-                                        competences={competencesWithRequiredLevel}
-                                    />
-                                ) : (
-                                    <p className="text-gray-600 italic">Cliquez sur "Afficher les compétences" pour voir la liste</p>
-                                )
-                            ) : (
-                                <p className="text-gray-600 italic">Aucune compétence enregistrée.</p>
-                            )}
-                        </CardContent>
-                    </Card>
+
                 </div>
             </div>
+
+            <Card className="mt-8 shadow-lg bg-blue-50 shadow-blue-900 hover:shadow-blue-800 hover:shadow-xl transition-shadow duration-300 rounded-xl border border-gray-200">
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="text-xl font-bold glow-light" style={{ color: '#0066cc' }}>Compétences</CardTitle>
+                        <Button
+                            onClick={() => setShowCompetences(!showCompetences)}
+                            variant="ghost"
+                            className="flex items-center gap-2"
+                        >
+                            {showCompetences ? (
+                                <>
+                                    <span>Masquer les compétences</span>
+                                    <ChevronUp className="h-4 w-4" />
+                                </>
+                            ) : (
+                                <>
+                                    <span>Afficher les compétences</span>
+                                    <ChevronDown className="h-4 w-4" />
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    {employee.competences && employee.competences.length > 0 ? (
+                        showCompetences ? (
+                            <CompetencesTable
+                                competences={competencesWithRequiredLevel}
+                            />
+                        ) : (
+                            <p className="text-gray-600 italic">Cliquez sur "Afficher les compétences" pour voir la liste</p>
+                        )
+                    ) : (
+                        <p className="text-gray-600 italic">Aucune compétence enregistrée.</p>
+                    )}
+                </CardContent>
+            </Card>
         </div>
     );
 }
