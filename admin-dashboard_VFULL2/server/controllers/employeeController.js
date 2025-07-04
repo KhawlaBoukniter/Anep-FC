@@ -3,7 +3,7 @@ const employeeModel = require("../models/employeeModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-const SECRET_KEY = process.env.JWT_SECRET || "your-secret-key"; // Replace with secure key in .env
+const SECRET_KEY = process.env.JWT_SECRET || "your-secret-key";
 
 async function getEmployees(req, res) {
     try {
@@ -61,6 +61,7 @@ async function createEmployee(req, res) {
 }
 
 async function updateEmployee(req, res) {
+    console.log("🔥🔥🔥 API CALL: updateEmployee REACHED");
     try {
         console.log("Update employee request for id:", req.params.id, "with data:", req.body);
         const id = parseInt(req.params.id);
@@ -75,6 +76,8 @@ async function updateEmployee(req, res) {
         };
 
         if (profile) {
+            console.log(profile);
+
             const profileFields = {
                 "NOM PRENOM": profile["NOM PRENOM"] || null,
                 ADRESSE: profile.ADRESSE || null,

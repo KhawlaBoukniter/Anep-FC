@@ -123,6 +123,7 @@ const startServer = async () => {
     process.exit(1);
   }
 };
+console.log("✅ Le BON serveur a démarré depuis :", __dirname);
 
 startServer();
 

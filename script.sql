@@ -147,6 +147,9 @@ ALTER TABLE employe_competencea
 ADD CONSTRAINT fk_employe_competencea_competencea
 FOREIGN KEY (id_competencea) REFERENCES competencesa(id_competencea) ON DELETE CASCADE;
 
+ALTER TABLE employe_competencea
+ADD CONSTRAINT unique_employe_competence
+UNIQUE (id_employe, id_competencea);
 
 \copy emploi(entite, formation, experience, codeemploi, poidsemploi, nom_emploi) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_emploi.csv' DELIMITER ';' CSV HEADER;
 \copy employe(nom_complet, email, telephone1, telephone2, categorie, specialite, experience_employe) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_employe1.csv' DELIMITER ';' CSV HEADER;
