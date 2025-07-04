@@ -4,6 +4,7 @@ import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home.tsx";
 import ServicesPage from "./components/ServicesPage.tsx";
 import AboutPage from "./components/AboutPage.tsx";
+import FormationPage from "./components/FormationPage.tsx";
 import ProfilePage from "./pages/profile.tsx";
 import "./App.css";
 
@@ -33,6 +34,7 @@ function App() {
             <Route path="/profile/:employeeId" element={<ProfilePage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/services" element={<ServicesPage />} />
+            <Route path="/formation" element={<FormationPage />} />
           </Routes>
         </div>
       </Router>
