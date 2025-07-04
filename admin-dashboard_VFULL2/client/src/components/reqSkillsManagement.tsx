@@ -342,6 +342,81 @@ export function ReqSkillsManagement() {
     return skillsWithGap.size * employeesWithGap.size;
   };
 
+  const calculateTotalSkillsAndEmployeesWithGap = () => {
+    if (isEmployeesLoading || isJobsLoading || isSkillsLoading) return 0;
+
+    let totalSkillsWithGap = 0;
+    const employeesWithGap = new Set();
+
+    employees.forEach((employee) => {
+      let hasGap = false;
+      const employeeJobs = (employee.emplois || []).map((e) => e.id_emploi);
+      const requiredSkills = jobs
+        .filter((job) => employeeJobs.includes(job.id_emploi))
+        .flatMap((job) => job.required_skills || [])
+        .map((skill) => ({
+          id_competencer: skill.id_competencer,
+          niveaur: skill.niveaur,
+        }));
+
+      const acquiredSkills = (employee.competences || []).map((skill) => ({
+        id_competencea: skill.id_competencea,
+        niveaua: skill.niveaua,
+      }));
+
+      requiredSkills.forEach((reqSkill) => {
+        const matchingAcquiredSkill = acquiredSkills.find(
+          (acqSkill) => acqSkill.id_competencea === reqSkill.id_competencer
+        );
+        const acquiredLevel = matchingAcquiredSkill ? matchingAcquiredSkill.niveaua : 0;
+        if (reqSkill.niveaur > acquiredLevel) {
+          totalSkillsWithGap += 1; // Increment for each skill gap, allowing redundancies
+          hasGap = true;
+        }
+      });
+
+      if (hasGap) {
+        employeesWithGap.add(employee.id_employe);
+      }
+    });
+
+    return totalSkillsWithGap + employeesWithGap.size;
+  };
+
+  const calculateTotalSkillsWithGap = () => {
+    if (isEmployeesLoading || isJobsLoading || isSkillsLoading) return 0;
+
+    let totalSkillsWithGap = 0;
+
+    employees.forEach((employee) => {
+      const employeeJobs = (employee.emplois || []).map((e) => e.id_emploi);
+      const requiredSkills = jobs
+        .filter((job) => employeeJobs.includes(job.id_emploi))
+        .flatMap((job) => job.required_skills || [])
+        .map((skill) => ({
+          id_competencer: skill.id_competencer,
+          niveaur: skill.niveaur,
+        }));
+
+      const acquiredSkills = (employee.competences || []).map((skill) => ({
+        id_competencea: skill.id_competencea,
+        niveaua: skill.niveaua,
+      }));
+
+      requiredSkills.forEach((reqSkill) => {
+        const matchingAcquiredSkill = acquiredSkills.find(
+          (acqSkill) => acqSkill.id_competencea === reqSkill.id_competencer
+        );
+        const acquiredLevel = matchingAcquiredSkill ? matchingAcquiredSkill.niveaua : 0;
+        if (reqSkill.niveaur > acquiredLevel) {
+          totalSkillsWithGap += 1; // Increment for each skill gap, allowing redundancies
+        }
+      });
+    });
+
+    return totalSkillsWithGap;
+  };
+
   if (isSkillsLoading || isEmployeesLoading || isJobsLoading) {
     return <div>Chargement des données...</div>;
   }
@@ -351,6 +426,8 @@ export function ReqSkillsManagement() {
     gaps: calculateSkillsWithGap(),
     employeesGaps: calculateEmployeesWithGap(),
     skillsEmployeesGaps: calculateSkillsEmployeesWithGap(),
+    totalSkillsAndEmployeesGaps: calculateTotalSkillsAndEmployeesWithGap(),
+    totalSkillsGaps: calculateTotalSkillsWithGap(),
   };
 
   return (
@@ -383,19 +460,6 @@ export function ReqSkillsManagement() {
               </div>
             </CardContent>
           </Card>
-          <Card style={{ borderColor: '#5784BA' }} className="border-l-4 shadow-lg shadow-blue-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Users style={{ color: '#5784BA' }} className="h-5 w-5 " />
-                </div>
-                <div>
-                  <p style={{ color: '#5784BA' }} className="text-sm">Écart Compétences x Employés</p>
-                  <p className="text-2xl font-bold">{stats.skillsEmployeesGaps}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
           <Card className="border-l-4 border-purple-800 shadow-lg shadow-purple-800">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -409,6 +473,32 @@ export function ReqSkillsManagement() {
               </div>
             </CardContent>
           </Card>
+          <Card className="border-l-4 border-green-600 shadow-lg shadow-green-600">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <Users className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-green-600">Somme Écarts Compétences + Employés</p>
+                  <p className="text-2xl font-bold">{stats.totalSkillsAndEmployeesGaps}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          {/* <Card className="border-l-4 border-teal-600 shadow-lg shadow-teal-600">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-teal-100 rounded-lg">
+                  <BookOpen className="h-5 w-5 text-teal-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-teal-600">Somme Écarts Compétences</p>
+                  <p className="text-2xl font-bold">{stats.totalSkillsGaps}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card> */}
         </div>
 
         <Card className="bg-gray-100">
