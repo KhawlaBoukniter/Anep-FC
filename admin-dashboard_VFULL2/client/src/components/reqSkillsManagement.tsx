@@ -480,8 +480,8 @@ export function ReqSkillsManagement() {
                   <Users className="h-5 w-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-green-600">Somme Écarts Compétences + Employés</p>
-                  <p className="text-2xl font-bold">{stats.totalSkillsAndEmployeesGaps}</p>
+                  <p className="text-sm text-green-600">Volume des écarts en compétences</p>
+                  <p className="text-2xl font-bold">{stats.totalSkillsGaps}</p>
                 </div>
               </div>
             </CardContent>
