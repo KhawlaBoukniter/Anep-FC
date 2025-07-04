@@ -30,9 +30,15 @@ app.options('*', cors(corsOptions))
 
 // Security
 app.use(helmet());
+
+const isDev = process.env.NODE_ENV === "development";
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 500,
+  max: isDev ? 10000 : 1000,
+  message: {
+    error: "Trop de requêtes envoyées. Veuillez réessayer plus tard.",
+  },
 });
 app.use(limiter);
 
