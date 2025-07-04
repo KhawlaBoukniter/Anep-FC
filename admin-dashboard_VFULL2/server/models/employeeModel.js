@@ -139,81 +139,88 @@ async function getAllEmployees({ search, role, archived }) {
 
 async function getEmployeeById(id) {
     const query = `
-        SELECT 
-            e.id_employe,
-            e.nom_complet,
-            e.email,
-            e.role,
-            e.telephone1,
-            e.telephone2,
-            e.categorie,
-            e.specialite,
-            e.experience_employe,
-            e.created_at,
-            e.updated_at,
-            e.archived,
-            e.profile_id,
-            e.cin,
-            p.id_profile,
-            p."NOM PRENOM",
-            p."ADRESSE",
-            p."DATE NAISS",
-            p."DAT_REC",
-            p."CIN" AS profile_cin,
-            p."DETACHE",
-            p."SEXE",
-            p."SIT_F_AG",
-            p."STATUT",
-            p."DAT_POS",
-            p."LIBELLE GRADE",
-            p."GRADE ASSIMILE",
-            p."LIBELLE FONCTION",
-            p."DAT_FCT",
-            p."LIBELLE LOC",
-            p."LIBELLE REGION",
-            COALESCE(
-                json_agg(
-                    json_build_object(
-                        'id_emploi', em.id_emploi,
-                        'nom_emploi', em.nom_emploi,
-                        'codeemploi', em.codeemploi,
-                        'entite', em.entite
-                    )
-                ) FILTER (WHERE em.id_emploi IS NOT NULL),
-                '[]'
-            ) AS emplois,
-            COALESCE(
-                json_agg(
-                    json_build_object(
-                        'id_competencea', ec.id_competencea,
-                        'code_competencea', c.code_competencea,
-                        'competencea', c.competencea,
-                        'niveaua', ec.niveaua,
-                        'niveau_requis', ecr.niveaur
-                    )
-                ) FILTER (WHERE ec.id_competencea IS NOT NULL),
-                '[]'
-            ) AS competences
-        FROM employe e
-        LEFT JOIN profile p ON e.profile_id = p.id_profile
-        LEFT JOIN emploi_employe ee ON e.id_employe = ee.id_employe
-        LEFT JOIN emploi em ON ee.id_emploi = em.id_emploi
-        LEFT JOIN employe_competencea ec ON e.id_employe = ec.id_employe
-        LEFT JOIN competencesa c ON ec.id_competencea = c.id_competencea
-        LEFT JOIN emploi_competencer ecr ON c.code_competencea = (
-            SELECT cr.code_competencer 
-            FROM competencesr cr 
-            WHERE cr.id_competencer = ecr.id_competencer
-        ) AND ecr.id_emploi = ee.id_emploi
-        WHERE e.id_employe = $1
-        GROUP BY e.id_employe, p.id_profile
-    `;
+    SELECT 
+      e.id_employe,
+      e.nom_complet,
+      e.email,
+      e.role,
+      e.telephone1,
+      e.telephone2,
+      e.categorie,
+      e.specialite,
+      e.experience_employe,
+      e.created_at,
+      e.updated_at,
+      e.archived,
+      e.profile_id,
+      e.cin,
+      p.id_profile,
+      p."NOM PRENOM",
+      p."ADRESSE",
+      p."DATE NAISS",
+      p."DAT_REC",
+      p."CIN" AS profile_cin,
+      p."DETACHE",
+      p."SEXE",
+      p."SIT_F_AG",
+      p."STATUT",
+      p."DAT_POS"::date AS "DAT_POS", -- Ensure casting to DATE
+      p."LIBELLE GRADE",
+      p."GRADE ASSIMILE",
+      p."LIBELLE FONCTION",
+      p."DAT_FCT",
+      p."LIBELLE LOC",
+      p."LIBELLE REGION",
+      COALESCE(
+        json_agg(
+          json_build_object(
+            'id_emploi', em.id_emploi,
+            'nom_emploi', em.nom_emploi,
+            'codeemploi', em.codeemploi,
+            'entite', em.entite
+          )
+        ) FILTER (WHERE em.id_emploi IS NOT NULL),
+        '[]'
+      ) AS emplois,
+      COALESCE(
+        json_agg(
+          json_build_object(
+            'id_competencea', ec.id_competencea,
+            'code_competencea', c.code_competencea,
+            'competencea', c.competencea,
+            'niveaua', ec.niveaua,
+            'niveau_requis', ecr.niveaur
+          )
+        ) FILTER (WHERE ec.id_competencea IS NOT NULL),
+        '[]'
+      ) AS competences
+    FROM employe e
+    LEFT JOIN profile p ON e.profile_id = p.id_profile
+    LEFT JOIN emploi_employe ee ON e.id_employe = ee.id_employe
+    LEFT JOIN emploi em ON ee.id_emploi = em.id_emploi
+    LEFT JOIN employe_competencea ec ON e.id_employe = ec.id_employe
+    LEFT JOIN competencesa c ON ec.id_competencea = c.id_competencea
+    LEFT JOIN emploi_competencer ecr ON c.code_competencea = (
+      SELECT cr.code_competencer 
+      FROM competencesr cr 
+      WHERE cr.id_competencer = ecr.id_competencer
+    ) AND ecr.id_emploi = ee.id_emploi
+    WHERE e.id_employe = $1
+    GROUP BY e.id_employe, p.id_profile
+  `;
 
     try {
         const result = await pool.query(query, [id]);
         if (result.rows.length === 0) return null;
 
         const row = result.rows[0];
+
+        function formatDateOnly(date) {
+            if (!date) return null;
+            const d = new Date(date);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        }
+
         return {
             id: row.id_employe.toString(),
             nom_complet: row.nom_complet,
@@ -246,18 +253,18 @@ async function getEmployeeById(id) {
                 id_profile: row.id_profile,
                 NOM_PRENOM: row["NOM PRENOM"],
                 ADRESSE: row["ADRESSE"],
-                DATE_NAISS: row["DATE NAISS"],
-                DAT_REC: row["DAT_REC"],
+                DATE_NAISS: formatDateOnly(row["DATE NAISS"]),
+                DAT_REC: formatDateOnly(row["DAT_REC"]),
                 CIN: row["CIN"],
                 DETACHE: row["DETACHE"],
                 SEXE: row["SEXE"],
                 SIT_F_AG: row["SIT_F_AG"],
                 STATUT: row["STATUT"],
-                DAT_POS: row["DAT_POS"],
+                DAT_POS: formatDateOnly(row["DAT_POS"]), // Ensure DAT_POS is formatted
                 LIBELLE_GRADE: row["LIBELLE GRADE"],
                 GRADE_ASSIMILE: row["GRADE ASSIMILE"],
                 LIBELLE_FONCTION: row["LIBELLE FONCTION"],
-                DAT_FCT: row["DAT_FCT"],
+                DAT_FCT: formatDateOnly(row["DAT_FCT"]),
                 LIBELLE_LOC: row["LIBELLE LOC"],
                 LIBELLE_REGION: row["LIBELLE REGION"],
             } : null,
@@ -397,6 +404,8 @@ async function updateEmployee(id, employeeData) {
             RETURNING *
         `;
 
+        console.log("🔥 SQL updateEmployee executing for ID:", id);
+
         const employeeValues = [
             data.nom_complet || null,
             data.email || null,
@@ -418,6 +427,8 @@ async function updateEmployee(id, employeeData) {
         }
 
         if (profile) {
+            console.log(profile);
+
             if (data.profile_id) {
                 const updateProfileQuery = `
                     UPDATE profile 
@@ -447,6 +458,7 @@ async function updateEmployee(id, employeeData) {
                     data.profile_id,
                 ];
                 await client.query(updateProfileQuery, profileValues);
+                console.log("📅 Updating DAT_POS with value:", profile.DAT_POS);
             } else {
                 const checkProfileQuery = `
                     SELECT id_profile FROM profile WHERE id_profile = (SELECT profile_id FROM employe WHERE id_employe = $1)

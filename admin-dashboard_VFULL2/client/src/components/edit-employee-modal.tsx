@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "./ui/input.tsx";
 import { Label } from "./ui/label.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.tsx";
-import { ChevronLeft, ChevronRight, Edit, UserPlus, X, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, Edit, UserPlus, X, Check, ChevronDown } from "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command.tsx";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover.tsx";
 import { useUpdateEmployee } from "../hooks/useEmployees";
@@ -15,6 +15,8 @@ import { useSkills } from "../hooks/useSkills";
 import { Employee, Competence, Emploi, Profile } from "../types/employee";
 import { useToast } from "../hooks/use-toast.ts";
 import api from "../services/api.js";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 interface EditEmployeeModalProps {
   employee: Employee;
@@ -35,17 +37,17 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
     DATE_NAISS: employee.profile?.DATE_NAISS || null,
     DAT_REC: employee.profile?.DAT_REC || null,
     CIN: employee.cin || null,
-    DETACHE: null,
-    SEXE: null,
-    SIT_F_AG: null,
-    STATUT: null,
-    DAT_POS: null,
-    LIBELLE_GRADE: null,
-    GRADE_ASSIMILE: null,
-    LIBELLE_FONCTION: null,
-    DAT_FCT: null,
-    LIBELLE_LOC: null,
-    LIBELLE_REGION: null,
+    DETACHE: employee.profile?.DETACHE || null,
+    SEXE: employee.profile?.SEXE || null,
+    SIT_F_AG: employee.profile?.SIT_F_AG || null,
+    STATUT: employee.profile?.STATUT || null,
+    DAT_POS: employee.profile?.DAT_POS || null,
+    LIBELLE_GRADE: employee.profile?.LIBELLE_GRADE || null,
+    GRADE_ASSIMILE: employee.profile?.GRADE_ASSIMILE || null,
+    LIBELLE_FONCTION: employee.profile?.LIBELLE_FONCTION || null,
+    DAT_FCT: employee.profile?.DAT_FCT || null,
+    LIBELLE_LOC: employee.profile?.LIBELLE_LOC || null,
+    LIBELLE_REGION: employee.profile?.LIBELLE_REGION || null,
   });
 
   const [formData, setFormData] = useState<Partial<Employee>>({
@@ -135,7 +137,6 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
           });
         }
       } else {
-        // Si pas d'emplois, toutes les compétences vont dans additionalJobSkills
         setRequiredSkills([]);
         setAdditionalJobSkills(
           employee.competences.map((skill) => ({
@@ -149,12 +150,16 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
   }, [formData.emplois, employee.competences, toast]);
 
   useEffect(() => {
-  console.log("formData.emplois:", formData.emplois);
-}, [formData.emplois]);
+    console.log("formData.emplois:", formData.emplois);
+  }, [formData.emplois]);
 
   useEffect(() => {
     setFormData((prev) => ({ ...prev, nom_complet: profileData["NOM PRENOM"] || "" }));
   }, [profileData["NOM PRENOM"]]);
+
+  useEffect(() => {
+    console.log("Formatted DAT_POS value:", profileData.DAT_POS);
+  }, [profileData.DAT_POS]);
 
   const emailExists = async (email: string) => {
     try {
@@ -371,6 +376,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
 
     const finalData = {
       id: formData.id_employe,
+      profile_id: employee.profile?.id_profile,
       ...formData,
       cin: profileData.CIN || undefined,
       emplois: formData.emplois?.map((job) => ({ id_emploi: job.id_emploi })) || [],
@@ -434,17 +440,17 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
       DATE_NAISS: employee.profile?.DATE_NAISS || null,
       DAT_REC: employee.profile?.DAT_REC || null,
       CIN: employee.cin || null,
-      DETACHE: null,
-      SEXE: null,
-      SIT_F_AG: null,
-      STATUT: null,
-      DAT_POS: null,
-      LIBELLE_GRADE: null,
-      GRADE_ASSIMILE: null,
-      LIBELLE_FONCTION: null,
-      DAT_FCT: null,
-      LIBELLE_LOC: null,
-      LIBELLE_REGION: null,
+      DETACHE: employee.profile?.DETACHE || null,
+      SEXE: employee.profile?.SEXE || null,
+      SIT_F_AG: employee.profile?.SIT_F_AG || null,
+      STATUT: employee.profile?.STATUT || null,
+      DAT_POS: employee.profile?.DAT_POS || null,
+      LIBELLE_GRADE: employee.profile?.LIBELLE_GRADE || null,
+      GRADE_ASSIMILE: employee.profile?.GRADE_ASSIMILE || null,
+      LIBELLE_FONCTION: employee.profile?.LIBELLE_FONCTION || null,
+      DAT_FCT: employee.profile?.DAT_FCT || null,
+      LIBELLE_LOC: employee.profile?.LIBELLE_LOC || null,
+      LIBELLE_REGION: employee.profile?.LIBELLE_REGION || null,
     });
     setRequiredSkills([]);
     setAdditionalJobSkills([]);
@@ -546,7 +552,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                   value={
                     profileData.DATE_NAISS
                       ? new Date(profileData.DATE_NAISS).toISOString().split("T")[0]
-                      : ""
+                      : profileData.DATE_NAISS || ""
                   }
                   onChange={(e) => handleProfileInputChange("DATE_NAISS", e.target.value)}
                 />
@@ -563,7 +569,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
               <div className="space-y-2">
                 <Label htmlFor="sexe">Sexe</Label>
                 <Select
-                  value={employee.profile?.SEXE || ""}
+                  value={profileData.SEXE || employee.profile?.SEXE || ""}
                   onValueChange={(value) => handleProfileInputChange("SEXE", value)}
                 >
                   <SelectTrigger>
@@ -578,7 +584,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
               <div className="space-y-2">
                 <Label htmlFor="sit_f_ag">Situation familiale</Label>
                 <Select
-                  value={employee.profile?.SIT_F_AG || ""}
+                  value={profileData.SIT_F_AG || employee.profile?.SIT_F_AG || ""}
                   onValueChange={(value) => handleProfileInputChange("SIT_F_AG", value)}
                 >
                   <SelectTrigger>
@@ -595,7 +601,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
               <div className="space-y-2">
                 <Label htmlFor="detache">Détaché</Label>
                 <Select
-                  value={employee.profile?.DETACHE || ""}
+                  value={profileData.DETACHE || employee.profile?.DETACHE || ""}
                   onValueChange={(value) => handleProfileInputChange("DETACHE", value)}
                 >
                   <SelectTrigger>
@@ -610,7 +616,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
               <div className="space-y-2">
                 <Label htmlFor="statut">Statut</Label>
                 <Select
-                  value={employee.profile?.STATUT || ""}
+                  value={profileData.STATUT || employee.profile?.STATUT || ""}
                   onValueChange={(value) => handleProfileInputChange("STATUT", value)}
                 >
                   <SelectTrigger>
@@ -627,7 +633,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                 <Input
                   id="dat_rec"
                   type="date"
-                  value={profileData.DAT_REC ? new Date(profileData.DAT_REC).toISOString().split("T")[0] : "" }
+                  value={profileData.DAT_REC ? new Date(profileData.DAT_REC).toISOString().split("T")[0] : profileData.DAT_REC || "" }
                   onChange={(e) => handleProfileInputChange("DAT_REC", e.target.value)}
                 />
               </div>
@@ -714,21 +720,34 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                   </Select>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="dat_pos">Date de prise de poste</Label>
-                <Input
-                  id="dat_pos"
-                  type="date"
-                  value={employee.profile?.["DAT_POS"] ? new Date(employee.profile?.["DAT_POS"]).toISOString().split("T")[0] : "" }
-                  onChange={(e) => handleProfileInputChange("DAT_POS", e.target.value)}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="dat_pos">Date de prise de poste</Label>
+                  <div>
+                    <DatePicker
+                      selected={profileData.DAT_POS ? new Date(profileData.DAT_POS) : null}
+                      onChange={(date) => handleProfileInputChange("DAT_POS", date ? date.toISOString().split('T')[0] : null)}
+                      dateFormat="yyyy-MM-dd"
+                      customInput={<Input id="dat_pos" className="w-72" />}
+                    />
+                  </div>
+                </div>
+                  <div className="space-y-2">
+                  <Label htmlFor="dat_fct">Date de fonction</Label>
+                  <Input
+                    id="dat_fct"
+                    type="date"
+                    value={employee.profile?.["DAT_FCT"] ? new Date(employee.profile?.["DAT_FCT"]).toISOString().split("T")[0] : profileData.DAT_FCT || ""}
+                    onChange={(e) => handleProfileInputChange("DAT_FCT", e.target.value)}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="libelle_grade">Libellé Grade</Label>
                 <Input
                   id="libelle_grade"
                   placeholder="Entrez le libellé du grade"
-                  value={employee.profile?.LIBELLE_GRADE || ""}
+                  value={employee.profile?.LIBELLE_GRADE || profileData.LIBELLE_GRADE || ""}
                   onChange={(e) => handleProfileInputChange("LIBELLE_GRADE", e.target.value)}
                 />
               </div>
@@ -737,7 +756,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                 <Input
                   id="grade_assimile"
                   placeholder="Entrez le grade assimilé"
-                  value={employee.profile?.GRADE_ASSIMILE || ""}
+                  value={employee.profile?.GRADE_ASSIMILE || profileData.GRADE_ASSIMILE || ""}
                   onChange={(e) => handleProfileInputChange("GRADE_ASSIMILE", e.target.value)}
                 />
               </div>
@@ -746,25 +765,17 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                 <Input
                   id="libelle_fonction"
                   placeholder="Entrez le libellé de la fonction"
-                  value={employee.profile?.LIBELLE_FONCTION || ""}
+                  value={employee.profile?.LIBELLE_FONCTION || profileData.LIBELLE_FONCTION || ""}
                   onChange={(e) => handleProfileInputChange("LIBELLE_FONCTION", e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="dat_fct">Date de fonction</Label>
-                <Input
-                  id="dat_fct"
-                  type="date"
-                  value={employee.profile?.["DAT_FCT"] ? new Date(employee.profile?.["DAT_FCT"]).toISOString().split("T")[0] : ""}
-                  onChange={(e) => handleProfileInputChange("DAT_FCT", e.target.value)}
-                />
-              </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="libelle_loc">Localisation</Label>
                 <Input
                   id="libelle_loc"
                   placeholder="Entrez la localisation"
-                  value={employee.profile?.LIBELLE_LOC || ""}
+                  value={employee.profile?.LIBELLE_LOC || profileData.LIBELLE_LOC || ""}
                   onChange={(e) => handleProfileInputChange("LIBELLE_LOC", e.target.value)}
                 />
               </div>
@@ -773,7 +784,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                 <Input
                   id="libelle_region"
                   placeholder="Entrez la région"
-                  value={employee.profile?.LIBELLE_REGION || ""}
+                  value={employee.profile?.LIBELLE_REGION || profileData.LIBELLE_REGION || ""}
                   onChange={(e) => handleProfileInputChange("LIBELLE_REGION", e.target.value)}
                 />
               </div>
@@ -920,7 +931,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                       onClick={() => toggleSkillSection('required')}
                     >
                       Compétences requises pour l'emploi
-                      <span>{skillSectionsOpen.required ? '▼' : '▶'}</span>
+                      <span>{skillSectionsOpen.required ? <ChevronDown /> : <ChevronRight />}</span>
                     </h4>
                     {skillSectionsOpen.required && requiredSkills.map((skill) => (
                       <div
@@ -960,7 +971,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                       onClick={() => toggleSkillSection('additional')}
                     >
                       Compétences hors emploi
-                      <span>{skillSectionsOpen.additional ? '▼' : '▶'}</span>
+                      <span>{skillSectionsOpen.additional ? <ChevronDown /> : <ChevronRight />}</span>
                     </h4>
                     {skillSectionsOpen.additional && additionalJobSkills.map((skill) => (
                       <div
@@ -1008,7 +1019,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                       onClick={() => toggleSkillSection('complementary')}
                     >
                       Autres compétences
-                      <span>{skillSectionsOpen.complementary ? '▼' : '▶'}</span>
+                      <span>{skillSectionsOpen.complementary ? <ChevronDown /> : <ChevronRight />}</span>
                     </h4>
                     {skillSectionsOpen.complementary && complementarySkills.map((skill) => (
                       <div
