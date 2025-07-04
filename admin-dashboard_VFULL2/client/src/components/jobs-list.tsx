@@ -45,7 +45,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/t
 import { useJobs, useArchiveJob, useUnarchiveJob } from "../hooks/useJobs";
 import { Job } from "../types/job.ts";
 import clsx from "clsx";
-import CompetencesRByLevel from "./CompetencesRByLevel.tsx";
 
 interface Filter {
   type: string;
@@ -217,6 +216,21 @@ export function JobsList() {
         return "bg-gray-50 text-gray-700 border-gray-200";
       default:
         return "bg-gray-50 text-gray-700 border-gray-200";
+    }
+  };
+
+  const getLevelColor = (level: number) => {
+    switch (level) {
+      case 4:
+        return "bg-green-100 text-green-800 border-green-200";
+      case 3:
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case 2:
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case 1:
+        return "bg-red-100 text-red-800 border-red-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
@@ -563,7 +577,26 @@ export function JobsList() {
                                           </h4>
                                           <div className="mt-12">
                                             {(job.required_skills && job.required_skills.length > 0) ? (
-                                              <CompetencesRByLevel competences={job.required_skills} />
+                                              <ul className="space-y-3">
+                                                {job.required_skills.map((comp) => (
+                                                  <li
+                                                    key={comp.id_competencer}
+                                                    className="flex items-center gap-3 border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition transform hover:-translate-y-0.5 cursor-default"
+                                                  >
+                                                    <div className="flex items-center gap-2 w-full">
+                                                      <Badge 
+                                                        className={clsx(
+                                                          "font-bold",
+                                                          getLevelColor(comp.niveaur)
+                                                        )}
+                                                      >
+                                                        Niveau {comp.niveaur}
+                                                      </Badge>
+                                                      <span className="text-gray-800 font-medium">{comp.competencer}</span>
+                                                    </div>
+                                                  </li>
+                                                ))}
+                                              </ul>
                                             ) : (
                                               <span className="text-gray-400 italic">Aucune compétence</span>
                                             )}
