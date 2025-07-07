@@ -694,11 +694,11 @@ export function JobsList() {
                                                     key={comp.id_competencer}
                                                     className="flex items-center gap-3 border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition transform hover:-translate-y-0.5 cursor-default"
                                                   >
-                                                    <div className="flex items-center gap-2 w-full">
+                                                    <div className="flex items-center justify-between gap-2 w-full">
+                                                      <span className="text-gray-800 font-medium">{comp.competencer}</span>
                                                       <Badge className={clsx("font-bold", getLevelColor(comp.niveaur))}>
                                                         Niveau {comp.niveaur}
                                                       </Badge>
-                                                      <span className="text-gray-800 font-medium">{comp.competencer}</span>
                                                     </div>
                                                   </li>
                                                 ))}
