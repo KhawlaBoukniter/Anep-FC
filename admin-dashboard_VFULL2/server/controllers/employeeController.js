@@ -207,6 +207,7 @@ async function login(req, res) {
         console.log("Login successful, token generated for:", email);
 
         const redirectUrl = user.role === 'admin' ? '/dashboard' : `/profile/${user.id}`;
+        console.log(redirectUrl);
 
         res.json({
             token,

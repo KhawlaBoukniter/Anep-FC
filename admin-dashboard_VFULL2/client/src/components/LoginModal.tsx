@@ -48,29 +48,34 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
     };
 
     const handlePasswordSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsLoading(true);
-        setError("");
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
 
-        try {
-            const response = await fetch("/api/employees/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password }),
-            });
-            if (!response.ok) {
-                throw new Error("Mot de passe incorrect");
-            }
-            const { token, user, redirectUrl }: LoginResponse = await response.json();
-            localStorage.setItem("token", token);
-            onLoginSuccess({ id: user.id, email: user.email, role: user.role });
-            navigate(redirectUrl);
-        } catch (err) {
-            setError("Mot de passe incorrect ou erreur serveur");
-        } finally {
-            setIsLoading(false);
+    try {
+        const response = await fetch("/api/employees/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+        });
+        if (!response.ok) {
+            throw new Error("Mot de passe incorrect");
         }
-    };
+        const data = await response.json();
+        console.log("Raw login response:", data); // Log the raw response
+        const { token, user, redirectUrl }: LoginResponse = data;
+        console.log("Parsed login response:", { token, user, redirectUrl });
+        console.log("User role:", user.role);
+        localStorage.setItem("token", token);
+        onLoginSuccess({ id: user.id, email: user.email, role: user.role });
+        const targetUrl = user.role === "admin" ? "/dashboard" : redirectUrl;
+        navigate(targetUrl);
+    } catch (err) {
+        setError("Mot de passe incorrect ou erreur serveur");
+    } finally {
+        setIsLoading(false);
+    }
+};
 
     const handleNewPasswordSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
