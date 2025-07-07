@@ -63,10 +63,21 @@ const getCourseById = async (req, res) => {
 const createCourse = async (req, res) => {
     console.log('Received data for new course:', req.body);
     try {
-        const course = new Course(req.body);
-        if (req.file) {
-            course.image = req.file.path; // Assuming you're handling file uploads with multer or similar
+        const { times } = req.body;
+        for (const session of times) {
+            for (const dateRange of session.dateRanges) {
+                const start = new Date(dateRange.startTime);
+                const end = new Date(dateRange.endTime);
+                if (isNaN(start) || isNaN(end)) {
+                    return res.status(400).json({ message: 'Invalid date format in dateRanges' });
+                }
+                if (start >= end) {
+                    return res.status(400).json({ message: 'startTime must be before endTime in dateRanges' });
+                }
+            }
         }
+
+        const course = new Course(req.body);
         await course.save();
         res.status(201).json(course);
     } catch (error) {
@@ -122,16 +133,18 @@ const deleteCourse = async (req, res) => {
     }
 };
 const hasTimeConflict = (course1, course2) => {
-    for (let time1 of course1.times) {
-        for (let time2 of course2.times) {
-            if (time1.day === time2.day) {
-                const start1 = new Date(`1970-01-01T${time1.startTime}`);
-                const end1 = new Date(`1970-01-01T${time1.endTime}`);
-                const start2 = new Date(`1970-01-01T${time2.startTime}`);
-                const end2 = new Date(`1970-01-01T${time2.endTime}`);
+    for (let session1 of course1.times) {
+        for (let session2 of course2.times) {
+            for (let range1 of session1.dateRanges) {
+                for (let range2 of session2.dateRanges) {
+                    const start1 = new Date(range1.startTime);
+                    const end1 = new Date(range1.endTime);
+                    const start2 = new Date(range2.startTime);
+                    const end2 = new Date(range2.endTime);
 
-                if ((start1 < end2 && end1 > start2) || (start2 < end1 && end2 > start1)) {
-                    return true;
+                    if ((start1 < end2 && end1 > start2) || (start2 < end1 && end2 > start1)) {
+                        return true;
+                    }
                 }
             }
         }
