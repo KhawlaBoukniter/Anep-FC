@@ -24,7 +24,7 @@ const getAllCourses = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
-// // Get a single course by ID
+// Get a single course by ID
 // const getCourseNameById = async (req, res) => {
 //     const { courseId } = req.params;
 
@@ -45,6 +45,7 @@ const getCourseById = async (req, res) => {
     try {
         const course = await Course.findById(req.params.id)
             .populate('interestedUsers', '_id name')
+            .populate('assignedUsers', '_id name')
             .exec();
 
         if (!course) {
@@ -88,11 +89,26 @@ const createCourse = async (req, res) => {
 
 // Update an existing course
 const updateCourse = async (req, res) => {
-    const { assignedUsers, ...updateData } = req.body;
+    const { assignedUsers, times, ...updateData } = req.body;
     try {
         const courseToUpdate = await Course.findById(req.params.id);
         if (!courseToUpdate) {
             return res.status(404).json({ message: 'Course not found' });
+        }
+
+        if (times) {
+            for (const session of times) {
+                for (const dateRange of session.dateRanges) {
+                    const start = new Date(dateRange.startTime);
+                    const end = new Date(dateRange.endTime);
+                    if (isNaN(start) || isNaN(end)) {
+                        return res.status(400).json({ message: 'Invalid date format in dateRanges' });
+                    }
+                    if (start >= end) {
+                        return res.status(400).json({ message: 'startTime must be before endTime in dateRanges' });
+                    }
+                }
+            }
         }
 
         // Handle assigned users
@@ -132,6 +148,7 @@ const deleteCourse = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
 const hasTimeConflict = (course1, course2) => {
     for (let session1 of course1.times) {
         for (let session2 of course2.times) {
@@ -236,7 +253,7 @@ const getCoursesByUserId = async (req, res) => {
                 { assignedUsers: userId },
                 { interestedUsers: userId }
             ]
-        });
+        }).populate('assignedUsers interestedUsers');
 
         res.status(200).json(courses);
     } catch (error) {

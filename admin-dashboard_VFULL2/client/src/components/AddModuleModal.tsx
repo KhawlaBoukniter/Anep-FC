@@ -427,14 +427,14 @@ export function AddModuleModal({ onCourseCreated }) {
   };
 
   const handleNextStep = () => {
-    if (!course.title || !course.location || !course.category || !course.offline || !course.hidden || !course.budget || !course.image) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Veuillez remplir tous les champs obligatoires avant de continuer.",
-      });
-      return;
-    }
+    // if (!course.title || !course.location || !course.category || !course.offline || !course.hidden || !course.budget || !course.image) {
+    //   toast({
+    //     variant: "destructive",
+    //     title: "Erreur",
+    //     description: "Veuillez remplir tous les champs obligatoires avant de continuer.",
+    //   });
+    //   return;
+    // }
     setCurrentStep((prev) => prev + 1);
   };
 

@@ -23,23 +23,22 @@ import { useProfilesPG } from "../hooks/useProfilesPG.ts";
 interface Course {
   _id: string;
   title: string;
-  offline: "online" | "offline" | "hybrid"; 
+  offline: "online" | "offline" | "hybrid";
   description: string;
   hidden: "visible" | "hidden";
   budget: number;
   location: string;
   imageUrl: string;
-  notification: any[]; 
+  notification: any[];
   times: {
-    startTime: string;
-    endTime: string;
+    dateRanges: { startTime: string; endTime: string }[];
     instructorType: "intern" | "extern";
     instructor: string;
     instructorName: string;
     externalInstructorDetails: {
       phone: string;
       position: string;
-      cv: File | null;
+      cv: File | null | string;
     };
   }[];
   image: File | null;
@@ -49,7 +48,7 @@ interface Course {
 
 interface Profile {
   id_profile: number;
-  name: string; 
+  name: string;
   "NOM PRENOM": string;
   ADRESSE: string | null;
   DATE_NAISS: string | null;
@@ -85,8 +84,6 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
   const [openUserPopover, setOpenUserPopover] = useState(false);
   const userInputRef = useRef<HTMLInputElement>(null);
 
- 
-
   const [course, setCourse] = useState<Partial<Course>>({
     _id: module._id,
     title: module.title,
@@ -97,7 +94,10 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     hidden: module.hidden,
     budget: module.budget,
     notification: module.notification,
-    times: module.times,
+    times: module.times.map((time) => ({
+      ...time,
+      dateRanges: time.dateRanges || [{ startTime: time.startTime || "", endTime: time.endTime || "" }],
+    })),
     image: module.image,
     assignedUsers: module.assignedUsers,
     interestedUsers: module.interestedUsers,
@@ -144,7 +144,6 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
           id: profile.id_profile,
         }))
       );
-      console.log(profiles)
       if (module.assignedUsers?.length || module.interestedUsers?.length) {
         const mapUsers = (userIds: string[] | Profile[]): Profile[] => {
           return (Array.isArray(userIds) ? userIds : []).map((id) => {
@@ -160,33 +159,31 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     }
   }, [profiles, module]);
 
-  // useEffect(() => {
-  //   if (course.interestedUsers) {
-  //     setInterestedUsers(course.interestedUsers);
-  //   }
-  // }, [course]);
-  
-  // useEffect(() => {
-  //   if (profiles.length) {
-  //     setUsers(profiles);
-  //     setInternalInstructors(
-  //       profiles.map((profile) => ({
-  //         label: profile["NOM PRENOM"],
-  //         id: profile.id_profile,
-  //       }))
-  //     );
-  //   }
-  // }, [profiles]);
-
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "L'image ne doit pas dépasser 5 Mo.",
+        });
+        return;
+      }
+      if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Seuls les formats JPEG, PNG et GIF sont acceptés.",
+        });
+        return;
+      }
       setCourse((prev) => ({
         ...prev,
         image: Object.assign(file, { preview: URL.createObjectURL(file) }),
       }));
     }
-  }, []);
+  }, [toast]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
@@ -212,9 +209,50 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
       updatedTimes[index].instructor = value?.id.toString() || "";
       updatedTimes[index].instructorName = value?.label || "";
     } else if (isExternalDetail) {
+      if (field === "cv" && value) {
+        if (value.size > 5 * 1024 * 1024) {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Le CV ne doit pas dépasser 5 Mo.",
+          });
+          return;
+        }
+        if (!['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(value.type)) {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Seuls les formats PDF et Word sont acceptés pour le CV.",
+          });
+          return;
+        }
+      }
       updatedTimes[index].externalInstructorDetails[field] = value;
     } else {
       updatedTimes[index][field] = value;
+    }
+    setCourse((prev) => ({ ...prev, times: updatedTimes }));
+  };
+
+  const handleDateRangeChange = (sessionIndex: number, dateRangeIndex: number, field: string, value: string) => {
+    const updatedTimes = [...course.times];
+    updatedTimes[sessionIndex].dateRanges[dateRangeIndex][field] = value;
+    setCourse((prev) => ({ ...prev, times: updatedTimes }));
+  };
+
+  const handleAddDateRange = (sessionIndex: number) => {
+    const updatedTimes = [...course.times];
+    updatedTimes[sessionIndex].dateRanges.push({ startTime: "", endTime: "" });
+    setCourse((prev) => ({ ...prev, times: updatedTimes }));
+  };
+
+  const handleRemoveDateRange = (sessionIndex: number, dateRangeIndex: number) => {
+    const updatedTimes = [...course.times];
+    updatedTimes[sessionIndex].dateRanges = updatedTimes[sessionIndex].dateRanges.filter(
+      (_, i) => i !== dateRangeIndex
+    );
+    if (updatedTimes[sessionIndex].dateRanges.length === 0) {
+      updatedTimes[sessionIndex].dateRanges.push({ startTime: "", endTime: "" });
     }
     setCourse((prev) => ({ ...prev, times: updatedTimes }));
   };
@@ -223,10 +261,9 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     setCourse((prev) => ({
       ...prev,
       times: [
-        ...prev.times,
+        ...(prev.times || []),
         {
-          startTime: "",
-          endTime: "",
+          dateRanges: [{ startTime: "", endTime: "" }],
           instructorType: "intern",
           instructor: "",
           instructorName: "",
@@ -237,10 +274,10 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
   };
 
   const handleDuplicateSession = (index: number) => {
-    const session = course.times![index];
+    const session = { ...course.times[index], dateRanges: [...course.times[index].dateRanges] };
     setCourse((prev) => ({
       ...prev,
-      times: [...(prev.times || []), { ...session }],
+      times: [...(prev.times || []), session],
     }));
   };
 
@@ -262,13 +299,13 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     profiles.forEach((profile) => {
       const rawValue =
         field === "fonction"
-          ? profile["LIBELLE FONCTION"]
+          ? profile["LIBELLE_FONCTION"]
           : field === "localite"
-          ? profile["LIBELLE LOC"]
+          ? profile["LIBELLE_LOC"]
           : field === "gradeAssimile"
-          ? profile["GRADE ASSIMILE"]
+          ? profile["GRADE_ASSIMILE"]
           : field === "region"
-          ? profile["LIBELLE REGION"]
+          ? profile["LIBELLE_REGION"]
           : null;
 
       if (rawValue && !uniqueSet.has(rawValue)) {
@@ -280,17 +317,16 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     return options;
   };
 
-
   const filteredUsers = users.filter(
     (user) =>
-      (!filter.fonction || filter.fonction.label === "All" || user["LIBELLE FONCTION"] === filter.fonction?.label) &&
-      (!filter.localite || filter.localite.label === "All" || user["LIBELLE LOC"] === filter.localite?.label) &&
-      (!filter.gradeAssimile || filter.gradeAssimile.label === "All" || user["GRADE ASSIMILE"] === filter.gradeAssimile?.label) &&
-      (!filter.region || filter.region.label === "All" || user["LIBELLE REGION"] === filter.region?.label) &&
+      (!filter.fonction || filter.fonction.label === "All" || user["LIBELLE_FONCTION"] === filter.fonction?.label) &&
+      (!filter.localite || filter.localite.label === "All" || user["LIBELLE_LOC"] === filter.localite?.label) &&
+      (!filter.gradeAssimile || filter.gradeAssimile.label === "All" || user["GRADE_ASSIMILE"] === filter.gradeAssimile?.label) &&
+      (!filter.region || filter.region.label === "All" || user["LIBELLE_REGION"] === filter.region?.label) &&
       !assignedUsers.some((assignedUser) => assignedUser.id_profile === user.id_profile)
   );
 
-  const checkConflicts = (userId: string, startTime: string, endTime: string) => {
+  const checkConflicts = (userId: string) => {
     const user = users.find((user) => user.id_profile.toString() === userId);
     if (!user) return null;
 
@@ -301,13 +337,24 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
           : [];
         if (assignedUserIds.includes(userId)) {
           for (const time of course.times) {
-            if (
-              (new Date(startTime) >= new Date(time.startTime) &&
-                new Date(startTime) <= new Date(time.endTime)) ||
-              (new Date(endTime) >= new Date(time.startTime) &&
-                new Date(endTime) <= new Date(time.endTime))
-            ) {
-              return { type: "course", course };
+            for (const range of time.dateRanges) {
+              for (const session of module.times) {
+                for (const moduleRange of session.dateRanges) {
+                  const start1 = new Date(moduleRange.startTime);
+                  const end1 = new Date(moduleRange.endTime);
+                  const start2 = new Date(range.startTime);
+                  const end2 = new Date(range.endTime);
+
+                  if (
+                    (start1 >= start2 && start1 <= end2) ||
+                    (end1 >= start2 && end1 <= end2) ||
+                    (start2 >= start1 && start2 <= end1) ||
+                    (end2 >= start1 && end2 <= end1)
+                  ) {
+                    return { type: "course", course };
+                  }
+                }
+              }
             }
           }
         }
@@ -341,119 +388,164 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
   };
 
   const handleSubmit = async () => {
-  if (
-    !course.title ||
-    !["online", "offline", "hybrid"].includes(course.offline || "") ||
-    !["visible", "hidden"].includes(course.hidden || "") ||
-    course.budget == null ||
-    !course.location ||
-    !course.times?.length
-  ) {
-    toast({
-      variant: "destructive",
-      title: "Erreur",
-      description: "Veuillez remplir tous les champs obligatoires avec des valeurs valides.",
-    });
-    return;
-  }
-  for (const time of course.times || []) {
-    if (!time.startTime || !time.endTime || !time.instructorName) {
+    // Validation
+    if (
+      !course.title ||
+      !["online", "offline", "hybrid"].includes(course.offline || "") ||
+      !["visible", "hidden"].includes(course.hidden || "") ||
+      course.budget == null ||
+      !course.location ||
+      !course.times?.length
+    ) {
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Tous les créneaux doivent avoir une heure de début, de fin et un instructeur.",
+        description: "Veuillez remplir tous les champs obligatoires avec des valeurs valides.",
       });
       return;
     }
-  }
-
-  const courseData = {
-    ...course,
-    assignedUsers: assignedUsers.map((user) => user.id_profile.toString()), // Temporary placeholder
-  };
-
-  try {
-    // Step 1: Map id_profile to User._id
-    const profileIds = assignedUsers.map((user) => user.id_profile);
-    console.log("Sending profileIds to map:", profileIds); // Debug log
-    const userMappingResponse = await useApiAxios.post("/users/map-by-profile-ids", {
-      profileIds,
-    });
-    console.log("User Mapping Response:", userMappingResponse.data); // Debug log
-    const mappedUserIds = userMappingResponse.data.map((item: { userId: string }) => item.userId);
-
-    if (mappedUserIds.length !== profileIds.length) {
-      console.warn("Mismatch detected:", {
-        sent: profileIds.length,
-        received: mappedUserIds.length,
-        missing: profileIds.filter((id) => !mappedUserIds.includes(id.toString())),
-      });
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Certains profils n'ont pas d'utilisateurs correspondants. Veuillez synchroniser les données ou contacter l'administrateur.",
-      });
-      return;
-    }
-
-    courseData.assignedUsers = mappedUserIds; // Update with valid ObjectId strings
-
-    if (course.image) {
-      const formData = new FormData();
-      formData.append("image", course.image);
-      course.times.forEach((session, index) => {
-        if (session.externalInstructorDetails?.cv) {
-          formData.append(`cv_${index}`, session.externalInstructorDetails.cv);
-        }
-      });
-
-      const imageUploadResponse = await useApiAxios.post("/courses/uploadImage", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      if (imageUploadResponse.status === 200) {
-        courseData.imageUrl = imageUploadResponse.data.imageUrl;
-      } else {
+    for (const time of course.times || []) {
+      if (!time.instructorName) {
         toast({
           variant: "destructive",
           title: "Erreur",
-          description: `Échec du téléchargement de l'image: ${imageUploadResponse.status}`,
+          description: "Tous les créneaux doivent avoir un instructeur.",
+        });
+        return;
+      }
+      for (const dateRange of time.dateRanges) {
+        if (!dateRange.startTime || !dateRange.endTime) {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Tous les créneaux doivent avoir une heure de début et de fin.",
+          });
+          return;
+        }
+        const start = new Date(dateRange.startTime);
+        const end = new Date(dateRange.endTime);
+        if (isNaN(start) || isNaN(end)) {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Format de date invalide dans les créneaux.",
+          });
+          return;
+        }
+        if (start >= end) {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "L'heure de début doit être avant l'heure de fin pour chaque période.",
+          });
+          return;
+        }
+      }
+      if (time.instructorType === "extern" && !time.externalInstructorDetails.phone) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Un numéro de téléphone est requis pour les instructeurs externes.",
         });
         return;
       }
     }
 
-    for (const user of assignedUsers) {
-      const conflictCourse = checkConflicts(user.id_profile.toString(), course.times[0].startTime, course.times[0].endTime);
-      if (conflictCourse) {
-        await useApiAxios.put(`/courses/${conflictCourse.course._id}`, {
-          ...conflictCourse.course,
-          assignedUsers: (conflictCourse.course.assignedUsers as any[])
-            .map((u) => (typeof u === "string" ? u : u.id_profile.toString()))
-            .filter((u) => u !== user.id_profile.toString()),
+    const courseData = {
+      ...course,
+      assignedUsers: assignedUsers.map((user) => user.id_profile.toString()),
+    };
+
+    try {
+      // Step 1: Map id_profile to User._id
+      const profileIds = assignedUsers.map((user) => user.id_profile);
+      console.log("Sending profileIds to map:", profileIds);
+      const userMappingResponse = await useApiAxios.post("/users/map-by-profile-ids", {
+        profileIds,
+      });
+      console.log("User Mapping Response:", userMappingResponse.data);
+      const mappedUserIds = userMappingResponse.data.map((item: { userId: string }) => item.userId);
+
+      if (mappedUserIds.length !== profileIds.length) {
+        console.warn("Mismatch detected:", {
+          sent: profileIds.length,
+          received: mappedUserIds.length,
+          missing: profileIds.filter((id) => !mappedUserIds.includes(id.toString())),
         });
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Certains profils n'ont pas d'utilisateurs correspondants. Veuillez synchroniser les données ou contacter l'administrateur.",
+        });
+        return;
       }
-    }
 
-    console.log("Sending courseData to update:", courseData); // Debug log
-    await useApiAxios.put(`/courses/${module._id}`, courseData);
-    toast({ title: "Succès", description: "Cours mis à jour avec succès." });
-    setCurrentStep(1);
-    setOpen(false);
+      courseData.assignedUsers = mappedUserIds;
 
-    if (onCourseUpdated) {
-      onCourseUpdated();
+      if (course.image || course.times.some((session) => session.externalInstructorDetails?.cv instanceof File)) {
+        const formData = new FormData();
+        if (course.image) {
+          formData.append("image", course.image);
+        }
+        course.times.forEach((session, index) => {
+          if (session.externalInstructorDetails?.cv instanceof File) {
+            formData.append("cvs", session.externalInstructorDetails.cv);
+          }
+        });
+
+        const imageUploadResponse = await useApiAxios.post("/courses/uploadImage", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        if (imageUploadResponse.status === 200) {
+          courseData.imageUrl = imageUploadResponse.data.imageUrl || course.imageUrl;
+          courseData.times = course.times.map((session, index) => ({
+            ...session,
+            externalInstructorDetails: {
+              ...session.externalInstructorDetails,
+              cv: imageUploadResponse.data.cvUrls && imageUploadResponse.data.cvUrls[index] ? imageUploadResponse.data.cvUrls[index] : session.externalInstructorDetails.cv,
+            },
+          }));
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: `Échec du téléchargement de l'image: ${imageUploadResponse.status}`,
+          });
+          return;
+        }
+      }
+
+      for (const user of assignedUsers) {
+        const conflictCourse = checkConflicts(user.id_profile.toString());
+        if (conflictCourse) {
+          await useApiAxios.put(`/courses/${conflictCourse.course._id}`, {
+            ...conflictCourse.course,
+            assignedUsers: (conflictCourse.course.assignedUsers as any[])
+              .map((u) => (typeof u === "string" ? u : u.id_profile.toString()))
+              .filter((u) => u !== user.id_profile.toString()),
+          });
+        }
+      }
+
+      console.log("Sending courseData to update:", courseData);
+      await useApiAxios.put(`/courses/${module._id}`, courseData);
+      toast({ title: "Succès", description: "Cours mis à jour avec succès." });
+      setCurrentStep(1);
+      setOpen(false);
+
+      if (onCourseUpdated) {
+        onCourseUpdated();
+      }
+    } catch (error) {
+      console.error("Failed to update course", error.response?.data || error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: error.response?.data?.message || "Échec de la mise à jour du cours.",
+      });
     }
-      
-  } catch (error) {
-    console.error("Failed to update course", error.response?.data || error);
-    toast({
-      variant: "destructive",
-      title: "Erreur",
-      description: error.response?.data?.message || "Échec de la mise à jour du cours.",
-    });
-  }
-};
+  };
 
   const handleClose = () => {
     setCourse({
@@ -467,8 +559,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
       notification: [],
       times: [
         {
-          startTime: "",
-          endTime: "",
+          dateRanges: [{ startTime: "", endTime: "" }],
           instructorType: "intern",
           instructor: "",
           instructorName: "",
@@ -492,6 +583,14 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
   };
 
   const handleNextStep = () => {
+    // if (!course.title || !course.location || !course.offline || !course.hidden || course.budget == null) {
+    //   toast({
+    //     variant: "destructive",
+    //     title: "Erreur",
+    //     description: "Veuillez remplir tous les champs obligatoires avant de continuer.",
+    //   });
+    //   return;
+    // }
     setCurrentStep((prev) => prev + 1);
   };
 
@@ -499,7 +598,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     setCurrentStep((prev) => prev - 1);
   };
 
-   if (!module) {
+  if (!module) {
     toast({
       variant: "destructive",
       title: "Erreur",
@@ -507,7 +606,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     });
     return null;
   }
-  
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -587,11 +686,11 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                     isDragActive ? "border-blue-600 bg-blue-50" : "border-gray-300"
                   }`}
                 >
-                  <input {...getInputProps()} />
+                  <input {...getInputProps()} accept="image/jpeg,image/png,image/gif" />
                   <p className="text-gray-600">
                     {isDragActive
                       ? "Déposez l'image ici..."
-                      : "Glissez-déposez une image ici, ou cliquez pour sélectionner"}
+                      : "Glissez-déposez une image ici, ou cliquez pour sélectionner (JPEG, PNG, GIF, max 5 Mo)"}
                   </p>
                 </div>
                 {course.image ? (
@@ -664,35 +763,58 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
           {currentStep === 2 && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Planification</h3>
-              {(course.times || []).map((session, index) => (
-                <div key={index} className="border rounded-lg p-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor={`startTime-${index}`}>Heure de début</Label>
-                      <Input
-                        id={`startTime-${index}`}
-                        type="datetime-local"
-                        value={session.startTime}
-                        onChange={(e) => handleSessionChange(index, "startTime", e.target.value)}
-                        required
-                      />
+              {(course.times || []).map((session, sessionIndex) => (
+                <div key={sessionIndex} className="border rounded-lg p-4 space-y-4">
+                  <h4 className="text-md font-medium">Session {sessionIndex + 1}</h4>
+                  {session.dateRanges.map((dateRange, dateRangeIndex) => (
+                    <div key={dateRangeIndex} className="grid grid-cols-2 gap-4 border-b pb-2">
+                      <div className="space-y-2">
+                        <Label htmlFor={`startTime-${sessionIndex}-${dateRangeIndex}`}>Heure de début</Label>
+                        <Input
+                          id={`startTime-${sessionIndex}-${dateRangeIndex}`}
+                          type="datetime-local"
+                          value={dateRange.startTime}
+                          onChange={(e) =>
+                            handleDateRangeChange(sessionIndex, dateRangeIndex, "startTime", e.target.value)
+                          }
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`endTime-${sessionIndex}-${dateRangeIndex}`}>Heure de fin</Label>
+                        <Input
+                          id={`endTime-${sessionIndex}-${dateRangeIndex}`}
+                          type="datetime-local"
+                          value={dateRange.endTime}
+                          onChange={(e) =>
+                            handleDateRangeChange(sessionIndex, dateRangeIndex, "endTime", e.target.value)
+                          }
+                          required
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveDateRange(sessionIndex, dateRangeIndex)}
+                        className="col-span-2 justify-self-end"
+                      >
+                        <X className="h-4 w-4 text-red-500" />
+                      </Button>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor={`endTime-${index}`}>Heure de fin</Label>
-                      <Input
-                        id={`endTime-${index}`}
-                        type="datetime-local"
-                        value={session.endTime}
-                        onChange={(e) => handleSessionChange(index, "endTime", e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
+                  ))}
+                  <Button
+                    variant="outline"
+                    onClick={() => handleAddDateRange(sessionIndex)}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Ajouter une période
+                  </Button>
                   <div className="space-y-2">
-                    <Label htmlFor={`instructorType-${index}`}>Type d'instructeur</Label>
+                    <Label htmlFor={`instructorType-${sessionIndex}`}>Type d'instructeur</Label>
                     <Select
                       value={session.instructorType}
-                      onValueChange={(value) => handleSessionChange(index, "instructorType", value)}
+                      onValueChange={(value) => handleSessionChange(sessionIndex, "instructorType", value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Sélectionner le type" />
@@ -705,11 +827,11 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                   </div>
                   {session.instructorType === "intern" ? (
                     <div className="space-y-2">
-                      <Label htmlFor={`instructor-${index}`}>Instructeur</Label>
+                      <Label htmlFor={`instructor-${sessionIndex}`}>Instructeur</Label>
                       <Popover
-                        open={openInstructorPopover[index]}
+                        open={openInstructorPopover[sessionIndex]}
                         onOpenChange={(open) =>
-                          setOpenInstructorPopover((prev) => ({ ...prev, [index]: open }))
+                          setOpenInstructorPopover((prev) => ({ ...prev, [sessionIndex]: open }))
                         }
                       >
                         <PopoverTrigger asChild>
@@ -729,7 +851,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                                     key={instructor.id}
                                     value={instructor.label}
                                     onSelect={() =>
-                                      handleSessionChange(index, "instructor", instructor)
+                                      handleSessionChange(sessionIndex, "instructor", instructor)
                                     }
                                   >
                                     <Check
@@ -751,51 +873,55 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                   ) : (
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor={`instructorName-${index}`}>Nom de l'instructeur</Label>
+                        <Label htmlFor={`instructorName-${sessionIndex}`}>Nom de l'instructeur</Label>
                         <Input
-                          id={`instructorName-${index}`}
+                          id={`instructorName-${sessionIndex}`}
                           placeholder="Entrez le nom"
                           value={session.instructorName}
                           onChange={(e) =>
-                            handleSessionChange(index, "instructorName", e.target.value)
+                            handleSessionChange(sessionIndex, "instructorName", e.target.value)
                           }
                           required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor={`phone-${index}`}>Téléphone</Label>
+                        <Label htmlFor={`phone-${sessionIndex}`}>Téléphone</Label>
                         <Input
-                          id={`phone-${index}`}
+                          id={`phone-${sessionIndex}`}
                           placeholder="Entrez le numéro de téléphone"
                           value={session.externalInstructorDetails.phone}
                           onChange={(e) =>
-                            handleSessionChange(index, "phone", e.target.value, true)
+                            handleSessionChange(sessionIndex, "phone", e.target.value, true)
                           }
                           required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor={`position-${index}`}>Poste</Label>
+                        <Label htmlFor={`position-${sessionIndex}`}>Poste</Label>
                         <Input
-                          id={`position-${index}`}
+                          id={`position-${sessionIndex}`}
                           placeholder="Entrez le poste"
                           value={session.externalInstructorDetails.position}
                           onChange={(e) =>
-                            handleSessionChange(index, "position", e.target.value, true)
+                            handleSessionChange(sessionIndex, "position", e.target.value, true)
                           }
-                          required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor={`cv-${index}`}>CV</Label>
+                        <Label htmlFor={`cv-${sessionIndex}`}>CV</Label>
                         <Input
-                          id={`cv-${index}`}
+                          id={`cv-${sessionIndex}`}
                           type="file"
+                          accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                           onChange={(e) =>
-                            handleSessionChange(index, "cv", e.target.files?.[0], true)
+                            handleSessionChange(sessionIndex, "cv", e.target.files?.[0], true)
                           }
-                          required
                         />
+                        {session.externalInstructorDetails.cv && typeof session.externalInstructorDetails.cv === "string" && (
+                          <p className="text-sm text-gray-600">
+                            CV actuel: <a href={`${baseUrl}${session.externalInstructorDetails.cv}`} target="_blank" rel="noopener noreferrer">Télécharger</a>
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -803,14 +929,14 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleRemoveSession(index)}
+                      onClick={() => handleRemoveSession(sessionIndex)}
                     >
                       <X className="h-4 w-4 text-red-500" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleDuplicateSession(index)}
+                      onClick={() => handleDuplicateSession(sessionIndex)}
                     >
                       <Copy className="h-4 w-4 text-blue-500" />
                     </Button>
@@ -916,11 +1042,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                         <CommandEmpty>Aucun utilisateur trouvé.</CommandEmpty>
                         <CommandGroup>
                           {filteredUsers.map((user) => {
-                            const conflict = checkConflicts(
-                              user.id_profile.toString(),
-                              course.times?.[0]?.startTime || "",
-                              course.times?.[0]?.endTime || ""
-                            );
+                            const conflict = checkConflicts(user.id_profile.toString());
                             return (
                               <CommandItem
                                 key={user.id_profile}
