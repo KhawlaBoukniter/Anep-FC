@@ -1,5 +1,5 @@
 import type React from "react";
-import { Link } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import LoginModal from "./LoginModal.tsx";
 
@@ -8,6 +8,7 @@ const Header: React.FC = () => {
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -51,6 +52,7 @@ const Header: React.FC = () => {
         setIsAuthenticated(false);
         setUser(null);
         setIsMobileMenuOpen(false);
+        navigate("/");
     };
 
     return (
