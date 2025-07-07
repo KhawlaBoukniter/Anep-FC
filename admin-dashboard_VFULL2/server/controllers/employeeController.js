@@ -203,9 +203,16 @@ async function login(req, res) {
         if (!user) {
             return res.status(401).json({ message: "Email ou mot de passe incorrect." });
         }
-        const token = jwt.sign({ id: user.id, email: user.email }, SECRET_KEY, { expiresIn: "1h" });
+        const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, SECRET_KEY, { expiresIn: "1h" });
         console.log("Login successful, token generated for:", email);
-        res.json({ token, user: { id: user.id, email: user.email } });
+
+        const redirectUrl = user.role === 'admin' ? '/dashboard' : `/profile/${user.id}`;
+
+        res.json({
+            token,
+            user: { id: user.id, email: user.email, role: user.role },
+            redirectUrl
+        });
     } catch (error) {
         console.error("Controller error in login:", error.stack);
         res.status(500).json({ message: "Erreur serveur.", details: error.message });

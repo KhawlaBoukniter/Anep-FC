@@ -4,7 +4,13 @@ import { useState } from "react";
 
 interface LoginModalProps {
     onClose: () => void;
-    onLoginSuccess: (userData: { id: string; email: string }) => void;
+    onLoginSuccess: (userData: { id: string; email: string; role?: string }) => void;
+}
+
+interface LoginResponse {
+    token: string;
+    user: { id: string; email: string; role: string };
+    redirectUrl: string;
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
@@ -55,10 +61,10 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
             if (!response.ok) {
                 throw new Error("Mot de passe incorrect");
             }
-            const { token, user } = await response.json();
+            const { token, user, redirectUrl }: LoginResponse = await response.json();
             localStorage.setItem("token", token);
-            onLoginSuccess({ id: user.id, email: user.email });
-            navigate("/");
+            onLoginSuccess({ id: user.id, email: user.email, role: user.role });
+            navigate(redirectUrl);
         } catch (err) {
             setError("Mot de passe incorrect ou erreur serveur");
         } finally {
@@ -80,11 +86,11 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
             if (!response.ok) {
                 throw new Error("Erreur lors de l'enregistrement du mot de passe");
             }
-            const { isSaved, token, user } = await response.json();
+            const { isSaved, token, user, redirectUrl }: LoginResponse & { isSaved: boolean } = await response.json();
             if (isSaved) {
                 localStorage.setItem("token", token);
-                onLoginSuccess({ id: user.id, email: user.email });
-                navigate("/");
+                onLoginSuccess({ id: user.id, email: user.email, role: user.role });
+                navigate(redirectUrl);
             } else {
                 setError("Les mots de passe ne correspondent pas");
             }
