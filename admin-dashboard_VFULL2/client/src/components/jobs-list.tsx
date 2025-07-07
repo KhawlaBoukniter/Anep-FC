@@ -27,7 +27,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table.tsx";
+}from "./ui/table.tsx";
 import {
   Eye,
   Search,
@@ -37,12 +37,13 @@ import {
   Archive,
   ArchiveRestore,
   X,
+  File
 } from "lucide-react";
 import { AddJobModal } from "./add-job-modal.tsx";
 import { EditJobModal } from "./edit-job-modal.tsx";
 import { DeleteJobModal } from "./delete-job-modal.tsx";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip.tsx";
-import { useJobs, useArchiveJob, useUnarchiveJob } from "../hooks/useJobs";
+import { useJobs, useArchiveJob, useUnarchiveJob, useImportJobFile } from "../hooks/useJobs";
 import { Job } from "../types/job.ts";
 import clsx from "clsx";
 
@@ -80,12 +81,14 @@ export function JobsList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [unarchiveDialogOpen, setUnarchiveDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [newFilterType, setNewFilterType] = useState("");
   const [newFilterValues, setNewFilterValues] = useState<string[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const [openPopover, setOpenPopover] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
   const jobsPerPage = 10;
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -97,6 +100,7 @@ export function JobsList() {
 
   const { mutate: archiveJob } = useArchiveJob();
   const { mutate: unarchiveJob } = useUnarchiveJob();
+  const { mutate: importJobFile } = useImportJobFile();
 
   const uniqueEntites = useMemo(() => {
     if (!jobs) return [];
@@ -166,6 +170,32 @@ export function JobsList() {
       setUnarchiveDialogOpen(false);
       setSelectedJob(null);
     }
+  };
+
+  const handleImportFile = () => {
+    if (file) {
+      const formData = new FormData();
+      formData.append("file", file);
+      importJobFile(formData, {
+        onSuccess: () => {
+          setImportDialogOpen(false);
+          setFile(null);
+        },
+        onError: (error) => {
+          console.error("Erreur lors de l'importation du fichier:", error);
+        },
+      });
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  const handleViewFile = (filePath: string) => {
+    window.open(filePath, "_blank");
   };
 
   const clearFilter = (filterType: string, value?: string) => {
@@ -414,9 +444,50 @@ export function JobsList() {
                           setFilterDialogOpen(false);
                         }}
                         disabled={!newFilterType || newFilterValues.length === 0}
-                        className="bg-green-600 hover:bg-green-700 text-white rounded-lg px-4 py-2 shadow-md transition-all"
+                        className="民警
+                          bg-green-600 hover:bg-green-700 text-white rounded-lg px-4 py-2 shadow-md transition-all"
                       >
                         Ajouter
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="flex items-center gap-2 bg-white rounded-lg border-green-600 hover:bg-gray-100 transition-all"
+                    >
+                      <File className="h-4 w-4" /> Importer Rec
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md rounded-xl bg-white shadow-2xl border border-gray-200">
+                    <DialogHeader>
+                      <DialogTitle>Importer un fichier</DialogTitle>
+                    </DialogHeader>
+                    <div className="p-6 space-y-4">
+                      <Input
+                        type="file"
+                        onChange={handleFileChange}
+                        className="w-full p-2 border border-gray-300 rounded-lg"
+                        accept=".pdf,.doc,.docx"
+                      />
+                    </div>
+                    <DialogFooter className="border-t border-gray-100 p-4 flex justify-end gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => setImportDialogOpen(false)}
+                        className="rounded-lg border-gray-300 hover:bg-gray-100 text-gray-700 px-4 py-2 transition-all"
+                      >
+                        Annuler
+                      </Button>
+                      <Button
+                        variant="default"
+                        onClick={handleImportFile}
+                        disabled={!file}
+                        className="bg-green-600 hover:bg-green-700 text-white rounded-lg px-4 py-2 shadow-md transition-all"
+                      >
+                        Importer
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -482,6 +553,7 @@ export function JobsList() {
                         <TableHead className="w-1/6 text-center text-green-800">Formation</TableHead>
                         <TableHead className="w-1/6 text-center text-green-800">Expérience</TableHead>
                         <TableHead className="w-1/4 text-center text-green-800">Poids emploi</TableHead>
+                        <TableHead className="w-1/6 text-center text-green-800">Fichier</TableHead>
                         <TableHead className="text-center text-green-800">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -517,6 +589,27 @@ export function JobsList() {
                           <TableCell className="text-gray-600">{job.formation}</TableCell>
                           <TableCell className="text-gray-600">{job.experience || "-"}</TableCell>
                           <TableCell className="text-gray-600">{job.poidsemploi || "-"}</TableCell>
+                          <TableCell className="text-gray-600">
+                            {job.fichierRec ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-green-600"
+                                    onClick={() => handleViewFile(job.fichierRec)}
+                                  >
+                                    <File className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Voir le fichier</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              "-"
+                            )}
+                          </TableCell>
                           <TableCell className="text-right">
                             <div className="flex gap-1 justify-end">
                               <Tooltip>
@@ -564,6 +657,10 @@ export function JobsList() {
                                               <p className="text-gray-600">{job.poidsemploi || "-"}</p>
                                             </div>
                                             <div>
+                                              <span className="font-medium text-gray-700">Fichier:</span>
+                                              <p className="text-gray-600">{job.fichierRec || "-"}</p>
+                                            </div>
+                                            <div>
                                               <span className="font-medium text-gray-700">Statut:</span>
                                               <Badge variant={job.archived ? "destructive" : "secondary"}>
                                                 {job.archived ? "Archivé" : "Actif"}
@@ -584,7 +681,7 @@ export function JobsList() {
                                                     className="flex items-center gap-3 border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition transform hover:-translate-y-0.5 cursor-default"
                                                   >
                                                     <div className="flex items-center gap-2 w-full">
-                                                      <Badge 
+                                                      <Badge
                                                         className={clsx(
                                                           "font-bold",
                                                           getLevelColor(comp.niveaur)
@@ -632,7 +729,7 @@ export function JobsList() {
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>Archiver l'emploi</p>
+                                      <p>Archiver l-employment</p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </>

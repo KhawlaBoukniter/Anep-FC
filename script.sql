@@ -151,6 +151,9 @@ ALTER TABLE employe_competencea
 ADD CONSTRAINT unique_employe_competence
 UNIQUE (id_employe, id_competencea);
 
+-- Nouvelle colonne 
+ALTER TABLE emploi ADD COLUMN fichierRec VARCHAR(255);
+
 \copy emploi(entite, formation, experience, codeemploi, poidsemploi, nom_emploi) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_emploi.csv' DELIMITER ';' CSV HEADER;
 \copy employe(nom_complet, email, telephone1, telephone2, categorie, specialite, experience_employe) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_employe1.csv' DELIMITER ';' CSV HEADER;
 \copy emploi_employe(id_emploi, id_employe) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_emploi_employe.csv' DELIMITER ';' CSV HEADER;
