@@ -1,6 +1,6 @@
 "use client"
 
-import { Users, Briefcase, Building, BarChart3, BookOpen, BookMarked } from "lucide-react"
+import { Users, Briefcase, Building, BarChart3, BookOpen, BookMarked, ListOrdered, ListIcon } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -44,6 +44,11 @@ export function AppSidebar({ activeSection, setActiveSection }: AppSidebarProps)
       title: "Modules",
       icon: BookMarked,
       id: "modules",
+    },
+    {
+      title: "Cycles - Programmes",
+      icon: ListIcon,
+      id: "cycles-programs",
     },
   ]
 

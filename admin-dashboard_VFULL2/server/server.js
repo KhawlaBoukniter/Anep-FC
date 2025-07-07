@@ -73,6 +73,7 @@ app.get("/api/employee-profiles", async (req, res) => {
     res.status(500).json({ message: "Erreur serveur lors de la récupération des profils." });
   }
 });
+app.use('/api/cycles-programs', require('./routes/cycleProgram'))
 
 // Test Message (Mongo)
 const mongoose = require('mongoose');
