@@ -27,7 +27,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-}from "./ui/table.tsx";
+} from "./ui/table.tsx";
 import {
   Eye,
   Search,
@@ -37,7 +37,7 @@ import {
   Archive,
   ArchiveRestore,
   X,
-  File
+  File,
 } from "lucide-react";
 import { AddJobModal } from "./add-job-modal.tsx";
 import { EditJobModal } from "./edit-job-modal.tsx";
@@ -95,7 +95,7 @@ export function JobsList() {
 
   const { data: jobs = [], isLoading, isError, error } = useJobs({
     search: debouncedSearchTerm,
-    archived: filters.some(f => f.type === "Archivage" && f.values.includes("Archivés")),
+    archived: filters.some((f) => f.type === "Archivage" && f.values.includes("Archivés")),
   });
 
   const { mutate: archiveJob } = useArchiveJob();
@@ -108,10 +108,13 @@ export function JobsList() {
     return [...new Set(entites)].sort() as string[];
   }, [jobs]);
 
-  const filterOptions: FilterOption[] = useMemo(() => [
-    { label: "Entité", value: "Entité", options: uniqueEntites },
-    { label: "Archivage", value: "Archivage", options: ["Archivés", "Désarchivés"] },
-  ], [uniqueEntites]);
+  const filterOptions: FilterOption[] = useMemo(
+    () => [
+      { label: "Entité", value: "Entité", options: uniqueEntites },
+      { label: "Archivage", value: "Archivage", options: ["Archivés", "Désarchivés"] },
+    ],
+    [uniqueEntites]
+  );
 
   const availableOptions = filterOptions.find((opt) => opt.value === newFilterType)?.options || [];
 
@@ -201,9 +204,9 @@ export function JobsList() {
   const clearFilter = (filterType: string, value?: string) => {
     if (value) {
       setFilters((prev) =>
-        prev.map((f) =>
-          f.type === filterType ? { ...f, values: f.values.filter((v) => v !== value) } : f
-        ).filter((f) => f.values.length > 0)
+        prev
+          .map((f) => (f.type === filterType ? { ...f, values: f.values.filter((v) => v !== value) } : f))
+          .filter((f) => f.values.length > 0)
       );
     } else {
       setFilters((prev) => prev.filter((f) => f.type !== filterType));
@@ -444,8 +447,7 @@ export function JobsList() {
                           setFilterDialogOpen(false);
                         }}
                         disabled={!newFilterType || newFilterValues.length === 0}
-                        className="民警
-                          bg-green-600 hover:bg-green-700 text-white rounded-lg px-4 py-2 shadow-md transition-all"
+                        className="bg-green-600 hover:bg-green-700 text-white rounded-lg px-4 py-2 shadow-md transition-all"
                       >
                         Ajouter
                       </Button>
@@ -458,12 +460,12 @@ export function JobsList() {
                       variant="outline"
                       className="flex items-center gap-2 bg-white rounded-lg border-green-600 hover:bg-gray-100 transition-all"
                     >
-                      <File className="h-4 w-4" /> Importer Rec
+                      <File className="h-4 w-4" /> Importer Fichier
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-md rounded-xl bg-white shadow-2xl border border-gray-200">
                     <DialogHeader>
-                      <DialogTitle>Importer un fichier</DialogTitle>
+                      <DialogTitle>Importer un fichier pour tous les emplois</DialogTitle>
                     </DialogHeader>
                     <div className="p-6 space-y-4">
                       <Input
@@ -533,7 +535,9 @@ export function JobsList() {
           <CardHeader>
             <div className="flex items-center justify-between text-green-600">
               <CardTitle className="text-xl">
-                {filters.some(f => f.type === "Archivage" && f.values.includes("Archivés")) ? "Emplois Archivés" : "Liste des Emplois"}
+                {filters.some((f) => f.type === "Archivage" && f.values.includes("Archivés"))
+                  ? "Emplois Archivés"
+                  : "Liste des Emplois"}
               </CardTitle>
               <Badge variant="secondary">{filteredJobs.length} résultat(s)</Badge>
             </div>
@@ -582,22 +586,20 @@ export function JobsList() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={job.archived ? "destructive" : "secondary"}>
-                              {job.entite}
-                            </Badge>
+                            <Badge variant={job.archived ? "destructive" : "secondary"}>{job.entite}</Badge>
                           </TableCell>
                           <TableCell className="text-gray-600">{job.formation}</TableCell>
                           <TableCell className="text-gray-600">{job.experience || "-"}</TableCell>
                           <TableCell className="text-gray-600">{job.poidsemploi || "-"}</TableCell>
                           <TableCell className="text-gray-600">
-                            {job.fichierRec ? (
+                            {job.common_file ? (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8 text-green-600"
-                                    onClick={() => handleViewFile(job.fichierRec)}
+                                    onClick={() => handleViewFile(job.common_file)}
                                   >
                                     <File className="h-4 w-4" />
                                   </Button>
@@ -658,7 +660,19 @@ export function JobsList() {
                                             </div>
                                             <div>
                                               <span className="font-medium text-gray-700">Fichier:</span>
-                                              <p className="text-gray-600">{job.fichierRec || "-"}</p>
+                                              <p className="text-gray-600">
+                                                {job.common_file ? (
+                                                  <Button
+                                                    variant="link"
+                                                    className="text-green-600"
+                                                    onClick={() => handleViewFile(job.common_file)}
+                                                  >
+                                                    Voir le fichier
+                                                  </Button>
+                                                ) : (
+                                                  "-"
+                                                )}
+                                              </p>
                                             </div>
                                             <div>
                                               <span className="font-medium text-gray-700">Statut:</span>
@@ -681,12 +695,7 @@ export function JobsList() {
                                                     className="flex items-center gap-3 border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition transform hover:-translate-y-0.5 cursor-default"
                                                   >
                                                     <div className="flex items-center gap-2 w-full">
-                                                      <Badge
-                                                        className={clsx(
-                                                          "font-bold",
-                                                          getLevelColor(comp.niveaur)
-                                                        )}
-                                                      >
+                                                      <Badge className={clsx("font-bold", getLevelColor(comp.niveaur))}>
                                                         Niveau {comp.niveaur}
                                                       </Badge>
                                                       <span className="text-gray-800 font-medium">{comp.competencer}</span>
@@ -729,12 +738,12 @@ export function JobsList() {
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>Archiver l-employment</p>
+                                      <p>Archiver l'emploi</p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </>
                               )}
-                              {filters.some(f => f.type === "Archivage" && f.values.includes("Archivés")) && (
+                              {filters.some((f) => f.type === "Archivage" && f.values.includes("Archivés")) && (
                                 <>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -772,8 +781,8 @@ export function JobsList() {
                 {totalPages > 1 && (
                   <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div className="text-sm text-gray-600 text-center md:text-left">
-                      Affichage de {indexOfFirstJob + 1} à{" "}
-                      {Math.min(indexOfLastJob, filteredJobs.length)} sur {filteredJobs.length} emplois
+                      Affichage de {indexOfFirstJob + 1} à {Math.min(indexOfLastJob, filteredJobs.length)} sur{" "}
+                      {filteredJobs.length} emplois
                     </div>
                     <div className="flex flex-wrap justify-center gap-1 md:gap-2">
                       <Button
@@ -835,7 +844,9 @@ export function JobsList() {
                   <div className="text-center py-8">
                     <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      {filters.some(f => f.type === "Archivage" && f.values.includes("Archivés")) ? "Aucun emploi archivé trouvé" : "Aucun emploi actif trouvé"}
+                      {filters.some((f) => f.type === "Archivage" && f.values.includes("Archivés"))
+                        ? "Aucun emploi archivé trouvé"
+                        : "Aucun emploi actif trouvé"}
                     </h3>
                     <p className="text-gray-600">
                       Essayez de modifier vos critères de recherche ou d'ajouter un nouvel emploi.

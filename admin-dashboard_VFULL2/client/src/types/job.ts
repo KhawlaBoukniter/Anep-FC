@@ -13,7 +13,7 @@ interface Job {
   experience?: number | null;
   codeemploi: string;
   poidsemploi?: number;
-  fichierRec?: string | null;
+  common_file?: string | null;
   archived: boolean;
   required_skills?: Competence[];
 }

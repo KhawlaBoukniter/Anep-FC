@@ -12,6 +12,7 @@ const api = axios.create({
   withCredentials: true,
 })
 
+
 // Intercepteur pour les requêtes
 api.interceptors.request.use(
   (config) => {
@@ -57,6 +58,12 @@ export const employeeService = {
   unarchive: (id) => api.put(`/employees/${id}/unarchive`),
 }
 
+const apiClient = axios.create({
+  baseURL: "/api",
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
 // Services pour les emplois
 export const jobService = {
   getAll: (params = {}) => api.get("/jobs", { params }),
@@ -66,6 +73,13 @@ export const jobService = {
   delete: (id) => api.delete(`/jobs/${id}`),
   archive: (id) => api.put(`/jobs/${id}/archive`),
   unarchive: (id) => api.put(`/jobs/${id}/unarchive`),
+  importFile: async (formData) => {
+    return apiClient.post("/jobs/import", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
 }
 
 // Services pour les compétences
