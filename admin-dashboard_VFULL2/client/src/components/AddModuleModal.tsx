@@ -16,6 +16,7 @@ import useApiAxios from "../config/axios";
 import { useToast } from "../hooks/use-toast.ts";
 import { Checkbox } from "./ui/checkbox.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTrigger, DialogTitle } from "./ui/dialog.tsx";
+import { cleanIndexes } from "../../../server/models/Course.js";
 
 export function AddModuleModal({ onCourseCreated }) {
   const navigate = useNavigate();
@@ -37,8 +38,7 @@ export function AddModuleModal({ onCourseCreated }) {
     budget: "",
     times: [
       {
-        startTime: "",
-        endTime: "",
+        dateRanges: [{ startTime: "", endTime: "" }],
         instructor: "",
         instructorName: "",
         instructorType: "intern",
@@ -211,14 +211,36 @@ export function AddModuleModal({ onCourseCreated }) {
     setCourse((prev) => ({ ...prev, times: updatedTimes }));
   };
 
+  const handleDateRangeChange = (sessionIndex, dateRangeIndex, field, value) => {
+    const updatedTimes = [...course.times];
+    updatedTimes[sessionIndex].dateRanges[dateRangeIndex][field] = value;
+    setCourse((prev) => ({ ...prev, times: updatedTimes }));
+  };
+
+  const handleAddDateRange = (sessionIndex) => {
+    const updatedTimes = [...course.times];
+    updatedTimes[sessionIndex].dateRanges.push({ startTime: "", endTime: "" });
+    setCourse((prev) => ({ ...prev, times: updatedTimes }));
+  };
+
+  const handleRemoveDateRange = (sessionIndex, dateRangeIndex) => {
+    const updatedTimes = [...course.times];
+    updatedTimes[sessionIndex].dateRanges = updatedTimes[sessionIndex].dateRanges.filter(
+      (_, i) => i !== dateRangeIndex
+    );
+    if (updatedTimes[sessionIndex].dateRanges.length === 0) {
+      updatedTimes[sessionIndex].dateRanges.push({ startTime: "", endTime: "" });
+    }
+    setCourse((prev) => ({ ...prev, times: updatedTimes }));
+  };
+
   const handleAddSession = () => {
     setCourse((prev) => ({
       ...prev,
       times: [
         ...prev.times,
         {
-          startTime: "",
-          endTime: "",
+          dateRanges: [{ startTime: "", endTime: "" }],
           instructor: "",
           instructorName: "",
           instructorType: "intern",
@@ -229,10 +251,10 @@ export function AddModuleModal({ onCourseCreated }) {
   };
 
   const handleDuplicateSession = (index) => {
-    const session = course.times[index];
+    const session = { ...course.times[index], dateRanges: [...course.times[index].dateRanges] };
     setCourse((prev) => ({
       ...prev,
-      times: [...prev.times, { ...session }],
+      times: [...prev.times, session],
     }));
   };
 
@@ -270,17 +292,39 @@ export function AddModuleModal({ onCourseCreated }) {
       setIsSubmitting(false);
       return;
     }
-    for (const time of course.times) {
-      if (!time.startTime || !time.endTime || !time.instructorName) {
+    for (const session of course.times) {
+      if (!session.instructorName) {
         toast({
           variant: "destructive",
           title: "Erreur",
-          description: "Tous les créneaux doivent avoir une heure de début, de fin et un instructeur.",
+          description: "Tous les créneaux doivent avoir un instructeur.",
         });
         setIsSubmitting(false);
         return;
       }
-      if (time.instructorType === "extern" && !time.externalInstructorDetails.phone) {
+      for (const dateRange of session.dateRanges) {
+        if (!dateRange.startTime || !dateRange.endTime) {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Tous les créneaux doivent avoir une heure de début et de fin.",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        const start = new Date(dateRange.startTime);
+        const end = new Date(dateRange.endTime);
+        if (start >= end) {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "L'heure de début doit être avant l'heure de fin pour chaque période.",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      if (session.instructorType === "extern" && !session.externalInstructorDetails.phone) {
         toast({
           variant: "destructive",
           title: "Erreur",
@@ -348,8 +392,7 @@ export function AddModuleModal({ onCourseCreated }) {
             budget: "",
             times: [
               {
-                startTime: "",
-                endTime: "",
+                dateRanges: [{ startTime: "", endTime: "" }],
                 instructor: "",
                 instructorName: "",
                 instructorType: "intern",
@@ -367,9 +410,9 @@ export function AddModuleModal({ onCourseCreated }) {
         throw new Error(`Image upload failed with status: ${imageUploadResponse.status}`);
       }
 
-      if (onCourseCreated) {
-        onCourseCreated();
-      }
+      // if (onCourseCreated) {
+      //   onCourseCreated();
+      // }
 
     } catch (error) {
       console.error("Erreur lors de la création du cours:", error);
@@ -384,14 +427,14 @@ export function AddModuleModal({ onCourseCreated }) {
   };
 
   const handleNextStep = () => {
-    if (!course.title || !course.location || !course.category || !course.offline || !course.hidden || !course.budget || !course.image) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Veuillez remplir tous les champs obligatoires avant de continuer.",
-      });
-      return;
-    }
+    // if (!course.title || !course.location || !course.category || !course.offline || !course.hidden || !course.budget || !course.image) {
+    //   toast({
+    //     variant: "destructive",
+    //     title: "Erreur",
+    //     description: "Veuillez remplir tous les champs obligatoires avant de continuer.",
+    //   });
+    //   return;
+    // }
     setCurrentStep((prev) => prev + 1);
   };
 
@@ -410,8 +453,7 @@ export function AddModuleModal({ onCourseCreated }) {
       budget: "",
       times: [
         {
-          startTime: "",
-          endTime: "",
+          dateRanges: [{ startTime: "", endTime: "" }],
           instructor: "",
           instructorName: "",
           instructorType: "intern",
@@ -631,28 +673,51 @@ export function AddModuleModal({ onCourseCreated }) {
                 <h3 className="text-lg font-semibold">Planification</h3>
                 {course.times.map((session, index) => (
                   <div key={index} className="border rounded-lg p-4 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <h4 className="text-md font-medium">Session {index + 1}</h4>
+                    {session.dateRanges.map((dateRange, dateRangeIndex) => (
+                      <div key={dateRangeIndex} className="grid grid-cols-2 gap-4 border-b pb-2">
+                        <div className="space-y-2">
+                          <Label htmlFor={`startTime-${index}-${dateRangeIndex}`}>Heure de début</Label>
+                          <Input
+                            id={`startTime-${index}-${dateRangeIndex}`}
+                            type="datetime-local"
+                            value={dateRange.startTime}
+                            onChange={(e) =>
+                              handleDateRangeChange(index, dateRangeIndex, "startTime", e.target.value)
+                            }
+                            required
+                          />
+                        </div>
                       <div className="space-y-2">
-                        <Label htmlFor={`startTime-${index}`}>Heure de début</Label>
-                        <Input
-                          id={`startTime-${index}`}
-                          type="datetime-local"
-                          value={session.startTime}
-                          onChange={(e) => handleSessionChange(index, "startTime", e.target.value)}
-                          required
-                        />
+                          <Label htmlFor={`endTime-${index}-${dateRangeIndex}`}>Heure de fin</Label>
+                          <Input
+                            id={`endTime-${index}-${dateRangeIndex}`}
+                            type="datetime-local"
+                            value={dateRange.endTime}
+                            onChange={(e) =>
+                              handleDateRangeChange(index, dateRangeIndex, "endTime", e.target.value)
+                            }
+                            required
+                          />
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveDateRange(index, dateRangeIndex)}
+                          className="col-span-2 justify-self-end"
+                        >
+                          <X className="h-4 w-4 text-red-500" />
+                        </Button>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor={`endTime-${index}`}>Heure de fin</Label>
-                        <Input
-                          id={`endTime-${index}`}
-                          type="datetime-local"
-                          value={session.endTime}
-                          onChange={(e) => handleSessionChange(index, "endTime", e.target.value)}
-                          required
-                        />
-                      </div>
-                    </div>
+                    ))}
+                    <Button
+                      variant="outline"
+                      onClick={() => handleAddDateRange(index)}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Ajouter une période
+                    </Button>
                     <div className="space-y-2">
                       <Label htmlFor={`instructorType-${index}`}>Type d'instructeur</Label>
                       <Select

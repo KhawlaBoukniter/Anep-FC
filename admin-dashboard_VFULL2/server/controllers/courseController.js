@@ -24,7 +24,7 @@ const getAllCourses = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
-// // Get a single course by ID
+// Get a single course by ID
 // const getCourseNameById = async (req, res) => {
 //     const { courseId } = req.params;
 
@@ -45,6 +45,7 @@ const getCourseById = async (req, res) => {
     try {
         const course = await Course.findById(req.params.id)
             .populate('interestedUsers', '_id name')
+            .populate('assignedUsers', '_id name')
             .exec();
 
         if (!course) {
@@ -63,10 +64,21 @@ const getCourseById = async (req, res) => {
 const createCourse = async (req, res) => {
     console.log('Received data for new course:', req.body);
     try {
-        const course = new Course(req.body);
-        if (req.file) {
-            course.image = req.file.path; // Assuming you're handling file uploads with multer or similar
+        const { times } = req.body;
+        for (const session of times) {
+            for (const dateRange of session.dateRanges) {
+                const start = new Date(dateRange.startTime);
+                const end = new Date(dateRange.endTime);
+                if (isNaN(start) || isNaN(end)) {
+                    return res.status(400).json({ message: 'Invalid date format in dateRanges' });
+                }
+                if (start >= end) {
+                    return res.status(400).json({ message: 'startTime must be before endTime in dateRanges' });
+                }
+            }
         }
+
+        const course = new Course(req.body);
         await course.save();
         res.status(201).json(course);
     } catch (error) {
@@ -77,11 +89,26 @@ const createCourse = async (req, res) => {
 
 // Update an existing course
 const updateCourse = async (req, res) => {
-    const { assignedUsers, ...updateData } = req.body;
+    const { assignedUsers, times, ...updateData } = req.body;
     try {
         const courseToUpdate = await Course.findById(req.params.id);
         if (!courseToUpdate) {
             return res.status(404).json({ message: 'Course not found' });
+        }
+
+        if (times) {
+            for (const session of times) {
+                for (const dateRange of session.dateRanges) {
+                    const start = new Date(dateRange.startTime);
+                    const end = new Date(dateRange.endTime);
+                    if (isNaN(start) || isNaN(end)) {
+                        return res.status(400).json({ message: 'Invalid date format in dateRanges' });
+                    }
+                    if (start >= end) {
+                        return res.status(400).json({ message: 'startTime must be before endTime in dateRanges' });
+                    }
+                }
+            }
         }
 
         // Handle assigned users
@@ -121,17 +148,20 @@ const deleteCourse = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
-const hasTimeConflict = (course1, course2) => {
-    for (let time1 of course1.times) {
-        for (let time2 of course2.times) {
-            if (time1.day === time2.day) {
-                const start1 = new Date(`1970-01-01T${time1.startTime}`);
-                const end1 = new Date(`1970-01-01T${time1.endTime}`);
-                const start2 = new Date(`1970-01-01T${time2.startTime}`);
-                const end2 = new Date(`1970-01-01T${time2.endTime}`);
 
-                if ((start1 < end2 && end1 > start2) || (start2 < end1 && end2 > start1)) {
-                    return true;
+const hasTimeConflict = (course1, course2) => {
+    for (let session1 of course1.times) {
+        for (let session2 of course2.times) {
+            for (let range1 of session1.dateRanges) {
+                for (let range2 of session2.dateRanges) {
+                    const start1 = new Date(range1.startTime);
+                    const end1 = new Date(range1.endTime);
+                    const start2 = new Date(range2.startTime);
+                    const end2 = new Date(range2.endTime);
+
+                    if ((start1 < end2 && end1 > start2) || (start2 < end1 && end2 > start1)) {
+                        return true;
+                    }
                 }
             }
         }
@@ -223,7 +253,7 @@ const getCoursesByUserId = async (req, res) => {
                 { assignedUsers: userId },
                 { interestedUsers: userId }
             ]
-        });
+        }).populate('assignedUsers interestedUsers');
 
         res.status(200).json(courses);
     } catch (error) {

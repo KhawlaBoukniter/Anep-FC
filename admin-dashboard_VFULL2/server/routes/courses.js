@@ -43,7 +43,7 @@ const courseRoutes = [
 const fileRoutes = [
     { method: 'post', path: '/uploadImage', middleware: [upload], handler: courseController.uploadImage },
     { method: 'get', path: '/:id/resources', handler: courseController.fetchFiles },
-    { method: 'post', path: '/:id/resources', handler: courseController.filesUpload },
+    { method: 'post', path: '/:id/resources', middleware: [upload], handler: courseController.filesUpload },
 ];
 
 const userRoutes = [

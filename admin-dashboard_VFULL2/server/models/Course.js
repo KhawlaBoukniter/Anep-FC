@@ -28,9 +28,13 @@ const commentSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now },
 });
 
+const dateRangeSchema = new mongoose.Schema({
+    startTime: { type: String, required: true },
+    endTime: { type: String, required: true },
+});
+
 const timeSchema = new mongoose.Schema({
-    startTime: { type: String, required: false },
-    endTime: { type: String, required: false },
+    dateRanges: [dateRangeSchema],
     instructorType: {
         type: String,
         required: false,

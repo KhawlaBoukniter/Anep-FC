@@ -636,7 +636,7 @@ async function checkEmailExists(email) {
 
 async function checkPassword(email, password) {
     const query = `
-        SELECT id_employe, email, password FROM employe WHERE email = $1 AND archived = false
+        SELECT id_employe, email, password, role FROM employe WHERE email = $1 AND archived = false
     `;
     try {
         const result = await pool.query(query, [email]);
@@ -651,7 +651,7 @@ async function checkPassword(email, password) {
         if (!isValid) {
             return null;
         }
-        return { id: user.id_employe.toString(), email: user.email };
+        return { id: user.id_employe.toString(), email: user.email, role: user.role || 'user' };
     } catch (error) {
         console.error("Database error in checkPassword:", {
             message: error.message,
