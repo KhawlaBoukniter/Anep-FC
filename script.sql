@@ -87,6 +87,53 @@ CREATE TABLE import_history (
   new_data JSONB
 );
 
+/********* New *************/
+CREATE TABLE cycles_programs (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    type VARCHAR(20) NOT NULL CHECK (type IN ('cycle', 'program')),
+    description TEXT,
+    start_date TIMESTAMP NOT NULL,
+    end_date TIMESTAMP NOT NULL,
+    budget NUMERIC(10, 2),
+    entity VARCHAR(255), 
+    training_sheet_url VARCHAR(255), 
+    support_url VARCHAR(255),
+    photos_url TEXT[],
+    evaluation_url VARCHAR(255),
+    facilitator VARCHAR(255),
+    attendance_list_url VARCHAR(255),
+    archived BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE cycle_program_modules (
+    id SERIAL PRIMARY KEY,
+    cycle_program_id INTEGER REFERENCES cycles_programs(id) ON DELETE CASCADE,
+    module_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE cycle_program_registrations (
+    id SERIAL PRIMARY KEY,
+    cycle_program_id INTEGER REFERENCES cycles_programs(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL, 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE cycle_program_user_modules (
+    id SERIAL PRIMARY KEY,
+    registration_id INTEGER REFERENCES cycle_program_registrations(id) ON DELETE CASCADE,
+    module_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_cycle_program_modules_cycle_program_id ON cycle_program_modules(cycle_program_id);
+CREATE INDEX idx_cycle_program_registrations_cycle_program_id ON cycle_program_registrations(cycle_program_id);
+CREATE INDEX idx_cycle_program_user_modules_registration_id ON cycle_program_user_modules(registration_id);
+
+/***********************/
 
 ALTER TABLE employe_competencea DROP CONSTRAINT employe_competencea_niveaua_check;
 ALTER TABLE employe_competencea ADD CONSTRAINT employe_competencea_niveaua_check CHECK (niveaua IN (0, 1, 2, 3, 4));
