@@ -1,21 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "react-query";
 import { Button } from "./ui/button.tsx";
 import { Input } from "./ui/input.tsx";
 import { Label } from "./ui/label.tsx";
+import { Select as RadixSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog.tsx";
 import useApiAxios from "../config/axios";
 import { useToast } from "../hooks/use-toast.ts";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { Plus } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.tsx";
+import Select from "react-select";
+import "./styles/react-select.css";
 
 interface CycleProgram {
     title: string;
     type: "cycle" | "program";
+    program_type?: "mardi_du_partage" | "bati_pro" | "other";
     description: string;
     start_date: string;
     end_date: string;
@@ -25,22 +28,18 @@ interface CycleProgram {
     training_sheet_url: string;
     support: File | null;
     support_url: string;
-    photos: File[];
-    evaluation: File | null;
-    evaluation_url: string;
     facilitator: string;
-    attendance_list: File | null;
-    attendance_list_url: string;
-    trainer_name: string;
     module_ids: string[];
 }
 
 export function AddCycleProgramModal({ onCycleProgramCreated }) {
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
+    const queryClient = useQueryClient();
     const [cycleProgram, setCycleProgram] = useState<CycleProgram>({
         title: "",
         type: "cycle",
+        program_type: "other",
         description: "",
         start_date: "",
         end_date: "",
@@ -50,23 +49,16 @@ export function AddCycleProgramModal({ onCycleProgramCreated }) {
         training_sheet_url: "",
         support: null,
         support_url: "",
-        photos: [],
-        evaluation: null,
-        evaluation_url: "",
         facilitator: "",
-        attendance_list: null,
-        attendance_list_url: "",
-        trainer_name: "",
         module_ids: [],
     });
-    const [isMardiDuPartage, setIsMardiDuPartage] = useState(false);
 
     const { data: modules = [] } = useQuery("modules", () =>
         useApiAxios.get("/courses").then((res) => res.data)
     );
 
     const createCycleProgram = useMutation(
-        (formData: FormData) => useApiAxios.post("/cycles-programs", formData, {
+        (formData: FormData) => useApiAxios.post("/api/cycles-programs", formData, {
             headers: { "Content-Type": "multipart/form-data" },
         }),
         {
@@ -76,6 +68,7 @@ export function AddCycleProgramModal({ onCycleProgramCreated }) {
                 setCycleProgram({
                     title: "",
                     type: "cycle",
+                    program_type: "other",
                     description: "",
                     start_date: "",
                     end_date: "",
@@ -85,16 +78,10 @@ export function AddCycleProgramModal({ onCycleProgramCreated }) {
                     training_sheet_url: "",
                     support: null,
                     support_url: "",
-                    photos: [],
-                    evaluation: null,
-                    evaluation_url: "",
                     facilitator: "",
-                    attendance_list: null,
-                    attendance_list_url: "",
-                    trainer_name: "",
                     module_ids: [],
                 });
-                setIsMardiDuPartage(false);
+                queryClient.invalidateQueries(["cycles-programs", {archived: false}])
                 onCycleProgramCreated();
             },
             onError: (error) => {
@@ -112,19 +99,15 @@ export function AddCycleProgramModal({ onCycleProgramCreated }) {
     };
 
     const handleFileChange = (field: keyof CycleProgram, files: FileList | null) => {
-        if (field === "photos") {
-            setCycleProgram((prev) => ({ ...prev, photos: files ? Array.from(files) : [] }));
-        } else {
-            setCycleProgram((prev) => ({ ...prev, [field]: files ? files[0] : null }));
-        }
+        setCycleProgram((prev) => ({ ...prev, [field]: files ? files[0] : null }));
     };
 
     const handleModuleChange = (selectedOptions) => {
-        const selectedIds = selectedOptions ? selectedOptions.map(option => option.value) : [];
+        const selectedIds = selectedOptions ? selectedOptions.map((option) => option.value) : [];
         handleInputChange("module_ids", selectedIds);
     };
 
-    const moduleOptions = modules.map(module => ({
+    const moduleOptions = modules.map((module) => ({
         value: module._id,
         label: module.title,
     }));
@@ -134,52 +117,39 @@ export function AddCycleProgramModal({ onCycleProgramCreated }) {
         const formData = new FormData();
         formData.append("title", cycleProgram.title);
         formData.append("type", cycleProgram.type);
-        formData.append("description", cycleProgram.description);
-        formData.append("start_date", cycleProgram.start_date);
-        formData.append("end_date", cycleProgram.end_date);
-        formData.append("budget", cycleProgram.budget.toString());
         if (cycleProgram.type === "program") {
-            formData.append("entity", cycleProgram.entity);
-            if (cycleProgram.training_sheet) {
-                formData.append("training_sheet", cycleProgram.training_sheet);
-            } else if (cycleProgram.training_sheet_url) {
-                formData.append("training_sheet_url", cycleProgram.training_sheet_url);
+            formData.append("program_type", cycleProgram.program_type || "other");
+            if (cycleProgram.program_type === "bati_pro" || cycleProgram.program_type === "other") {
+                formData.append("entity", cycleProgram.entity);
+                if (cycleProgram.training_sheet) {
+                    formData.append("training_sheet", cycleProgram.training_sheet);
+                } else if (cycleProgram.training_sheet_url) {
+                    formData.append("training_sheet_url", cycleProgram.training_sheet_url);
+                }
             }
             if (cycleProgram.support) {
                 formData.append("support", cycleProgram.support);
             } else if (cycleProgram.support_url) {
                 formData.append("support_url", cycleProgram.support_url);
             }
-            cycleProgram.photos.forEach((photo) => formData.append("photos", photo));
-            if (cycleProgram.evaluation) {
-                formData.append("evaluation", cycleProgram.evaluation);
-            } else if (cycleProgram.evaluation_url) {
-                formData.append("evaluation_url", cycleProgram.evaluation_url);
-            }
-            if (isMardiDuPartage) {
+            if (cycleProgram.program_type === "mardi_du_partage" || cycleProgram.program_type === "other") {
                 formData.append("facilitator", cycleProgram.facilitator);
-                if (cycleProgram.attendance_list) {
-                    formData.append("attendance_list", cycleProgram.attendance_list);
-                } else if (cycleProgram.attendance_list_url) {
-                    formData.append("attendance_list_url", cycleProgram.attendance_list_url);
-                }
             }
         } else {
-            formData.append("trainer_name", cycleProgram.trainer_name);
-            if (cycleProgram.evaluation) {
-                formData.append("evaluation", cycleProgram.evaluation);
-            } else if (cycleProgram.evaluation_url) {
-                formData.append("evaluation_url", cycleProgram.evaluation_url);
-            }
-            if (cycleProgram.attendance_list) {
-                formData.append("attendance_list", cycleProgram.attendance_list);
-            } else if (cycleProgram.attendance_list_url) {
-                formData.append("attendance_list_url", cycleProgram.attendance_list_url);
+            if (cycleProgram.support) {
+                formData.append("support", cycleProgram.support);
+            } else if (cycleProgram.support_url) {
+                formData.append("support_url", cycleProgram.support_url);
             }
         }
+        formData.append("description", cycleProgram.description);
+        formData.append("start_date", cycleProgram.start_date);
+        formData.append("end_date", cycleProgram.end_date);
+        formData.append("budget", cycleProgram.budget.toString());
         formData.append("module_ids", JSON.stringify(cycleProgram.module_ids));
 
         createCycleProgram.mutate(formData);
+        if (onCycleProgramCreated) onCycleProgramCreated();
     };
 
     return (
@@ -199,21 +169,15 @@ export function AddCycleProgramModal({ onCycleProgramCreated }) {
                         <Input
                             id="title"
                             value={cycleProgram.title}
-                            onChange={(e) => {
-                                handleInputChange("title", e.target.value);
-                                setIsMardiDuPartage(e.target.value.toLowerCase().includes("mardi du partage"));
-                            }}
+                            onChange={(e) => handleInputChange("title", e.target.value)}
                             required
                         />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="type">Type</Label>
-                        <Select
+                        <RadixSelect
                             value={cycleProgram.type}
-                            onValueChange={(value) => {
-                                handleInputChange("type", value);
-                                setIsMardiDuPartage(value === "program" && cycleProgram.title.toLowerCase().includes("mardi du partage"));
-                            }}
+                            onValueChange={(value: "cycle" | "program") => handleInputChange("type", value)}
                         >
                             <SelectTrigger>
                                 <SelectValue placeholder="Sélectionner le type" />
@@ -222,8 +186,28 @@ export function AddCycleProgramModal({ onCycleProgramCreated }) {
                                 <SelectItem value="cycle">Cycle</SelectItem>
                                 <SelectItem value="program">Programme</SelectItem>
                             </SelectContent>
-                        </Select>
+                        </RadixSelect>
                     </div>
+                    {cycleProgram.type === "program" && (
+                        <div className="space-y-2">
+                            <Label htmlFor="program_type">Type de Programme</Label>
+                            <RadixSelect
+                                value={cycleProgram.program_type}
+                                onValueChange={(value: "mardi_du_partage" | "bati_pro" | "other") =>
+                                    handleInputChange("program_type", value)
+                                }
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Sélectionner le type de programme" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="mardi_du_partage">Mardi du Partage</SelectItem>
+                                    <SelectItem value="bati_pro">Bati Pro</SelectItem>
+                                    <SelectItem value="other">Autre Programme</SelectItem>
+                                </SelectContent>
+                            </RadixSelect>
+                        </div>
+                    )}
                     <div className="space-y-2">
                         <Label htmlFor="description">Description</Label>
                         <ReactQuill
@@ -260,7 +244,7 @@ export function AddCycleProgramModal({ onCycleProgramCreated }) {
                             required
                         />
                     </div>
-                    {cycleProgram.type === "program" && (
+                    {cycleProgram.type === "program" && (cycleProgram.program_type === "bati_pro" || cycleProgram.program_type === "other") && (
                         <>
                             <div className="space-y-2">
                                 <Label htmlFor="entity">Entité</Label>
@@ -286,130 +270,36 @@ export function AddCycleProgramModal({ onCycleProgramCreated }) {
                                     accept=".pdf,.doc,.docx"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="support_url">Support (URL ou fichier)</Label>
-                                <Input
-                                    id="support_url"
-                                    type="url"
-                                    value={cycleProgram.support_url}
-                                    onChange={(e) => handleInputChange("support_url", e.target.value)}
-                                    placeholder="Entrez une URL ou sélectionnez un fichier"
-                                />
-                                <Input
-                                    type="file"
-                                    id="support"
-                                    onChange={(e) => handleFileChange("support", e.target.files)}
-                                    accept=".pdf,.doc,.docx"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="photos">Photos</Label>
-                                <Input
-                                    type="file"
-                                    id="photos"
-                                    multiple
-                                    onChange={(e) => handleFileChange("photos", e.target.files)}
-                                    accept="image/*"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="evaluation_url">Évaluation (URL ou fichier)</Label>
-                                <Input
-                                    id="evaluation_url"
-                                    type="url"
-                                    value={cycleProgram.evaluation_url}
-                                    onChange={(e) => handleInputChange("evaluation_url", e.target.value)}
-                                    placeholder="Entrez une URL ou sélectionnez un fichier"
-                                />
-                                <Input
-                                    type="file"
-                                    id="evaluation"
-                                    onChange={(e) => handleFileChange("evaluation", e.target.files)}
-                                    accept=".pdf,.doc,.docx"
-                                />
-                            </div>
-                            {isMardiDuPartage && (
-                                <>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="facilitator">Animateur</Label>
-                                        <Input
-                                            id="facilitator"
-                                            value={cycleProgram.facilitator}
-                                            onChange={(e) => handleInputChange("facilitator", e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="attendance_list_url">Liste de présence (URL ou fichier)</Label>
-                                        <Input
-                                            id="attendance_list_url"
-                                            type="url"
-                                            value={cycleProgram.attendance_list_url}
-                                            onChange={(e) => handleInputChange("attendance_list_url", e.target.value)}
-                                            placeholder="Entrez une URL ou sélectionnez un fichier"
-                                        />
-                                        <Input
-                                            type="file"
-                                            id="attendance_list"
-                                            onChange={(e) => handleFileChange("attendance_list", e.target.files)}
-                                            accept=".pdf,.doc,.docx"
-                                        />
-                                    </div>
-                                </>
-                            )}
                         </>
                     )}
-                    {cycleProgram.type === "cycle" && (
-                        <>
-                            <div className="space-y-2">
-                                <Label htmlFor="trainer_name">Nom du formateur</Label>
-                                <Input
-                                    id="trainer_name"
-                                    value={cycleProgram.trainer_name}
-                                    onChange={(e) => handleInputChange("trainer_name", e.target.value)}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="evaluation_url">Évaluation (URL ou fichier)</Label>
-                                <Input
-                                    id="evaluation_url"
-                                    type="url"
-                                    value={cycleProgram.evaluation_url}
-                                    onChange={(e) => handleInputChange("evaluation_url", e.target.value)}
-                                    placeholder="Entrez une URL ou sélectionnez un fichier"
-                                />
-                                <Input
-                                    type="file"
-                                    id="evaluation"
-                                    onChange={(e) => handleFileChange("evaluation", e.target.files)}
-                                    accept=".pdf,.doc,.docx"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="attendance_list_url">Liste de présence (URL ou fichier)</Label>
-                                <Input
-                                    id="attendance_list_url"
-                                    type="url"
-                                    value={cycleProgram.attendance_list_url}
-                                    onChange={(e) => handleInputChange("attendance_list_url", e.target.value)}
-                                    placeholder="Entrez une URL ou sélectionnez un fichier"
-                                />
-                                <Input
-                                    type="file"
-                                    id="attendance_list"
-                                    onChange={(e) => handleFileChange("attendance_list", e.target.files)}
-                                    accept=".pdf,.doc,.docx"
-                                />
-                            </div>
-                        </>
+                    {(cycleProgram.type === "cycle" || cycleProgram.type === "program") && (
+                        <div className="space-y-2">
+                            <Label htmlFor="support_url">Support (URL ou fichier)</Label>
+                            <Input
+                                id="support_url"
+                                type="url"
+                                value={cycleProgram.support_url}
+                                onChange={(e) => handleInputChange("support_url", e.target.value)}
+                                placeholder="Entrez une URL ou sélectionnez un fichier"
+                            />
+                            <Input
+                                type="file"
+                                id="support"
+                                onChange={(e) => handleFileChange("support", e.target.files)}
+                                accept=".pdf,.doc,.docx"
+                            />
+                        </div>
                     )}
                     <div className="space-y-2">
                         <Label htmlFor="module_ids">Modules</Label>
                         <Select
                             isMulti
                             options={moduleOptions}
-                            value={moduleOptions.filter(option => cycleProgram.module_ids.includes(option.value))}
+                            value={moduleOptions.filter((option) => cycleProgram.module_ids.includes(option.value))}
                             onChange={handleModuleChange}
                             placeholder="Sélectionner les modules"
+                            className="basic-multi-select"
+                            classNamePrefix="select"
                         />
                     </div>
                     <div className="flex justify-end gap-2">
@@ -428,6 +318,6 @@ export function AddCycleProgramModal({ onCycleProgramCreated }) {
             </DialogContent>
         </Dialog>
     );
-};
+}
 
 export default AddCycleProgramModal;

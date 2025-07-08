@@ -1,22 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation } from "react-query";
+import { useQuery, useMutation, useQueryClient } from "react-query";
 import { Button } from "./ui/button.tsx";
 import { Input } from "./ui/input.tsx";
 import { Label } from "./ui/label.tsx";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.tsx";
+import { Select as RadixSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog.tsx";
 import useApiAxios from "../config/axios";
 import { useToast } from "../hooks/use-toast.ts";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { Edit } from "lucide-react";
+import Select from "react-select";
+import "./styles/react-select.css";
 
 interface CycleProgram {
     id: number;
     title: string;
     type: "cycle" | "program";
+    program_type?: "mardi_du_partage" | "bati_pro" | "other";
     description: string;
     start_date: string;
     end_date: string;
@@ -28,7 +31,6 @@ interface CycleProgram {
     evaluation_url: string | null;
     facilitator: string;
     attendance_list_url: string | null;
-    trainer_name: string;
     module_ids: string[];
 }
 
@@ -40,14 +42,30 @@ interface EditCycleProgramModalProps {
 export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: EditCycleProgramModalProps) {
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
+    const queryClient = useQueryClient();
+
+    const formatDateForInput = (isoDate: string): string => {
+        if (!isoDate) return "";
+        const date = new Date(isoDate);
+        if (isNaN(date.getTime())) return "";
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        const hours = String(date.getHours()).padStart(2, "0");
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+
+    console.log("cycleProgram.start_date:", cycleProgram.start_date);
     const [formData, setFormData] = useState<CycleProgram>({
         id: cycleProgram.id,
         title: cycleProgram.title,
         type: cycleProgram.type,
+        program_type: cycleProgram.program_type || "other",
         description: cycleProgram.description,
-        start_date: cycleProgram.start_date,
-        end_date: cycleProgram.end_date,
-        budget: cycleProgram.budget,
+        start_date: formatDateForInput(cycleProgram.start_date) || new Date().toISOString().slice(0, 16).replace("Z", ""),
+        end_date: formatDateForInput(cycleProgram.end_date) || new Date().toISOString().slice(0, 16).replace("Z", ""),
+        budget: cycleProgram.budget ?? 0,
         entity: cycleProgram.entity || "",
         training_sheet_url: cycleProgram.training_sheet_url || "",
         support_url: cycleProgram.support_url || "",
@@ -55,10 +73,8 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
         evaluation_url: cycleProgram.evaluation_url || "",
         facilitator: cycleProgram.facilitator || "",
         attendance_list_url: cycleProgram.attendance_list_url || "",
-        trainer_name: cycleProgram.trainer_name || "",
-        module_ids: cycleProgram.module_ids || [],
+        module_ids: cycleProgram.modules ? cycleProgram.modules.map(module => module._id) : [],
     });
-    const [isMardiDuPartage, setIsMardiDuPartage] = useState(cycleProgram.title.toLowerCase().includes("mardi du partage"));
     const [trainingSheetFile, setTrainingSheetFile] = useState<File | null>(null);
     const [supportFile, setSupportFile] = useState<File | null>(null);
     const [evaluationFile, setEvaluationFile] = useState<File | null>(null);
@@ -70,13 +86,14 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
     );
 
     const updateCycleProgram = useMutation(
-        (formData: FormData) => useApiAxios.put(`/cycles-programs/${cycleProgram.id}`, formData, {
+        (formData: FormData) => useApiAxios.put(`/api/cycles-programs/${cycleProgram.id}`, formData, {
             headers: { "Content-Type": "multipart/form-data" },
         }),
         {
             onSuccess: () => {
                 toast({ title: "Succès", description: "Cycle/Programme mis à jour avec succès." });
                 setOpen(false);
+                queryClient.invalidateQueries(["cycles-programs", {archived: false}])
                 onCycleProgramUpdated();
             },
             onError: (error) => {
@@ -90,7 +107,14 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
     );
 
     const handleInputChange = (field: keyof CycleProgram, value: any) => {
-        setFormData((prev) => ({ ...prev, [field]: value }));
+        if (field === "start_date" || field === "end_date") {
+            if (value === "" || /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
+                setFormData((prev) => ({...prev, [field]: value}))
+            }
+        } else {
+            setFormData((prev) => ({ ...prev, [field]: value }));
+        }
+        
     };
 
     const handleFileChange = (field: string, files: FileList | null) => {
@@ -107,57 +131,103 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
         }
     };
 
+    const handleModuleChange = (selectedOptions) => {
+        const selectedIds = selectedOptions ? selectedOptions.map((option) => option.value) : [];
+        handleInputChange("module_ids", selectedIds);
+    };
+
+    const moduleOptions = modules.map((module) => ({
+        value: module._id,
+        label: module.title,
+    }));
+
+    // Update the handleSubmit function
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const formData = new FormData();
-        formData.append("title", formData.title);
-        formData.append("type", formData.type);
-        formData.append("description", formData.description);
-        formData.append("start_date", formData.start_date);
-        formData.append("end_date", formData.end_date);
-        formData.append("budget", formData.budget.toString());
+        const formDataToSend = new FormData();
+        formDataToSend.append("title", formData.title || "");
+        formDataToSend.append("type", formData.type);
         if (formData.type === "program") {
-            formData.append("entity", formData.entity);
-            if (trainingSheetFile) {
-                formData.append("training_sheet", trainingSheetFile);
-            } else if (formData.training_sheet_url) {
-                formData.append("training_sheet_url", formData.training_sheet_url);
+            formDataToSend.append("program_type", formData.program_type || "other");
+            if (formData.program_type === "bati_pro" || formData.program_type === "other") {
+                formDataToSend.append("entity", formData.entity);
+                if (trainingSheetFile) {
+                    formDataToSend.append("training_sheet", trainingSheetFile);
+                } else if (formData.training_sheet_url) {
+                    formDataToSend.append("training_sheet_url", formData.training_sheet_url);
+                }
             }
             if (supportFile) {
-                formData.append("support", supportFile);
+                formDataToSend.append("support", supportFile);
             } else if (formData.support_url) {
-                formData.append("support_url", formData.support_url);
+                formDataToSend.append("support_url", formData.support_url);
             }
-            photosFiles.forEach((photo) => formData.append("photos", photo));
+            photosFiles.forEach((photo) => formDataToSend.append("photos", photo));
             if (evaluationFile) {
-                formData.append("evaluation", evaluationFile);
+                formDataToSend.append("evaluation", evaluationFile);
             } else if (formData.evaluation_url) {
-                formData.append("evaluation_url", formData.evaluation_url);
+                formDataToSend.append("evaluation_url", formData.evaluation_url);
             }
-            if (isMardiDuPartage) {
-                formData.append("facilitator", formData.facilitator);
+            if (formData.program_type === "mardi_du_partage" || formData.program_type === "other") {
+                formDataToSend.append("facilitator", formData.facilitator);
                 if (attendanceListFile) {
-                    formData.append("attendance_list", attendanceListFile);
+                    formDataToSend.append("attendance_list", attendanceListFile);
                 } else if (formData.attendance_list_url) {
-                    formData.append("attendance_list_url", formData.attendance_list_url);
+                    formDataToSend.append("attendance_list_url", formData.attendance_list_url);
                 }
             }
         } else {
-            formData.append("trainer_name", formData.trainer_name);
+            if (supportFile) {
+                formDataToSend.append("support", supportFile);
+            } else if (formData.support_url) {
+                formDataToSend.append("support_url", formData.support_url);
+            }
             if (evaluationFile) {
-                formData.append("evaluation", evaluationFile);
+                formDataToSend.append("evaluation", evaluationFile);
             } else if (formData.evaluation_url) {
-                formData.append("evaluation_url", formData.evaluation_url);
+                formDataToSend.append("evaluation_url", formData.evaluation_url);
             }
             if (attendanceListFile) {
-                formData.append("attendance_list", attendanceListFile);
+                formDataToSend.append("attendance_list", attendanceListFile);
             } else if (formData.attendance_list_url) {
-                formData.append("attendance_list_url", formData.attendance_list_url);
+                formDataToSend.append("attendance_list_url", formData.attendance_list_url);
             }
         }
-        formData.append("module_ids", JSON.stringify(formData.module_ids));
+        formDataToSend.append("description", formData.description || "");
+        
+        const startDateStr = formData.start_date || "";
+        const endDateStr = formData.end_date || "";
+        console.log("formData.start_date:", formData.start_date);
+        const startDate = startDateStr ? new Date(startDateStr) : null;
+        const endDate = endDateStr ? new Date(endDateStr) : null;
 
-        updateCycleProgram.mutate(formData);
+        if (!startDateStr || isNaN(startDate.getTime())) {
+            toast({
+                variant: "destructive",
+                title: "Erreur",
+                description: "La date de début est invalide.",
+            });
+            return;
+        }
+        if (!endDateStr || isNaN(endDate.getTime())) {
+            toast({
+                variant: "destructive",
+                title: "Erreur",
+                description: "La date de fin est invalide.",
+            });
+            return;
+        }
+
+        formDataToSend.append("start_date", startDate.toISOString());
+        formDataToSend.append("end_date", endDate.toISOString());
+        
+        // Append budget with fallback
+        console.log("formData.budget:", formData.budget);
+        formDataToSend.append("budget", (formData.budget ?? 0).toString());
+        formDataToSend.append("module_ids", JSON.stringify(formData.module_ids));
+
+        updateCycleProgram.mutate(formDataToSend);
+        onCycleProgramUpdated();
     };
 
     return (
@@ -177,21 +247,15 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
                         <Input
                             id="title"
                             value={formData.title}
-                            onChange={(e) => {
-                                handleInputChange("title", e.target.value);
-                                setIsMardiDuPartage(e.target.value.toLowerCase().includes("mardi du partage"));
-                            }}
+                            onChange={(e) => handleInputChange("title", e.target.value)}
                             required
                         />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="type">Type</Label>
-                        <Select
+                        <RadixSelect
                             value={formData.type}
-                            onValueChange={(value) => {
-                                handleInputChange("type", value);
-                                setIsMardiDuPartage(value === "program" && formData.title.toLowerCase().includes("mardi du partage"));
-                            }}
+                            onValueChange={(value: "cycle" | "program") => handleInputChange("type", value)}
                         >
                             <SelectTrigger>
                                 <SelectValue placeholder="Sélectionner le type" />
@@ -200,8 +264,28 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
                                 <SelectItem value="cycle">Cycle</SelectItem>
                                 <SelectItem value="program">Programme</SelectItem>
                             </SelectContent>
-                        </Select>
+                        </RadixSelect>
                     </div>
+                    {formData.type === "program" && (
+                        <div className="space-y-2">
+                            <Label htmlFor="program_type">Type de Programme</Label>
+                            <RadixSelect
+                                value={formData.program_type}
+                                onValueChange={(value: "mardi_du_partage" | "bati_pro" | "other") =>
+                                    handleInputChange("program_type", value)
+                                }
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Sélectionner le type de programme" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="mardi_du_partage">Mardi du Partage</SelectItem>
+                                    <SelectItem value="bati_pro">Bati Pro</SelectItem>
+                                    <SelectItem value="other">Autre Programme</SelectItem>
+                                </SelectContent>
+                            </RadixSelect>
+                        </div>
+                    )}
                     <div className="space-y-2">
                         <Label htmlFor="description">Description</Label>
                         <ReactQuill
@@ -215,7 +299,7 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
                         <Label htmlFor="start_date">Date de début</Label>
                         <Input
                             type="datetime-local"
-                            value={formData.start_date}
+                            value={formData.start_date || ""}
                             onChange={(e) => handleInputChange("start_date", e.target.value)}
                             required
                         />
@@ -224,7 +308,7 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
                         <Label htmlFor="end_date">Date de fin</Label>
                         <Input
                             type="datetime-local"
-                            value={formData.end_date}
+                            value={formData.end_date || ""}
                             onChange={(e) => handleInputChange("end_date", e.target.value)}
                             required
                         />
@@ -233,12 +317,12 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
                         <Label htmlFor="budget">Budget</Label>
                         <Input
                             type="number"
-                            value={formData.budget}
-                            onChange={(e) => handleInputChange("budget", Number(e.target.value))}
+                            value={formData.budget ?? ""}
+                            onChange={(e) => handleInputChange("budget", e.target.value === "" ? 0 : Number(e.target.value))}
                             required
                         />
                     </div>
-                    {formData.type === "program" && (
+                    {formData.type === "program" && (formData.program_type === "bati_pro" || formData.program_type === "other") && (
                         <>
                             <div className="space-y-2">
                                 <Label htmlFor="entity">Entité</Label>
@@ -264,165 +348,117 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
                                     accept=".pdf,.doc,.docx"
                                 />
                                 {formData.training_sheet_url && !trainingSheetFile && (
-                                    <a href={formData.training_sheet_url} target="_blank" rel="noopener noreferrer">Voir la fiche actuelle</a>
+                                    <a href={formData.training_sheet_url} target="_blank" rel="noopener noreferrer">
+                                        Voir la fiche actuelle
+                                    </a>
                                 )}
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="support_url">Support (URL ou fichier)</Label>
-                                <Input
-                                    id="support_url"
-                                    type="url"
-                                    value={formData.support_url}
-                                    onChange={(e) => handleInputChange("support_url", e.target.value)}
-                                    placeholder="Entrez une URL ou sélectionnez un fichier"
-                                />
-                                <Input
-                                    type="file"
-                                    id="support"
-                                    onChange={(e) => handleFileChange("support", e.target.files)}
-                                    accept=".pdf,.doc,.docx"
-                                />
-                                {formData.support_url && !supportFile && (
-                                    <a href={formData.support_url} target="_blank" rel="noopener noreferrer">Voir le support actuel</a>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="photos">Photos</Label>
-                                <Input
-                                    type="file"
-                                    id="photos"
-                                    multiple
-                                    onChange={(e) => handleFileChange("photos", e.target.files)}
-                                    accept="image/*"
-                                />
-                                {formData.photos_url.length > 0 && (
-                                    <div className="flex gap-2">
-                                        {formData.photos_url.map((url, index) => (
-                                            <img key={index} src={url} alt={`Photo ${index + 1}`} className="w-24 h-24 object-cover" />
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="evaluation_url">Évaluation (URL ou fichier)</Label>
-                                <Input
-                                    id="evaluation_url"
-                                    type="url"
-                                    value={formData.evaluation_url}
-                                    onChange={(e) => handleInputChange("evaluation_url", e.target.value)}
-                                    placeholder="Entrez une URL ou sélectionnez un fichier"
-                                />
-                                <Input
-                                    type="file"
-                                    id="evaluation"
-                                    onChange={(e) => handleFileChange("evaluation", e.target.files)}
-                                    accept=".pdf,.doc,.docx"
-                                />
-                                {formData.evaluation_url && !evaluationFile && (
-                                    <a href={formData.evaluation_url} target="_blank" rel="noopener noreferrer">Voir l'évaluation actuelle</a>
-                                )}
-                            </div>
-                            {isMardiDuPartage && (
-                                <>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="facilitator">Animateur</Label>
-                                        <Input
-                                            id="facilitator"
-                                            value={formData.facilitator}
-                                            onChange={(e) => handleInputChange("facilitator", e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="attendance_list_url">Liste de présence (URL ou fichier)</Label>
-                                        <Input
-                                            id="attendance_list_url"
-                                            type="url"
-                                            value={formData.attendance_list_url}
-                                            onChange={(e) => handleInputChange("attendance_list_url", e.target.value)}
-                                            placeholder="Entrez une URL ou sélectionnez un fichier"
-                                        />
-                                        <Input
-                                            type="file"
-                                            id="attendance_list"
-                                            onChange={(e) => handleFileChange("attendance_list", e.target.files)}
-                                            accept=".pdf,.doc,.docx"
-                                        />
-                                        {formData.attendance_list_url && !attendanceListFile && (
-                                            <a href={formData.attendance_list_url} target="_blank" rel="noopener noreferrer">Voir la liste actuelle</a>
-                                        )}
-                                    </div>
-                                </>
-                            )}
                         </>
                     )}
-                    {formData.type === "cycle" && (
-                        <>
-                            <div className="space-y-2">
-                                <Label htmlFor="trainer_name">Nom du formateur</Label>
-                                <Input
-                                    id="trainer_name"
-                                    value={formData.trainer_name}
-                                    onChange={(e) => handleInputChange("trainer_name", e.target.value)}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="evaluation_url">Évaluation (URL ou fichier)</Label>
-                                <Input
-                                    id="evaluation_url"
-                                    type="url"
-                                    value={formData.evaluation_url}
-                                    onChange={(e) => handleInputChange("evaluation_url", e.target.value)}
-                                    placeholder="Entrez une URL ou sélectionnez un fichier"
-                                />
-                                <Input
-                                    type="file"
-                                    id="evaluation"
-                                    onChange={(e) => handleFileChange("evaluation", e.target.files)}
-                                    accept=".pdf,.doc,.docx"
-                                />
-                                {formData.evaluation_url && !evaluationFile && (
-                                    <a href={formData.evaluation_url} target="_blank" rel="noopener noreferrer">Voir l'évaluation actuelle</a>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="attendance_list_url">Liste de présence (URL ou fichier)</Label>
-                                <Input
-                                    id="attendance_list_url"
-                                    type="url"
-                                    value={formData.attendance_list_url}
-                                    onChange={(e) => handleInputChange("attendance_list_url", e.target.value)}
-                                    placeholder="Entrez une URL ou sélectionnez un fichier"
-                                />
-                                <Input
-                                    type="file"
-                                    id="attendance_list"
-                                    onChange={(e) => handleFileChange("attendance_list", e.target.files)}
-                                    accept=".pdf,.doc,.docx"
-                                />
-                                {formData.attendance_list_url && !attendanceListFile && (
-                                    <a href={formData.attendance_list_url} target="_blank" rel="noopener noreferrer">Voir la liste actuelle</a>
-                                )}
-                            </div>
-                        </>
+                    {(formData.type === "cycle" || formData.type === "program") && (
+                        <div className="space-y-2">
+                            <Label htmlFor="support_url">Support (URL ou fichier)</Label>
+                            <Input
+                                id="support_url"
+                                type="url"
+                                value={formData.support_url}
+                                onChange={(e) => handleInputChange("support_url", e.target.value)}
+                                placeholder="Entrez une URL ou sélectionnez un fichier"
+                            />
+                            <Input
+                                type="file"
+                                id="support"
+                                onChange={(e) => handleFileChange("support", e.target.files)}
+                                accept=".pdf,.doc,.docx"
+                            />
+                            {formData.support_url && !supportFile && (
+                                <a href={formData.support_url} target="_blank" rel="noopener noreferrer">
+                                    Voir le support actuel
+                                </a>
+                            )}
+                        </div>
+                    )}
+                    {formData.type === "program" && (
+                        <div className="space-y-2">
+                            <Label htmlFor="photos">Photos</Label>
+                            <Input
+                                type="file"
+                                id="photos"
+                                multiple
+                                onChange={(e) => handleFileChange("photos", e.target.files)}
+                                accept="image/*"
+                            />
+                            {formData.photos_url.length > 0 && (
+                                <div className="flex gap-2">
+                                    {formData.photos_url.map((url, index) => (
+                                        <img
+                                            key={index}
+                                            src={url}
+                                            alt={`Photo ${index + 1}`}
+                                            className="w-24 h-24 object-cover"
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {(formData.type === "cycle" || formData.type === "program") && (
+                        <div className="space-y-2">
+                            <Label htmlFor="evaluation_url">Évaluation (URL ou fichier)</Label>
+                            <Input
+                                id="evaluation_url"
+                                type="url"
+                                value={formData.evaluation_url}
+                                onChange={(e) => handleInputChange("evaluation_url", e.target.value)}
+                                placeholder="Entrez une URL ou sélectionnez un fichier"
+                            />
+                            <Input
+                                type="file"
+                                id="evaluation"
+                                onChange={(e) => handleFileChange("evaluation", e.target.files)}
+                                accept=".pdf,.doc,.docx"
+                            />
+                            {formData.evaluation_url && !evaluationFile && (
+                                <a href={formData.evaluation_url} target="_blank" rel="noopener noreferrer">
+                                    Voir l'évaluation actuelle
+                                </a>
+                            )}
+                        </div>
+                    )}
+                    {(formData.type === "cycle" || (formData.type === "program" && (formData.program_type === "mardi_du_partage" || formData.program_type === "other"))) && (
+                        <div className="space-y-2">
+                            <Label htmlFor="attendance_list_url">Liste de présence (URL ou fichier)</Label>
+                            <Input
+                                id="attendance_list_url"
+                                type="url"
+                                value={formData.attendance_list_url}
+                                onChange={(e) => handleInputChange("attendance_list_url", e.target.value)}
+                                placeholder="Entrez une URL ou sélectionnez un fichier"
+                            />
+                            <Input
+                                type="file"
+                                id="attendance_list"
+                                onChange={(e) => handleFileChange("attendance_list", e.target.files)}
+                                accept=".pdf,.doc,.docx"
+                            />
+                            {formData.attendance_list_url && !attendanceListFile && (
+                                <a href={formData.attendance_list_url} target="_blank" rel="noopener noreferrer">
+                                    Voir la liste actuelle
+                                </a>
+                            )}
+                        </div>
                     )}
                     <div className="space-y-2">
                         <Label htmlFor="module_ids">Modules</Label>
                         <Select
-                            multiple
-                            value={formData.module_ids}
-                            onValueChange={(value) => handleInputChange("module_ids", value)}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Sélectionner les modules" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {modules.map((module) => (
-                                    <SelectItem key={module._id} value={module._id}>
-                                        {module.title}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            isMulti
+                            options={moduleOptions}
+                            value={moduleOptions.filter((option) => formData.module_ids.includes(option.value))}
+                            onChange={handleModuleChange}
+                            placeholder="Sélectionner les modules"
+                            className="basic-multi-select"
+                            classNamePrefix="select"
+                        />
                     </div>
                     <div className="flex justify-end gap-2">
                         <Button
@@ -440,6 +476,6 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
             </DialogContent>
         </Dialog>
     );
-};
+}
 
 export default EditCycleProgramModal;
