@@ -73,9 +73,6 @@ const Header: React.FC = () => {
                     <Link to="/about" className="text-[#06668C] font-bold duration-200">
                         À propos
                     </Link>
-                    <Link to="/services" className="text-[#06668C] font-bold duration-200">
-                        Nos Services
-                    </Link>
                     {isAuthenticated && user && (
                         <>
                             <Link to="/formation" className="text-[#06668C] font-bold duration-200">
@@ -135,13 +132,6 @@ const Header: React.FC = () => {
                             onClick={toggleMobileMenu}
                         >
                             À propos
-                        </Link>
-                        <Link
-                            to="/services"
-                            className="text-[#06668C] font-bold duration-200"
-                            onClick={toggleMobileMenu}
-                        >
-                            Nos Services
                         </Link>
                         {isAuthenticated && user && (
                             <>
