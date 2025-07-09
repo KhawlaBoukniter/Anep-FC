@@ -88,3 +88,17 @@ export const useUnarchiveJob = () => {
     },
   });
 };
+
+// Hook pour importer un fichier commun
+export const useImportJobFile = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation((formData: FormData) => jobService.importFile(formData), {
+    onSuccess: () => {
+      queryClient.invalidateQueries(["jobs"]);
+    },
+    onError: (error) => {
+      console.error("Erreur lors de l'importation du fichier:", error);
+    },
+  });
+};
