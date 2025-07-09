@@ -29,6 +29,8 @@ interface Course {
   budget: number;
   location: string;
   imageUrl: string;
+  photos: string[];
+  link: string;
   notification: any[];
   times: {
     dateRanges: { startTime: string; endTime: string }[];
@@ -42,6 +44,7 @@ interface Course {
     };
   }[];
   image: File | null;
+  photosFiles: File[];
   assignedUsers: Profile[] | string[];
   interestedUsers: Profile[] | string[];
 }
@@ -89,6 +92,8 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     title: module.title,
     location: module.location,
     imageUrl: module.imageUrl,
+    photos: module.photos || [],
+    link: module.link || "",
     offline: module.offline,
     description: module.description,
     hidden: module.hidden,
@@ -98,7 +103,8 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
       ...time,
       dateRanges: time.dateRanges || [{ startTime: time.startTime || "", endTime: time.endTime || "" }],
     })),
-    image: module.image,
+    image: null,
+    photosFiles: [],
     assignedUsers: module.assignedUsers,
     interestedUsers: module.interestedUsers,
   });
@@ -114,7 +120,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     region: null as { label: string } | null,
   });
   const [allCourses, setAllCourses] = useState<Course[]>([]);
-  const baseUrl = "https://anep-proejct.onrender.com";
+  const baseUrl = "C:/xampp/htdocs/Anep-FC - Copie (2)/admin-dashboard_VFULL2/server";
 
   const { data: profiles = [], isLoading, error } = useProfilesPG();
 
@@ -159,7 +165,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     }
   }, [profiles, module]);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDropImage = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
@@ -185,7 +191,51 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     }
   }, [toast]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+  const { getRootProps: getImageRootProps, getInputProps: getImageInputProps, isDragActive: isImageDragActive } = useDropzone({
+    onDrop: onDropImage,
+    multiple: false,
+    accept: { 'image/jpeg': [], 'image/png': [], 'image/gif': [] },
+  });
+
+  const onDropPhotos = useCallback((acceptedFiles: File[]) => {
+    const validFiles = acceptedFiles.filter((file) => {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Chaque photo ne doit pas dépasser 5 Mo.",
+        });
+        return false;
+      }
+      if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Seuls les formats JPEG, PNG et GIF sont acceptés.",
+        });
+        return false;
+      }
+      return true;
+    });
+
+    setCourse((prev) => ({
+      ...prev,
+      photosFiles: [...(prev.photosFiles || []), ...validFiles.map((file) => Object.assign(file, { preview: URL.createObjectURL(file) }))],
+    }));
+  }, [toast]);
+
+  const { getRootProps: getPhotosRootProps, getInputProps: getPhotosInputProps, isDragActive: isPhotosDragActive } = useDropzone({
+    onDrop: onDropPhotos,
+    multiple: true,
+    accept: { 'image/jpeg': [], 'image/png': [], 'image/gif': [] },
+  });
+
+  const handleRemovePhoto = (index: number) => {
+    setCourse((prev) => ({
+      ...prev,
+      photosFiles: (prev.photosFiles || []).filter((_, i) => i !== index),
+    }));
+  };
 
   const handleInputChange = (field: keyof Course, value: any) => {
     setCourse((prev) => ({ ...prev, [field]: value }));
@@ -454,6 +504,9 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     const courseData = {
       ...course,
       assignedUsers: assignedUsers.map((user) => user.id_profile.toString()),
+      imageUrl: course.imageUrl,
+      photos: course.photos,
+      link: course.link
     };
 
     try {
@@ -482,11 +535,18 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
 
       courseData.assignedUsers = mappedUserIds;
 
-      if (course.image || course.times.some((session) => session.externalInstructorDetails?.cv instanceof File)) {
+      if (course.image || course.photosFiles?.length || course.times.some((session) => session.externalInstructorDetails?.cv instanceof File)) {
         const formData = new FormData();
         if (course.image) {
           formData.append("image", course.image);
         }
+
+        if (course.photosFiles?.length) {
+          course.photosFiles.forEach((photo) => {
+            formData.append("photos", photo)
+          })
+        }
+        
         course.times.forEach((session, index) => {
           if (session.externalInstructorDetails?.cv instanceof File) {
             formData.append("cvs", session.externalInstructorDetails.cv);
@@ -498,12 +558,17 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
         });
 
         if (imageUploadResponse.status === 200) {
-          courseData.imageUrl = imageUploadResponse.data.imageUrl || course.imageUrl;
+          if (imageUploadResponse.data.imageUrl) {
+            courseData.imageUrl = imageUploadResponse.data.imageUrl;
+          }
+          courseData.photos = [...(course.photos || []), ...(imageUploadResponse.data.photoUrls || [])];
           courseData.times = course.times.map((session, index) => ({
             ...session,
             externalInstructorDetails: {
               ...session.externalInstructorDetails,
-              cv: imageUploadResponse.data.cvUrls && imageUploadResponse.data.cvUrls[index] ? imageUploadResponse.data.cvUrls[index] : session.externalInstructorDetails.cv,
+              cv: imageUploadResponse.data.cvUrls && imageUploadResponse.data.cvUrls[index]
+                ? imageUploadResponse.data.cvUrls[index]
+                : session.externalInstructorDetails.cv,
             },
           }));
         } else {
@@ -552,6 +617,8 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
       title: "",
       location: "",
       imageUrl: "",
+      photos: [],
+      link: "",
       offline: "",
       description: "",
       hidden: "",
@@ -679,33 +746,119 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                 />
               </div>
               <div className="space-y-2">
-                <Label>Image</Label>
+                <Label>Image (illustration du module)</Label>
                 <div
-                  {...getRootProps()}
+                  {...getImageRootProps()}
                   className={`border-2 border-dashed p-4 text-center ${
-                    isDragActive ? "border-blue-600 bg-blue-50" : "border-gray-300"
+                    isImageDragActive ? "border-blue-600 bg-blue-50" : "border-gray-300"
                   }`}
                 >
-                  <input {...getInputProps()} accept="image/jpeg,image/png,image/gif" />
+                  <input {...getImageInputProps()} accept="image/jpeg,image/png,image/gif" />
                   <p className="text-gray-600">
-                    {isDragActive
+                    {isImageDragActive
                       ? "Déposez l'image ici..."
                       : "Glissez-déposez une image ici, ou cliquez pour sélectionner (JPEG, PNG, GIF, max 5 Mo)"}
                   </p>
                 </div>
                 {course.image ? (
-                  <img
-                    src={course.image.preview}
-                    alt="Aperçu"
-                    className="mt-4 w-full h-auto rounded"
-                  />
+                  <div className="relative">
+                    <img
+                      src={course.image.preview}
+                      alt="Aperçu de l'illustration"
+                      className="mt-4 w-full h-auto rounded"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 bg-red-500 text-white hover:bg-red-600"
+                      onClick={() => setCourse((prev) => ({ ...prev, image: null }))}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 ) : course.imageUrl ? (
-                  <img
-                    src={`${baseUrl}${course.imageUrl}`}
-                    alt="Cours"
-                    className="mt-4 w-full h-auto rounded"
-                  />
+                  <div className="relative">
+                    <img
+                      src={`${baseUrl}${course.imageUrl}`}
+                      alt="Illustration du module"
+                      className="mt-4 w-full h-auto rounded"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 bg-red-500 text-white hover:bg-red-600"
+                      onClick={() => setCourse((prev) => ({ ...prev, imageUrl: "" }))}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 ) : null}
+              </div>
+              <div className="space-y-2">
+                <Label>Photos (Photos prises du module)</Label>
+                <div
+                  {...getPhotosRootProps()}
+                  className={`border-2 border-dashed p-4 text-center ${
+                    isPhotosDragActive ? "border-blue-600 bg-blue-50" : "border-gray-300"
+                  }`}
+                >
+                  <input {...getPhotosInputProps()} accept="image/jpeg,image/png,image/gif" />
+                  <p className="text-gray-600">
+                    {isPhotosDragActive
+                      ? "Déposez les photos ici..."
+                      : "Glissez-déposez des photos ici, ou cliquez pour sélectionner (JPEG, PNG, GIF, max 5 Mo par photo)"}
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-4 mt-4">
+                  {course.photosFiles?.map((photo, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={photo.preview}
+                        alt={`Photo ${index + 1}`}
+                        className="w-full h-auto rounded"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 bg-red-500 text-white hover:bg-red-600"
+                        onClick={() => handleRemovePhoto(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  {course.photos?.map((url, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={`${baseUrl}${url}`}
+                        alt={`Photo ${index + 1}`}
+                        className="w-full h-auto rounded"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 bg-red-500 text-white hover:bg-red-600"
+                        onClick={() =>
+                          setCourse((prev) => ({
+                            ...prev,
+                            photos: prev.photos?.filter((_, i) => i !== index) || [],
+                          }))
+                        }
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="link">Lien</Label>
+                <Input
+                  id="link"
+                  placeholder="Entrez un lien (optionnel)"
+                  value={course.link || ""}
+                  onChange={(e) => handleInputChange("link", e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="offline">En ligne/Présentiel</Label>

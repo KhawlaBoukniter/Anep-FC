@@ -89,7 +89,7 @@ const createCourse = async (req, res) => {
 
 // Update an existing course
 const updateCourse = async (req, res) => {
-    const { assignedUsers, times, ...updateData } = req.body;
+    const { assignedUsers, times, imageUrl, photos, link, ...updateData } = req.body;
     try {
         const courseToUpdate = await Course.findById(req.params.id);
         if (!courseToUpdate) {
@@ -127,6 +127,16 @@ const updateCourse = async (req, res) => {
             }
 
             updateData.assignedUsers = assignedUsers;
+        }
+
+        if (imageUrl) {
+            updateData.imageUrl = imageUrl;
+        }
+        if (photos) {
+            updateData.photos = photos;
+        }
+        if (link) {
+            updateData.link = link;
         }
 
         const updatedCourse = await Course.findByIdAndUpdate(req.params.id, updateData, { new: true });
@@ -174,11 +184,15 @@ const uploadImage = (req, res) => {
         console.log('Received files:', req.files); // Debug: Log received files
 
         // Check if files were uploaded
-        if (!req.files || (!req.files.image && !req.files.cvs)) {
+        if (!req.files || (!req.files.image && !req.files.photos && !req.files.cvs)) {
             return res.status(400).json({ error: 'No files uploaded' });
         }
 
-        const fileUrls = {};
+        const fileUrls = {
+            imageUrl: null,
+            photoUrls: [],
+            cvUrls: []
+        };
 
         // Handle course image
         if (req.files.image) {
@@ -187,14 +201,20 @@ const uploadImage = (req, res) => {
             fileUrls.imageUrl = imageUrl;
         }
 
-        // Handle CVs
-        const cvUrls = [];
-        if (req.files.cvs) {
-            req.files.cvs.forEach((cvFile, index) => {
-                cvUrls.push(`/Uploads/${cvFile.filename}`);
+        if (req.files.photos) {
+            req.files.photos.forEach((photoFile) => {
+                const photoUrl = `/uploads/${photoFile.filename}`;
+                fileUrls.photoUrls.push(photoUrl);
             });
         }
-        fileUrls.cvUrls = cvUrls;
+
+        // Handle CVs
+        if (req.files.cvs) {
+            req.files.cvs.forEach((cvFile) => {
+                const cvUrl = `/uploads/${cvFile.filename}`;
+                fileUrls.cvUrls.push(cvUrl);
+            });
+        }
 
         res.status(200).json(fileUrls);
     } catch (error) {
