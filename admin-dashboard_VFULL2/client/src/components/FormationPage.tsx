@@ -80,7 +80,7 @@ const FormationPage: React.FC = () => {
           start_date: cp.start_date || "Non spécifié",
           end_date: cp.end_date || "Non spécifié",
           instructor: cp.facilitator || "Équipe pédagogique",
-          image: cp.photos_url?.[0] || "/placeholder.svg?height=200&width=300",
+          image: cp.type === "cycle" ? "/images/cycle.jpg" : "/images/program.jpg", // Use cycle.png or program.png
           category: cp.type === "cycle" ? "Cycle de formation" : cp.program_type || "Programme spécialisé",
           type: cp.type,
           modules: cp.modules?.map((m: any) => m.title) || [],
@@ -92,9 +92,8 @@ const FormationPage: React.FC = () => {
             id: m._id,
             title: m.title,
             description: stripHtmlTags(m.description || "Description non disponible"),
-            price: "Inclus dans le cycle",
             instructor: cp.facilitator || "Équipe pédagogique",
-            image: m.image || "/placeholder.svg?height=200&width=300",
+            image: cp.type === "cycle" ? "/cycle.png" : "/program.png", // Use cycle.png or program.png for modules
             objectives: m.objectives || ["Objectif 1", "Objectif 2"],
             prerequisites: m.prerequisites || ["Aucun"],
           })) || [],
@@ -315,7 +314,7 @@ const FormationPage: React.FC = () => {
                 {/* Image and badges */}
                 <div className="relative overflow-hidden rounded-t-2xl">
                   <img
-                    src={program.image || "/placeholder.svg"}
+                    src={program.image}
                     alt={program.title}
                     className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
                   />

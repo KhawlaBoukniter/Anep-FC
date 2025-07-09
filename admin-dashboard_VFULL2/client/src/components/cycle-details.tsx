@@ -116,27 +116,6 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
                   {cycle.rating}/5 ({cycle.students} étudiants)
                 </span>
               </div>
-              <div className="flex items-center">
-                <span className="mr-2">💰</span>
-                <span className="text-2xl font-bold">{cycle.price}</span>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button
-                onClick={handleEnrollCycle}
-                disabled={isEnrolled}
-                className={`px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 ${
-                  isEnrolled
-                    ? "bg-green-500 text-white cursor-not-allowed"
-                    : "bg-white text-gray-800 hover:bg-gray-100 hover:shadow-lg transform hover:-translate-y-1"
-                }`}
-              >
-                {isEnrolled ? "Inscrit au cycle ✓" : `S'inscrire au cycle - ${cycle.price}`}
-              </button>
-              <button className="px-8 py-4 border-2 border-white text-white rounded-lg font-semibold hover:bg-white hover:text-gray-800 transition-all duration-300">
-                Demander plus d'infos
-              </button>
             </div>
           </div>
         </div>
@@ -185,13 +164,6 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
                       Formation {index + 1}
                     </span>
                   </div>
-                  {isEnrolled && (
-                    <div className="absolute bottom-4 left-4">
-                      <span className="px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">
-                        ✓ Inclus dans le cycle
-                      </span>
-                    </div>
-                  )}
                 </div>
 
                 {/* Contenu */}
@@ -207,30 +179,6 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
 
                   <p className="text-gray-600 mb-4 leading-relaxed">{formation.description}</p>
 
-                  {/* Infos */}
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                    <div className="flex items-center">
-                      <span className="mr-1">⏱️</span>
-                      <span>{formation.duration}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="mr-1">👨‍🏫</span>
-                      <span>{formation.instructor}</span>
-                    </div>
-                  </div>
-
-                  {/* Objectifs */}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">🎯 Objectifs :</h4>
-                    <ul className="text-sm text-gray-600 space-y-1">
-                      {formation.objectives.slice(0, 2).map((objective, idx) => (
-                        <li key={idx} className="flex items-start">
-                          <span className="text-green-500 mr-2 mt-0.5">•</span>
-                          <span>{objective}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
 
                   {/* Actions */}
                   <div className="flex gap-3">
@@ -254,86 +202,6 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
                 ></div>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Cycle Info Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            {/* Modules */}
-            <div>
-              <h3 className="text-2xl font-bold text-[#06668C] mb-6">📚 Modules du cycle</h3>
-              <ul className="space-y-3">
-                {cycle.modules.map((module, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="text-green-500 mr-3 mt-1">✓</span>
-                    <span className="text-gray-700 text-lg">{module}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Objectifs */}
-            <div>
-              <h3 className="text-2xl font-bold text-[#06668C] mb-6">🎯 Objectifs pédagogiques</h3>
-              <ul className="space-y-3">
-                {cycle.objectives.map((objective, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="text-blue-500 mr-3 mt-1">→</span>
-                    <span className="text-gray-700 text-lg">{objective}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Prérequis */}
-          <div className="mt-12">
-            <h3 className="text-2xl font-bold text-[#06668C] mb-6">📋 Prérequis</h3>
-            <div className="flex flex-wrap gap-3">
-              {cycle.prerequisites.map((prereq, index) => (
-                <span key={index} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-lg">
-                  {prereq}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Avantages du cycle */}
-          <div className="mt-12 p-8 bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl">
-            <h3 className="text-2xl font-bold text-[#06668C] mb-6">🌟 Avantages du cycle complet</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="flex items-start">
-                <span className="text-purple-600 mr-3 mt-1">💰</span>
-                <div>
-                  <h4 className="font-semibold text-gray-800">Économies importantes</h4>
-                  <p className="text-gray-600">Jusqu'à 40% d'économie par rapport aux formations individuelles</p>
-                </div>
-              </div>
-              <div className="flex items-start">
-                <span className="text-purple-600 mr-3 mt-1">🎓</span>
-                <div>
-                  <h4 className="font-semibold text-gray-800">Progression structurée</h4>
-                  <p className="text-gray-600">Parcours pédagogique optimisé et progressif</p>
-                </div>
-              </div>
-              <div className="flex items-start">
-                <span className="text-purple-600 mr-3 mt-1">👥</span>
-                <div>
-                  <h4 className="font-semibold text-gray-800">Communauté dédiée</h4>
-                  <p className="text-gray-600">Accès à un groupe privé d'étudiants du cycle</p>
-                </div>
-              </div>
-              <div className="flex items-start">
-                <span className="text-purple-600 mr-3 mt-1">🏆</span>
-                <div>
-                  <h4 className="font-semibold text-gray-800">Certification complète</h4>
-                  <p className="text-gray-600">Certificat de fin de cycle reconnu par l'industrie</p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>

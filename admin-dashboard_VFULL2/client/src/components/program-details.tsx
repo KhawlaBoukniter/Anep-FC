@@ -115,15 +115,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                   {program.rating}/5 ({program.students} étudiants)
                 </span>
               </div>
-              <div className="flex items-center">
-                <span className="mr-2">💰</span>
-                <span className="text-2xl font-bold">À partir de {program.formations[0]?.price || program.price}</span>
-              </div>
             </div>
-
-            <button className="px-8 py-4 border-2 border-white text-white rounded-lg font-semibold hover:bg-white hover:text-gray-800 transition-all duration-300">
-              Demander plus d'infos sur le programme
-            </button>
           </div>
         </div>
       </section>
@@ -197,32 +189,6 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                       <span>{formation.instructor}</span>
                     </div>
                   </div>
-
-                  {/* Objectifs */}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">🎯 Objectifs :</h4>
-                    <ul className="text-sm text-gray-600 space-y-1">
-                      {formation.objectives.slice(0, 2).map((objective, idx) => (
-                        <li key={idx} className="flex items-start">
-                          <span className="text-green-500 mr-2 mt-0.5">•</span>
-                          <span>{objective}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Prérequis */}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">📋 Prérequis :</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {formation.prerequisites.slice(0, 2).map((prereq, idx) => (
-                        <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
-                          {prereq}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
                   {/* Actions */}
                   <div className="flex gap-3">
                     <button className="flex-1 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg transition-colors duration-300">
@@ -261,85 +227,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
         </div>
       </section>
 
-      {/* Program Info Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            {/* Modules */}
-            <div>
-              <h3 className="text-2xl font-bold text-[#06668C] mb-6">📖 Contenu du programme</h3>
-              <ul className="space-y-3">
-                {program.modules.map((module, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="text-green-500 mr-3 mt-1">✓</span>
-                    <span className="text-gray-700 text-lg">{module}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Objectifs */}
-            <div>
-              <h3 className="text-2xl font-bold text-[#06668C] mb-6">🎯 Objectifs pédagogiques</h3>
-              <ul className="space-y-3">
-                {program.objectives.map((objective, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="text-blue-500 mr-3 mt-1">→</span>
-                    <span className="text-gray-700 text-lg">{objective}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Prérequis */}
-          <div className="mt-12">
-            <h3 className="text-2xl font-bold text-[#06668C] mb-6">📋 Prérequis</h3>
-            <div className="flex flex-wrap gap-3">
-              {program.prerequisites.map((prereq, index) => (
-                <span key={index} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-lg">
-                  {prereq}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Avantages du programme */}
-          <div className="mt-12 p-8 bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl">
-            <h3 className="text-2xl font-bold text-[#06668C] mb-6">🌟 Avantages du programme spécialisé</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="flex items-start">
-                <span className="text-green-600 mr-3 mt-1">🎯</span>
-                <div>
-                  <h4 className="font-semibold text-gray-800">Formation ciblée</h4>
-                  <p className="text-gray-600">Concentrez-vous sur les compétences spécifiques dont vous avez besoin</p>
-                </div>
-              </div>
-              <div className="flex items-start">
-                <span className="text-green-600 mr-3 mt-1">⚡</span>
-                <div>
-                  <h4 className="font-semibold text-gray-800">Flexibilité maximale</h4>
-                  <p className="text-gray-600">Choisissez uniquement les formations qui vous intéressent</p>
-                </div>
-              </div>
-              <div className="flex items-start">
-                <span className="text-green-600 mr-3 mt-1">💼</span>
-                <div>
-                  <h4 className="font-semibold text-gray-800">Expertise approfondie</h4>
-                  <p className="text-gray-600">Devenez expert dans un domaine spécifique</p>
-                </div>
-              </div>
-              <div className="flex items-start">
-                <span className="text-green-600 mr-3 mt-1">🚀</span>
-                <div>
-                  <h4 className="font-semibold text-gray-800">Mise en pratique immédiate</h4>
-                  <p className="text-gray-600">Appliquez directement vos nouvelles compétences</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+     
 
       <Footer />
     </div>
