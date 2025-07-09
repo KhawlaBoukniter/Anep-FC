@@ -1,5 +1,7 @@
 const { pool } = require("../config/database");
 const Joi = require("joi");
+const path = require("path");
+const fs = require("fs");
 
 // Schéma de validation pour un emploi
 exports.jobSchema = Joi.object({
@@ -15,7 +17,7 @@ exports.jobSchema = Joi.object({
       niveaur: Joi.number().integer().min(1).max(4).required(),
     })
   ).allow(null),
-  archived: Joi.boolean().default(false), // Ajout du champ archived
+  archived: Joi.boolean().default(false),
 });
 
 exports.updateEmploiWeights = async () => {
@@ -45,6 +47,7 @@ exports.getAllJobs = async (search, archived = false) => {
   let query = `
     SELECT 
       j.*,
+      (SELECT file_path FROM common_files ORDER BY id DESC LIMIT 1) as common_file,
       COALESCE(
         json_agg(
           json_build_object(
@@ -64,7 +67,6 @@ exports.getAllJobs = async (search, archived = false) => {
   const conditions = [];
   const params = [];
 
-  // Filtrer par archived
   conditions.push(`j.archived = $${params.length + 1}`);
   params.push(archived);
 
@@ -82,13 +84,15 @@ exports.getAllJobs = async (search, archived = false) => {
   query += ` GROUP BY j.id_emploi ORDER BY CAST(SUBSTRING(j.codeemploi FROM '\\d+') AS INTEGER)`;
 
   const result = await pool.query(query, params);
+  
   return result.rows.map(row => ({
     ...row,
     id_emploi: row.id_emploi.toString(),
     required_skills: row.required_skills.map(skill => ({
       ...skill,
       id_competencer: skill.id_competencer.toString()
-    }))
+    })),
+    common_file: row.common_file ? this.getFileUrl(row.common_file) : null
   }));
 };
 
@@ -96,6 +100,7 @@ exports.getJobById = async (id) => {
   const query = `
     SELECT 
       j.*,
+      (SELECT file_path FROM common_files ORDER BY id DESC LIMIT 1) as common_file,
       COALESCE(
         json_agg(
           json_build_object(
@@ -123,7 +128,8 @@ exports.getJobById = async (id) => {
     required_skills: result.rows[0].required_skills.map(skill => ({
       ...skill,
       id_competencer: skill.id_competencer.toString()
-    }))
+    })),
+    common_file: result.rows[0].common_file ? this.getFileUrl(result.rows[0].common_file) : null
   };
 
   return job;
@@ -135,7 +141,6 @@ exports.createJob = async (jobData, required_skills) => {
   try {
     await client.query("BEGIN");
 
-    // Insérer l'emploi
     const insertJobQuery = `
       INSERT INTO emploi (nom_emploi, entite, formation, experience, codeemploi, poidsemploi, archived)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -149,13 +154,12 @@ exports.createJob = async (jobData, required_skills) => {
       jobData.experience,
       jobData.codeemploi,
       jobData.poidsemploi,
-      jobData.archived || false, // Ajout du champ archived
+      jobData.archived || false,
     ];
 
     const jobResult = await client.query(insertJobQuery, jobValues);
     const newJob = jobResult.rows[0];
 
-    // Insérer les compétences requises si elles existent
     if (required_skills && required_skills.length > 0) {
       for (const skill of required_skills) {
         await client.query(
@@ -166,7 +170,7 @@ exports.createJob = async (jobData, required_skills) => {
     }
 
     await client.query("COMMIT");
-    return newJob;
+    return this.getCompleteJob(newJob.id_emploi);
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
@@ -181,7 +185,6 @@ exports.updateJob = async (id, jobData, required_skills) => {
   try {
     await client.query("BEGIN");
 
-    // Mettre à jour l'emploi
     const updateJobQuery = `
       UPDATE emploi 
       SET nom_emploi = $1, entite = $2, formation = $3, experience = $4, 
@@ -197,7 +200,7 @@ exports.updateJob = async (id, jobData, required_skills) => {
       jobData.experience,
       jobData.codeemploi,
       jobData.poidsemploi,
-      jobData.archived || false, // Ajout du champ archived
+      jobData.archived || false,
       id,
     ];
 
@@ -206,10 +209,8 @@ exports.updateJob = async (id, jobData, required_skills) => {
       throw new Error("Emploi non trouvé");
     }
 
-    // Supprimer les anciennes compétences requises
     await client.query("DELETE FROM emploi_competencer WHERE id_emploi = $1", [id]);
 
-    // Insérer les nouvelles compétences requises
     if (required_skills && required_skills.length > 0) {
       for (const skill of required_skills) {
         await client.query(
@@ -220,7 +221,7 @@ exports.updateJob = async (id, jobData, required_skills) => {
     }
 
     await client.query("COMMIT");
-    return jobResult.rows[0];
+    return this.getCompleteJob(id);
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
@@ -235,39 +236,10 @@ exports.deleteJob = async (id) => {
 };
 
 exports.getCompleteJob = async (id) => {
-  const query = `
-    SELECT 
-      j.*,
-      COALESCE(
-        json_agg(
-          json_build_object(
-            'id_competencer', cr.id_competencer,
-            'code_competencer', cr.code_competencer,
-            'competencer', cr.competencer,
-            'niveaur', ec.niveaur
-          )
-        ) FILTER (WHERE cr.id_competencer IS NOT NULL), 
-        '[]'
-      ) as required_skills
-    FROM emploi j
-    LEFT JOIN emploi_competencer ec ON j.id_emploi = ec.id_emploi
-    LEFT JOIN competencesR cr ON ec.id_competencer = cr.id_competencer
-    WHERE j.id_emploi = $1
-    GROUP BY j.id_emploi
-  `;
+  const job = await this.getJobById(id);
+  if (!job) return null;
 
-  const result = await pool.query(query, [id]);
-  if (result.rows.length === 0) return null;
-
-  const job = {
-    ...result.rows[0],
-    id_emploi: result.rows[0].id_emploi.toString(),
-    required_skills: result.rows[0].required_skills.map(skill => ({
-      ...skill,
-      id_competencer: skill.id_competencer.toString()
-    }))
-  };
-
+  // Ajoutez ici d'autres données complémentaires si nécessaire
   return job;
 };
 
@@ -301,4 +273,45 @@ exports.unarchiveJob = async (id) => {
   } catch (error) {
     throw error;
   }
+};
+
+exports.saveCommonFile = async (filePath) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    
+    // Supprimer l'ancien fichier physique s'il existe
+    const oldFile = await client.query("SELECT file_path FROM common_files LIMIT 1");
+    if (oldFile.rows[0]?.file_path) {
+      try {
+        fs.unlinkSync(path.join(__dirname, '../uploads', path.basename(oldFile.rows[0].file_path)));
+      } catch (err) {
+        console.error("Erreur lors de la suppression de l'ancien fichier:", err);
+      }
+    }
+
+    // Supprimer l'ancienne entrée en base
+    await client.query("DELETE FROM common_files");
+    
+    // Insérer le nouveau fichier
+    await client.query("INSERT INTO common_files (file_path) VALUES ($1)", [filePath]);
+    
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+exports.getFileUrl = (filePath) => {
+  if (!filePath) return null;
+  const baseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
+  return `${baseUrl}${filePath}`;
+};
+
+exports.getLatestCommonFile = async () => {
+  const result = await pool.query("SELECT file_path FROM common_files ORDER BY id DESC LIMIT 1");
+  return result.rows[0]?.file_path ? this.getFileUrl(result.rows[0].file_path) : null;
 };

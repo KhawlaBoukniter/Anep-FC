@@ -1,6 +1,19 @@
 const express = require("express");
 const router = express.Router();
 const jobController = require("../controllers/jobController");
+const multer = require("multer");
+const path = require("path");
+
+// Configuration de multer pour l'upload de fichiers
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/");
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+const upload = multer({ storage });
 
 // GET /api/jobs - Récupérer tous les emplois
 router.get("/", jobController.getAllJobs);
@@ -22,5 +35,8 @@ router.put("/:id/archive", jobController.archiveJob);
 
 // PUT /api/jobs/:id/unarchive - Désarchiver un emploi
 router.put("/:id/unarchive", jobController.unarchiveJob);
+
+// POST /api/jobs/import - Importer un fichier commun
+router.post("/import", upload.single("file"), jobController.importFile);
 
 module.exports = router;

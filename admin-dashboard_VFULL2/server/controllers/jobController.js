@@ -128,3 +128,17 @@ exports.unarchiveJob = async (req, res) => {
     res.status(500).json({ message: "Erreur serveur.", details: error.message });
   }
 };
+
+exports.importFile = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Aucun fichier fourni" });
+    }
+    const filePath = `/uploads/${req.file.filename}`;
+    await jobModel.saveCommonFile(filePath);
+    res.status(201).json({ message: "Fichier importé avec succès", filePath });
+  } catch (error) {
+    console.error("Erreur lors de l'importation du fichier:", error);
+    res.status(500).json({ error: "Erreur lors de l'importation du fichier" });
+  }
+};
