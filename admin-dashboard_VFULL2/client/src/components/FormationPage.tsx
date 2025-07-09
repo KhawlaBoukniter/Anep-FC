@@ -1,488 +1,198 @@
-"use client"
-import type React from "react"
-import { useState, useEffect } from "react"
-import Header from "../components/header.tsx"
-import Footer from "../components/footer.tsx"
-import ProgramDetails from "../components/program-details.tsx"
-import CycleDetails from "../components/cycle-details.tsx"
+"use client";
+import type React from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import Header from "../components/header.tsx";
+import Footer from "../components/footer.tsx";
+import ProgramDetails from "../components/program-details.tsx";
+import CycleDetails from "../components/cycle-details.tsx";
 
 interface Formation {
-  id: number
-  title: string
-  description: string
-  duration: string
-  level: string
-  price: string
-  instructor: string
-  image: string
-  objectives: string[]
-  prerequisites: string[]
+  id: number;
+  title: string;
+  description: string;
+  duration: string;
+  level: string;
+  price: string;
+  instructor: string;
+  image: string;
+  objectives: string[];
+  prerequisites: string[];
 }
 
 interface Program {
-  id: number
-  title: string
-  description: string
-  shortDescription: string
-  duration: string
-  level: string
-  price: string
-  instructor: string
-  image: string
-  category: string
-  type: "cycle" | "programme"
-  modules: string[]
-  prerequisites: string[]
-  objectives: string[]
-  color: string
-  rating: number
-  students: number
-  formations: Formation[]
+  id: number;
+  title: string;
+  description: string;
+  shortDescription: string;
+  duration: string;
+  level: string;
+  price: string;
+  instructor: string;
+  image: string;
+  category: string;
+  type: "cycle" | "program";
+  modules: string[];
+  prerequisites: string[];
+  objectives: string[];
+  color: string;
+  rating: number;
+  students: number;
+  formations: Formation[];
 }
 
 interface ProgramModalProps {
-  program: Program | null
-  isOpen: boolean
-  onClose: () => void
-  onEnroll: (programId: number) => void
+  program: Program | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onEnroll: (programId: number) => void;
 }
 
-const programsData: Program[] = [
-  // CYCLES
-  {
-    id: 1,
-    title: "Cycle Développement Full-Stack",
-    description:
-      "Un cycle complet de 6 mois pour maîtriser le développement web moderne. De React à Node.js, en passant par les bases de données et le déploiement, devenez un développeur full-stack accompli.",
-    shortDescription: "Cycle complet de 6 mois pour devenir développeur full-stack",
-    duration: "6 mois",
-    level: "Débutant à Intermédiaire",
-    price: "2499€",
-    instructor: "Équipe pédagogique",
-    image: "/placeholder.svg?height=200&width=300",
-    category: "Développement Web",
-    type: "cycle",
-    modules: [
-      "HTML/CSS et JavaScript moderne",
-      "React.js et écosystème",
-      "Node.js et Express",
-      "Bases de données SQL/NoSQL",
-      "APIs REST et GraphQL",
-      "Déploiement et DevOps",
-    ],
-    prerequisites: ["Motivation", "Logique de base"],
-    objectives: [
-      "Créer des applications web complètes",
-      "Maîtriser le stack MERN",
-      "Comprendre l'architecture web",
-      "Déployer en production",
-    ],
-    color: "from-[#06668C] to-blue-700",
-    rating: 4.9,
-    students: 156,
-    formations: [
-      {
-        id: 101,
-        title: "Fondamentaux HTML/CSS/JavaScript",
-        description: "Maîtrisez les bases du développement web avec HTML5, CSS3 et JavaScript moderne",
-        duration: "40 heures",
-        level: "Débutant",
-        price: "Inclus dans le cycle",
-        instructor: "Marie Dupont",
-        image: "/placeholder.svg?height=200&width=300",
-        objectives: ["Créer des pages web responsives", "Maîtriser JavaScript ES6+"],
-        prerequisites: ["Aucun"],
-      },
-      {
-        id: 102,
-        title: "React.js Avancé",
-        description: "Développez des applications React performantes avec hooks et state management",
-        duration: "50 heures",
-        level: "Intermédiaire",
-        price: "Inclus dans le cycle",
-        instructor: "Thomas Martin",
-        image: "/placeholder.svg?height=200&width=300",
-        objectives: ["Maîtriser React hooks", "Gérer l'état global"],
-        prerequisites: ["JavaScript ES6+"],
-      },
-      {
-        id: 103,
-        title: "Backend Node.js",
-        description: "Créez des APIs robustes avec Node.js, Express et bases de données",
-        duration: "45 heures",
-        level: "Intermédiaire",
-        price: "Inclus dans le cycle",
-        instructor: "Alexandre Petit",
-        image: "/placeholder.svg?height=200&width=300",
-        objectives: ["Créer des APIs REST", "Gérer les bases de données"],
-        prerequisites: ["JavaScript", "Bases de données"],
-      },
-    ],
-  },
-  {
-    id: 2,
-    title: "Cycle Data Science & IA",
-    description:
-      "Cycle intensif de 8 mois pour devenir expert en Data Science et Intelligence Artificielle. Python, Machine Learning, Deep Learning et mise en production de modèles IA.",
-    shortDescription: "Cycle de 8 mois pour devenir expert en Data Science et IA",
-    duration: "8 mois",
-    level: "Intermédiaire à Avancé",
-    price: "3299€",
-    instructor: "Dr. Marie Dubois",
-    image: "/placeholder.svg?height=200&width=300",
-    category: "Intelligence Artificielle",
-    type: "cycle",
-    modules: [
-      "Python pour la Data Science",
-      "Statistiques et probabilités",
-      "Machine Learning supervisé/non-supervisé",
-      "Deep Learning et réseaux de neurones",
-      "Traitement du langage naturel",
-      "MLOps et déploiement de modèles",
-    ],
-    prerequisites: ["Mathématiques niveau bac", "Bases de programmation"],
-    objectives: [
-      "Analyser et visualiser des données",
-      "Créer des modèles prédictifs",
-      "Implémenter du Deep Learning",
-      "Déployer des solutions IA",
-    ],
-    color: "from-purple-600 to-purple-800",
-    rating: 4.8,
-    students: 89,
-    formations: [
-      {
-        id: 201,
-        title: "Python pour Data Science",
-        description: "Maîtrisez Python et ses librairies pour l'analyse de données",
-        duration: "35 heures",
-        level: "Débutant",
-        price: "Inclus dans le cycle",
-        instructor: "Dr. Jean Dupont",
-        image: "/placeholder.svg?height=200&width=300",
-        objectives: ["Maîtriser Pandas et NumPy", "Visualiser des données"],
-        prerequisites: ["Bases de programmation"],
-      },
-      {
-        id: 202,
-        title: "Machine Learning Avancé",
-        description: "Implémentez des algorithmes de ML et créez des modèles prédictifs",
-        duration: "60 heures",
-        level: "Avancé",
-        price: "Inclus dans le cycle",
-        instructor: "Dr. Marie Dubois",
-        image: "/placeholder.svg?height=200&width=300",
-        objectives: ["Créer des modèles ML", "Optimiser les performances"],
-        prerequisites: ["Python", "Statistiques"],
-      },
-    ],
-  },
-
-  // PROGRAMMES
-  {
-    id: 4,
-    title: "Programme React Avancé",
-    description:
-      "Programme intensif pour maîtriser React.js avec les hooks, le state management et les bonnes pratiques modernes. Créez des applications performantes et maintenables.",
-    shortDescription: "Maîtrisez React.js avec les hooks et le state management",
-    duration: "40 heures",
-    level: "Intermédiaire",
-    price: "899€",
-    instructor: "Thomas Martin",
-    image: "/placeholder.svg?height=200&width=300",
-    category: "Développement Web",
-    type: "programme",
-    modules: [
-      "Hooks avancés",
-      "Context API et Redux",
-      "Optimisation des performances",
-      "Tests unitaires",
-      "Patterns avancés",
-    ],
-    prerequisites: ["JavaScript ES6+", "React de base"],
-    objectives: [
-      "Maîtriser les hooks avancés",
-      "Optimiser les performances",
-      "Implémenter des tests",
-      "Suivre les bonnes pratiques",
-    ],
-    color: "from-blue-500 to-blue-700",
-    rating: 4.8,
-    students: 245,
-    formations: [
-      {
-        id: 401,
-        title: "React Hooks Avancés",
-        description: "Maîtrisez tous les hooks React et créez vos propres hooks personnalisés",
-        duration: "15 heures",
-        level: "Intermédiaire",
-        price: "299€",
-        instructor: "Thomas Martin",
-        image: "/placeholder.svg?height=200&width=300",
-        objectives: ["Maîtriser useEffect, useContext", "Créer des hooks personnalisés"],
-        prerequisites: ["React de base"],
-      },
-      {
-        id: 402,
-        title: "State Management avec Redux",
-        description: "G��rez l'état global de vos applications React avec Redux Toolkit",
-        duration: "12 heures",
-        level: "Intermédiaire",
-        price: "249€",
-        instructor: "Sophie Laurent",
-        image: "/placeholder.svg?height=200&width=300",
-        objectives: ["Implémenter Redux", "Gérer l'état complexe"],
-        prerequisites: ["React hooks"],
-      },
-      {
-        id: 403,
-        title: "Tests React avec Jest",
-        description: "Testez vos composants React et assurez la qualité de votre code",
-        duration: "13 heures",
-        level: "Intermédiaire",
-        price: "279€",
-        instructor: "Alexandre Petit",
-        image: "/placeholder.svg?height=200&width=300",
-        objectives: ["Écrire des tests unitaires", "Tester les composants"],
-        prerequisites: ["React avancé"],
-      },
-    ],
-  },
-  {
-    id: 5,
-    title: "Programme DevOps & Cloud",
-    description:
-      "Programme spécialisé en DevOps et Cloud Computing. Automatisez vos workflows, gérez l'infrastructure as code et maîtrisez AWS/Azure.",
-    shortDescription: "Spécialisez-vous en DevOps et Cloud Computing",
-    duration: "50 heures",
-    level: "Avancé",
-    price: "1299€",
-    instructor: "Alexandre Petit",
-    image: "/placeholder.svg?height=200&width=300",
-    category: "Infrastructure",
-    type: "programme",
-    modules: ["Docker et Kubernetes", "CI/CD avec GitHub Actions", "Infrastructure as Code", "AWS/Azure", "Monitoring"],
-    prerequisites: ["Linux", "Développement", "Réseaux"],
-    objectives: [
-      "Automatiser les déploiements",
-      "Gérer l'infrastructure cloud",
-      "Implémenter CI/CD",
-      "Monitorer les applications",
-    ],
-    color: "from-gray-700 to-gray-900",
-    rating: 4.7,
-    students: 156,
-    formations: [
-      {
-        id: 501,
-        title: "Docker et Containerisation",
-        description: "Maîtrisez Docker pour containeriser vos applications",
-        duration: "20 heures",
-        level: "Intermédiaire",
-        price: "449€",
-        instructor: "Alexandre Petit",
-        image: "/placeholder.svg?height=200&width=300",
-        objectives: ["Créer des containers", "Orchestrer avec Docker Compose"],
-        prerequisites: ["Linux de base"],
-      },
-      {
-        id: 502,
-        title: "Kubernetes en Production",
-        description: "Déployez et gérez vos applications avec Kubernetes",
-        duration: "30 heures",
-        level: "Avancé",
-        price: "699€",
-        instructor: "Captain DevOps",
-        image: "/placeholder.svg?height=200&width=300",
-        objectives: ["Déployer sur Kubernetes", "Gérer la scalabilité"],
-        prerequisites: ["Docker", "Réseaux"],
-      },
-    ],
-  },
-]
-
-const ProgramModal: React.FC<ProgramModalProps> = ({ program, isOpen, onClose, onEnroll }) => {
-  if (!isOpen || !program) return null
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className={`bg-gradient-to-r ${program.color} text-white p-6 rounded-t-2xl relative`}>
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 text-white hover:text-gray-200 transition-colors duration-200"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="px-3 py-1 bg-white bg-opacity-20 rounded-full text-sm font-semibold">
-                  {program.type === "cycle" ? "🔄 Cycle" : "📚 Programme"}
-                </span>
-              </div>
-              <h2 className="text-3xl font-bold mb-4">{program.title}</h2>
-              <p className="text-lg opacity-90 mb-4">{program.description}</p>
-              <div className="flex flex-wrap gap-4 text-sm">
-                <div className="flex items-center">
-                  <span className="mr-2">⏱️</span>
-                  <span>{program.duration}</span>
-                </div>
-                <div className="flex items-center">
-                  <span className="mr-2">📊</span>
-                  <span>{program.level}</span>
-                </div>
-                <div className="flex items-center">
-                  <span className="mr-2">⭐</span>
-                  <span>
-                    {program.rating}/5 ({program.students} étudiants)
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="text-center md:text-right">
-              <div className="text-4xl font-bold mb-2">{program.price}</div>
-              <div className="text-sm opacity-80">Instructeur: {program.instructor}</div>
-            </div>
-          </div>
-        </div>
-        {/* Content */}
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Modules */}
-            <div>
-              <h3 className="text-xl font-bold text-[#06668C] mb-4">
-                {program.type === "cycle" ? "📚 Modules du cycle" : "📖 Contenu du programme"}
-              </h3>
-              <ul className="space-y-2">
-                {program.modules.map((module, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="text-green-500 mr-2 mt-1">✓</span>
-                    <span className="text-gray-700">{module}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            {/* Objectifs */}
-            <div>
-              <h3 className="text-xl font-bold text-[#06668C] mb-4">🎯 Objectifs pédagogiques</h3>
-              <ul className="space-y-2">
-                {program.objectives.map((objective, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="text-blue-500 mr-2 mt-1">→</span>
-                    <span className="text-gray-700">{objective}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          {/* Prérequis */}
-          <div className="mt-8">
-            <h3 className="text-xl font-bold text-[#06668C] mb-4">📋 Prérequis</h3>
-            <div className="flex flex-wrap gap-2">
-              {program.prerequisites.map((prereq, index) => (
-                <span key={index} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                  {prereq}
-                </span>
-              ))}
-            </div>
-          </div>
-          {/* Actions */}
-          <div className="mt-8 flex flex-col sm:flex-row gap-4">
-            {program.type === "cycle" && (
-              <button
-                onClick={() => onEnroll(program.id)}
-                className={`flex-1 bg-gradient-to-r ${program.color} text-white py-4 px-6 rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300`}
-              >
-                S'inscrire au cycle - {program.price}
-              </button>
-            )}
-            <button className="flex-1 border-2 border-[#06668C] text-[#06668C] py-4 px-6 rounded-lg font-semibold hover:bg-[#06668C] hover:text-white transition-all duration-300">
-              Demander plus d'infos
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
 
 const FormationPage: React.FC = () => {
-  const [isVisible, setIsVisible] = useState(false)
-  const [animatedCards, setAnimatedCards] = useState<boolean[]>(new Array(programsData.length).fill(false))
-  const [selectedProgram, setSelectedProgram] = useState<Program | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [enrolledPrograms, setEnrolledPrograms] = useState<number[]>([])
-  const [activeFilter, setActiveFilter] = useState<"all" | "cycle" | "programme">("all")
-  const [showDetails, setShowDetails] = useState(false)
-  const [selectedProgramForDetails, setSelectedProgramForDetails] = useState<Program | null>(null)
+  const [isVisible, setIsVisible] = useState(false);
+  const [animatedCards, setAnimatedCards] = useState<boolean[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [enrolledPrograms, setEnrolledPrograms] = useState<number[]>([]);
+  const [activeFilter, setActiveFilter] = useState<"all" | "cycle" | "program">("all");
+  const [showDetails, setShowDetails] = useState(false);
+  const [selectedProgramForDetails, setSelectedProgramForDetails] = useState<Program | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredPrograms = programsData.filter((program) => {
-    if (activeFilter === "all") return true
-    return program.type === activeFilter
-  })
+  // Récupérer les cycles et programmes depuis l'API
+  useEffect(() => {
+    const fetchPrograms = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs`);
+        // Transformer les données backend pour correspondre au format frontend
+        const transformedPrograms = response.data.map((cp: any) => ({
+          id: cp.id,
+          title: cp.title,
+          description: cp.description || "Description non disponible",
+          shortDescription: cp.description?.slice(0, 100) + "..." || "Description non disponible",
+          duration: `${Math.ceil((new Date(cp.end_date) - new Date(cp.start_date)) / (1000 * 60 * 60 * 24 * 30))} mois`,
+          level: "Intermédiaire", // À adapter selon les données réelles
+          price: cp.budget ? `${cp.budget}€` : "Prix sur demande",
+          instructor: cp.facilitator || "Équipe pédagogique",
+          image: cp.photos_url?.[0] || "/placeholder.svg?height=200&width=300",
+          category: cp.type === "cycle" ? "Cycle de formation" : cp.program_type || "Programme spécialisé",
+          type: cp.type,
+          modules: cp.modules?.map((m: any) => m.title) || [],
+          prerequisites: ["Motivation", "Logique de base"], // À adapter
+          objectives: ["Objectif 1", "Objectif 2"], // À adapter
+          color: cp.type === "cycle" ? "from-purple-600 to-purple-800" : "from-blue-500 to-blue-700",
+          rating: 4.8, // À adapter
+          students: cp.CycleProgramRegistrations?.length || 0,
+          formations: cp.modules?.map((m: any) => ({
+            id: m._id,
+            title: m.title,
+            description: m.description || "Description non disponible",
+            duration: m.duration || "Non spécifié",
+            level: m.level || "Intermédiaire",
+            price: "Inclus dans le cycle",
+            instructor: cp.facilitator || "Équipe pédagogique",
+            image: m.image || "/placeholder.svg?height=200&width=300",
+            objectives: m.objectives || ["Objectif 1", "Objectif 2"],
+            prerequisites: m.prerequisites || ["Aucun"],
+          })) || [],
+        }));
+        setPrograms(transformedPrograms);
+        setAnimatedCards(new Array(transformedPrograms.length).fill(false));
+        setLoading(false);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des cycles/programmes:", err);
+        setError("Impossible de charger les formations. Veuillez réessayer plus tard.");
+        setLoading(false);
+      }
+    };
+
+    fetchPrograms();
+  }, []);
+
+  const filteredPrograms = programs.filter((program) => {
+    if (activeFilter === "all") return true;
+    return program.type === activeFilter;
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setIsVisible(true)
-      // Animer les cartes avec délai
+      setIsVisible(true);
       filteredPrograms.forEach((_, index) => {
         setTimeout(() => {
           setAnimatedCards((prev) => {
-            const newState = [...prev]
-            newState[index] = true
-            return newState
-          })
-        }, index * 150)
-      })
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [filteredPrograms])
+            const newState = [...prev];
+            newState[index] = true;
+            return newState;
+          });
+        }, index * 150);
+      });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [filteredPrograms]);
 
-  // Reset animation when filter changes
   useEffect(() => {
-    setAnimatedCards(new Array(filteredPrograms.length).fill(false))
+    setAnimatedCards(new Array(filteredPrograms.length).fill(false));
     setTimeout(() => {
       filteredPrograms.forEach((_, index) => {
         setTimeout(() => {
           setAnimatedCards((prev) => {
-            const newState = [...prev]
-            newState[index] = true
-            return newState
-          })
-        }, index * 100)
-      })
-    }, 100)
-  }, [activeFilter])
+            const newState = [...prev];
+            newState[index] = true;
+            return newState;
+          });
+        }, index * 100);
+      });
+    }, 100);
+  }, [activeFilter]);
 
   const handleViewDetails = (program: Program) => {
-    setSelectedProgramForDetails(program)
-    setShowDetails(true)
-  }
+    setSelectedProgramForDetails(program);
+    setShowDetails(true);
+  };
 
   const handleBackToList = () => {
-    setShowDetails(false)
-    setSelectedProgramForDetails(null)
-  }
+    setShowDetails(false);
+    setSelectedProgramForDetails(null);
+  };
 
   const handleCloseModal = () => {
-    setIsModalOpen(false)
-    setSelectedProgram(null)
+    setIsModalOpen(false);
+    setSelectedProgram(null);
+  };
+
+  const handleEnroll = async (programId: number) => {
+    try {
+      // Supposons que l'utilisateur est authentifié et que vous avez un user_id
+      const userId = 1; // Remplacer par l'ID utilisateur réel (obtenu via authentification)
+      await axios.post(`${API_BASE_URL}/api/cycles-programs/${programId}/register`, {
+        user_id: userId,
+        module_ids: [], // À adapter si des modules spécifiques doivent être sélectionnés
+      });
+      setEnrolledPrograms((prev) => [...prev, programId]);
+      setIsModalOpen(false);
+      alert("Inscription réussie ! Vous recevrez un email de confirmation.");
+    } catch (err) {
+      console.error("Erreur lors de l'inscription:", err);
+      alert("Erreur lors de l'inscription. Veuillez réessayer.");
+    }
+  };
+
+  const cyclesCount = programs.filter((p) => p.type === "cycle").length;
+  const programmesCount = programs.filter((p) => p.type === "program").length;
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Chargement...</div>;
   }
 
-  const handleEnroll = (programId: number) => {
-    setEnrolledPrograms((prev) => [...prev, programId])
-    setIsModalOpen(false)
-    alert("Inscription réussie ! Vous recevrez un email de confirmation.")
+  if (error) {
+    return <div className="min-h-screen flex items-center justify-center text-red-600">{error}</div>;
   }
 
-  const cyclesCount = programsData.filter((p) => p.type === "cycle").length
-  const programmesCount = programsData.filter((p) => p.type === "programme").length
-
-  // Si on affiche les détails, on affiche le bon composant selon le type
   if (showDetails && selectedProgramForDetails) {
     if (selectedProgramForDetails.type === "cycle") {
       return (
@@ -492,7 +202,7 @@ const FormationPage: React.FC = () => {
           onEnroll={handleEnroll}
           enrolledPrograms={enrolledPrograms}
         />
-      )
+      );
     } else {
       return (
         <ProgramDetails
@@ -500,7 +210,7 @@ const FormationPage: React.FC = () => {
           onBack={handleBackToList}
           enrolledPrograms={enrolledPrograms}
         />
-      )
+      );
     }
   }
 
@@ -517,7 +227,9 @@ const FormationPage: React.FC = () => {
         </div>
         <div className="container mx-auto px-4 relative z-10">
           <div
-            className={`text-center transition-all duration-1000 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
+            className={`text-center transition-all duration-1000 ${
+              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+            }`}
           >
             <h1 className="text-5xl md:text-7xl font-bold mb-6">Formations</h1>
             <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto opacity-90">
@@ -543,7 +255,7 @@ const FormationPage: React.FC = () => {
                       : "bg-white text-gray-600 hover:bg-gray-100"
                   }`}
                 >
-                  Tout ({programsData.length})
+                  Tout ({programs.length})
                 </button>
                 <button
                   onClick={() => setActiveFilter("cycle")}
@@ -556,9 +268,9 @@ const FormationPage: React.FC = () => {
                   🔄 Cycles ({cyclesCount})
                 </button>
                 <button
-                  onClick={() => setActiveFilter("programme")}
+                  onClick={() => setActiveFilter("program")}
                   className={`px-4 py-2 rounded-full font-medium transition-all duration-300 ${
-                    activeFilter === "programme"
+                    activeFilter === "program"
                       ? "bg-green-600 text-white shadow-lg"
                       : "bg-white text-gray-600 hover:bg-gray-100"
                   }`}
@@ -582,14 +294,14 @@ const FormationPage: React.FC = () => {
             <h2 className="text-4xl font-bold text-[#06668C] mb-4">
               {activeFilter === "cycle"
                 ? "Nos Cycles de Formation"
-                : activeFilter === "programme"
+                : activeFilter === "program"
                   ? "Nos Programmes Spécialisés"
                   : "Cycles et Programmes"}
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               {activeFilter === "cycle"
                 ? "Des parcours complets pour une montée en compétences progressive"
-                : activeFilter === "programme"
+                : activeFilter === "program"
                   ? "Des formations spécialisées pour approfondir vos expertises"
                   : "Choisissez le format qui correspond le mieux à vos objectifs"}
             </p>
@@ -730,10 +442,9 @@ const FormationPage: React.FC = () => {
       </section>
 
       {/* Modal */}
-      <ProgramModal program={selectedProgram} isOpen={isModalOpen} onClose={handleCloseModal} onEnroll={handleEnroll} />
       <Footer />
     </div>
-  )
-}
+  );
+};
 
-export default FormationPage
+export default FormationPage;
