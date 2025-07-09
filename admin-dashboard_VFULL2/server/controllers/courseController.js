@@ -64,7 +64,20 @@ const getCourseById = async (req, res) => {
 const createCourse = async (req, res) => {
     console.log('Received data for new course:', req.body);
     try {
-        const { times } = req.body;
+        const { times, support } = req.body;
+
+        if (support) {
+            if (!['file', 'link'].includes(support.type)) {
+                return res.status(400).json({ message: 'Invalid support type. Must be "file" or "link".' });
+            }
+            if (!support.value) {
+                return res.status(400).json({ message: 'Support value is required.' });
+            }
+            if (support.type === 'link' && !/^https?:\/\/[^\s$.?#].[^\s]*$/.test(support.value)) {
+                return res.status(400).json({ message: 'Invalid link format.' });
+            }
+        }
+
         for (const session of times) {
             for (const dateRange of session.dateRanges) {
                 const start = new Date(dateRange.startTime);
@@ -89,7 +102,7 @@ const createCourse = async (req, res) => {
 
 // Update an existing course
 const updateCourse = async (req, res) => {
-    const { assignedUsers, times, imageUrl, photos, link, ...updateData } = req.body;
+    const { assignedUsers, times, imageUrl, photos, link, support, ...updateData } = req.body;
     try {
         const courseToUpdate = await Course.findById(req.params.id);
         if (!courseToUpdate) {
@@ -109,6 +122,19 @@ const updateCourse = async (req, res) => {
                     }
                 }
             }
+        }
+
+        if (support) {
+            if (!['file', 'link'].includes(support.type)) {
+                return res.status(400).json({ message: 'Invalid support type. Must be "file" or "link".' });
+            }
+            if (!support.value) {
+                return res.status(400).json({ message: 'Support value is required.' });
+            }
+            if (support.type === 'link' && !/^https?:\/\/[^\s$.?#].[^\s]*$/.test(support.value)) {
+                return res.status(400).json({ message: 'Invalid link format.' });
+            }
+            updateData.support = support;
         }
 
         // Handle assigned users
@@ -184,14 +210,15 @@ const uploadImage = (req, res) => {
         console.log('Received files:', req.files); // Debug: Log received files
 
         // Check if files were uploaded
-        if (!req.files || (!req.files.image && !req.files.photos && !req.files.cvs)) {
+        if (!req.files || (!req.files.image && !req.files.photos && !req.files.cvs && !req.files.support)) {
             return res.status(400).json({ error: 'No files uploaded' });
         }
 
         const fileUrls = {
             imageUrl: null,
             photoUrls: [],
-            cvUrls: []
+            cvUrls: [],
+            supportUrl: null
         };
 
         // Handle course image
@@ -214,6 +241,12 @@ const uploadImage = (req, res) => {
                 const cvUrl = `/uploads/${cvFile.filename}`;
                 fileUrls.cvUrls.push(cvUrl);
             });
+        }
+
+        if (req.files.support) {
+            const supportFile = req.files.support[0];
+            const supportUrl = `/uploads/${supportFile.filename}`;
+            fileUrls.supportUrl = supportUrl;
         }
 
         res.status(200).json(fileUrls);

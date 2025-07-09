@@ -55,6 +55,14 @@ const courseSchema = new mongoose.Schema({
     imageUrl: { type: String, required: false },
     photos: [{ type: String, required: false }],
     link: { type: String, required: false },
+    support: {
+        type: {
+            type: String,
+            enum: ['file', 'link'],
+            required: false
+        },
+        value: { type: String, required: false }
+    },
     offline: {
         type: String,
         required: false,

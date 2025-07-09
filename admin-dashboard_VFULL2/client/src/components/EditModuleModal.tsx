@@ -44,6 +44,10 @@ interface Course {
     };
   }[];
   image: File | null;
+  support: {
+    type: "link",
+    value: ""
+  };
   photosFiles: File[];
   assignedUsers: Profile[] | string[];
   interestedUsers: Profile[] | string[];
@@ -104,6 +108,10 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
       dateRanges: time.dateRanges || [{ startTime: time.startTime || "", endTime: time.endTime || "" }],
     })),
     image: null,
+    support: {
+        type: "link",
+        value: ""
+    },
     photosFiles: [],
     assignedUsers: module.assignedUsers,
     interestedUsers: module.interestedUsers,
@@ -230,10 +238,49 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     accept: { 'image/jpeg': [], 'image/png': [], 'image/gif': [] },
   });
 
+    const onDropSupport = useCallback((acceptedFiles) => {
+      const file = acceptedFiles[0];
+      if (file) {
+        // Validate file size (e.g., max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Le fichier de support ne doit pas dépasser 5 Mo.",
+          });
+          return;
+        }
+        // Validate file type (e.g., PDF, Word, images)
+        if (!['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Seuls les formats PDF, Word, JPEG, PNG et GIF sont acceptés pour le support.",
+          });
+          return;
+        }
+        handleSupportChange("file", Object.assign(file, {
+          preview: URL.createObjectURL(file),
+        }));
+      }
+    }, [toast]);
+  
+    const { getRootProps: getSupportRootProps, getInputProps: getSupportInputProps, isDragActive: isSupportDragActive } = useDropzone({ onDrop: onDropSupport });
+
   const handleRemovePhoto = (index: number) => {
     setCourse((prev) => ({
       ...prev,
       photosFiles: (prev.photosFiles || []).filter((_, i) => i !== index),
+    }));
+  };
+
+    const handleSupportChange = (type, value) => {
+    setCourse((prev) => ({
+        ...prev,
+        support: {
+            type,
+            value
+        }
     }));
   };
 
@@ -454,6 +501,14 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
       });
       return;
     }
+    if (course.support?.type === "link" && course.support.value && !/^https?:\/\/[^\s$.?#].[^\s]*$/.test(course.support.value)) {
+        toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Lien de support invalide.",
+        });
+        return;
+    }
     for (const time of course.times || []) {
       if (!time.instructorName) {
         toast({
@@ -506,7 +561,8 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
       assignedUsers: assignedUsers.map((user) => user.id_profile.toString()),
       imageUrl: course.imageUrl,
       photos: course.photos,
-      link: course.link
+      link: course.link,
+      support: course.support
     };
 
     try {
@@ -545,6 +601,10 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
           course.photosFiles.forEach((photo) => {
             formData.append("photos", photo)
           })
+        }
+
+        if (course.support.type === "file" && course.support.value) {
+          formData.append("support", course.support.value);
         }
         
         course.times.forEach((session, index) => {
@@ -634,6 +694,10 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
         },
       ],
       image: null,
+      support: {
+        type: "link",
+        value: ""
+      },
       assignedUsers: [],
       interestedUsers: [],
     });
@@ -911,6 +975,54 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                   required
                 />
               </div>
+              <div className="space-y-2">
+                                <Label htmlFor="support-type">Type de support</Label>
+                                <Select
+                                    value={course.support?.type}
+                                    onValueChange={(value) => handleSupportChange(value, "")}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Sélectionner le type de support" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="link">Lien</SelectItem>
+                                        <SelectItem value="file">Fichier</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                              </div>
+                              {course.support?.type === "link" ? (
+                                <div className="space-y-2">
+                                    <Label htmlFor="support-link">Lien du support</Label>
+                                    <Input
+                                        id="support-link"
+                                        placeholder="Entrez le lien (https://...)"
+                                        value={course.support.value}
+                                        onChange={(e) => handleSupportChange("link", e.target.value)}
+                                    />
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <Label>Fichier de support</Label>
+                                  <div
+                                      {...getSupportRootProps()}
+                                      className={`border-2 border-dashed p-4 text-center ${
+                                          isSupportDragActive ? "border-blue-600 bg-blue-50" : "border-gray-300"
+                                      }`}
+                                  >
+                                      <input {...getSupportInputProps()} accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/gif" />
+                                      <p className="text-gray-600">
+                                          {isSupportDragActive
+                                              ? "Déposez le fichier ici..."
+                                              : "Glissez-déposez un fichier ici, ou cliquez pour sélectionner (PDF, Word, JPEG, PNG, GIF, max 5 Mo)"}
+                                      </p>
+                                  </div>
+                                  {course.support?.value && course.support.type === "file" && (
+                                      <p className="mt-2 text-sm text-gray-600">
+                                          Fichier sélectionné : {course.support.value.name}
+                                      </p>
+                                  )}
+                                </div>
+                              )}
             </div>
           )}
           {currentStep === 2 && (

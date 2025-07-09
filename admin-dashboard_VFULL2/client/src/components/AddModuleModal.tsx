@@ -50,6 +50,10 @@ export function AddModuleModal({ onCourseCreated }) {
       },
     ],
     image: null,
+    support: {
+        type: "link",
+        value: ""
+    }
   });
 
   const [categories, setCategories] = useState([]);
@@ -130,6 +134,35 @@ export function AddModuleModal({ onCourseCreated }) {
   }, [toast]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+
+  const onDropSupport = useCallback((acceptedFiles) => {
+    const file = acceptedFiles[0];
+    if (file) {
+      // Validate file size (e.g., max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Le fichier de support ne doit pas dépasser 5 Mo.",
+        });
+        return;
+      }
+      // Validate file type (e.g., PDF, Word, images)
+      if (!['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Seuls les formats PDF, Word, JPEG, PNG et GIF sont acceptés pour le support.",
+        });
+        return;
+      }
+      handleSupportChange("file", Object.assign(file, {
+        preview: URL.createObjectURL(file),
+      }));
+    }
+  }, [toast]);
+
+  const { getRootProps: getSupportRootProps, getInputProps: getSupportInputProps, isDragActive: isSupportDragActive } = useDropzone({ onDrop: onDropSupport });
 
   const handleInputChange = (field, value) => {
     setCourse((prev) => ({ ...prev, [field]: value }));
@@ -265,6 +298,16 @@ export function AddModuleModal({ onCourseCreated }) {
     }));
   };
 
+  const handleSupportChange = (type, value) => {
+    setCourse((prev) => ({
+        ...prev,
+        support: {
+            type,
+            value
+        }
+    }));
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setIsSubmitting(true);
@@ -291,6 +334,15 @@ export function AddModuleModal({ onCourseCreated }) {
       });
       setIsSubmitting(false);
       return;
+    }
+    if (course.support.type === "link" && course.support.value && !/^https?:\/\/[^\s$.?#].[^\s]*$/.test(course.support.value)) {
+        toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Lien de support invalide.",
+        });
+        setIsSubmitting(false);
+        return;
     }
     for (const session of course.times) {
       if (!session.instructorName) {
@@ -345,25 +397,33 @@ export function AddModuleModal({ onCourseCreated }) {
         }
       });
 
+      if (course.support.type === "file" && course.support.value) {
+        formData.append("support", course.support.value);
+      }
+
       // Debug: Log FormData contents
       console.log("FormData contents:");
       for (let [key, value] of formData.entries()) {
         console.log(`${key}: ${value.name || value}`);
       }
 
-      console.log("Uploading image and CVs...");
+      console.log("Uploading image, CVs & support...");
       const imageUploadResponse = await useApiAxios.post("/courses/uploadImage", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
       if (imageUploadResponse.status === 200) {
-        const { imageUrl, cvUrls } = imageUploadResponse.data;
-        console.log("Image uploaded successfully, imageUrl:", imageUrl, "cvUrls:", cvUrls);
+        const { imageUrl, cvUrls, supportUrl } = imageUploadResponse.data;
+        console.log("Image uploaded successfully, imageUrl:", imageUrl, "cvUrls:", cvUrls, "supportUrl:", supportUrl);
 
         const finalCourseData = {
           ...course,
           imageUrl,
           category: course.category ? course.category.id : null,
+          support: {
+            type: course.support.type,
+            value: course.support.type === "file" && supportUrl ? supportUrl : course.support.value
+          },
           times: course.times.map((session, index) => ({
             ...session,
             instructor: session.instructor || undefined,
@@ -400,6 +460,10 @@ export function AddModuleModal({ onCourseCreated }) {
               },
             ],
             image: null,
+            support: {
+                        type: "link",
+                        value: ""
+                    }
           });
           setCurrentStep(1);
           if (onCourseCreated) onCourseCreated();
@@ -461,6 +525,10 @@ export function AddModuleModal({ onCourseCreated }) {
         },
       ],
       image: null,
+      support: {
+        type: "link",
+        value: ""
+      }
     });
     setCurrentStep(1);
     setOpen(false);
@@ -593,7 +661,7 @@ export function AddModuleModal({ onCourseCreated }) {
                   </Popover>
                 </div>
                 <div className="space-y-2">
-                  <Label>Image</Label>
+                  <Label>Image (illustration du module)</Label>
                   <div
                     {...getRootProps()}
                     className={`border-2 border-dashed p-4 text-center ${
@@ -608,11 +676,21 @@ export function AddModuleModal({ onCourseCreated }) {
                     </p>
                   </div>
                   {course.image && (
-                    <img
-                      src={course.image.preview}
-                      alt="Aperçu"
-                      className="mt-4 w-full h-auto rounded"
-                    />
+                    <div className="relative">
+                      <img
+                        src={course.image.preview}
+                        alt="Aperçu"
+                        className="mt-4 w-full h-auto rounded"
+                      />
+                      <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="absolute top-2 right-2 bg-red-500 text-white hover:bg-red-600"
+                                          onClick={() => setCourse((prev) => ({ ...prev, image: null }))}
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                    </div>                    
                   )}
                 </div>
                 <div className="space-y-2">
@@ -666,6 +744,54 @@ export function AddModuleModal({ onCourseCreated }) {
                     required
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="support-type">Type de support</Label>
+                  <Select
+                      value={course.support.type}
+                      onValueChange={(value) => handleSupportChange(value, "")}
+                  >
+                      <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner le type de support" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="link">Lien</SelectItem>
+                          <SelectItem value="file">Fichier</SelectItem>
+                      </SelectContent>
+                  </Select>
+                </div>
+                {course.support.type === "link" ? (
+                  <div className="space-y-2">
+                      <Label htmlFor="support-link">Lien du support</Label>
+                      <Input
+                          id="support-link"
+                          placeholder="Entrez le lien (https://...)"
+                          value={course.support.value}
+                          onChange={(e) => handleSupportChange("link", e.target.value)}
+                      />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Fichier de support</Label>
+                    <div
+                        {...getSupportRootProps()}
+                        className={`border-2 border-dashed p-4 text-center ${
+                            isSupportDragActive ? "border-blue-600 bg-blue-50" : "border-gray-300"
+                        }`}
+                    >
+                        <input {...getSupportInputProps()} accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/gif" />
+                        <p className="text-gray-600">
+                            {isSupportDragActive
+                                ? "Déposez le fichier ici..."
+                                : "Glissez-déposez un fichier ici, ou cliquez pour sélectionner (PDF, Word, JPEG, PNG, GIF, max 5 Mo)"}
+                        </p>
+                    </div>
+                    {course.support.value && course.support.type === "file" && (
+                        <p className="mt-2 text-sm text-gray-600">
+                            Fichier sélectionné : {course.support.value.name}
+                        </p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
             {currentStep === 2 && (
