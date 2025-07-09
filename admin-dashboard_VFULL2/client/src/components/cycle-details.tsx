@@ -1,76 +1,78 @@
-"use client"
-import type React from "react"
-import { useState, useEffect } from "react"
-import Header from "../components/header.tsx"
-import Footer from "../components/footer.tsx"
+"use client";
+import type React from "react";
+import { useState, useEffect } from "react";
+import Header from "../components/header.tsx";
+import Footer from "../components/footer.tsx";
 
 interface Formation {
-  id: number
-  title: string
-  description: string
-  duration: string
-  level: string
-  price: string
-  instructor: string
-  image: string
-  objectives: string[]
-  prerequisites: string[]
+  id: number;
+  title: string;
+  description: string;
+  duration: string;
+  level: string;
+  price: string;
+  instructor: string;
+  image: string;
+  objectives: string[];
+  prerequisites: string[];
+  mode: string; // Ajout du champ mode
+  start_date: string; // Ajout de la date de début
+  end_date: string; // Ajout de la date de fin
 }
 
 interface Cycle {
-  id: number
-  title: string
-  description: string
-  shortDescription: string
-  duration: string
-  level: string
-  price: string
-  instructor: string
-  image: string
-  category: string
-  type: "cycle" | "programme"
-  modules: string[]
-  prerequisites: string[]
-  objectives: string[]
-  color: string
-  rating: number
-  students: number
-  formations: Formation[]
+  id: number;
+  title: string;
+  description: string;
+  shortDescription: string;
+  duration: string;
+  level: string;
+  price: string;
+  instructor: string;
+  image: string;
+  category: string;
+  type: "cycle" | "programme";
+  modules: string[];
+  prerequisites: string[];
+  objectives: string[];
+  color: string;
+  rating: number;
+  students: number;
+  formations: Formation[];
 }
 
 interface CycleDetailsProps {
-  cycle: Cycle
-  onBack: () => void
-  onEnroll: (cycleId: number) => void
-  enrolledPrograms: number[]
+  cycle: Cycle;
+  onBack: () => void;
+  onEnroll: (cycleId: number) => void;
+  enrolledPrograms: number[];
 }
 
 const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, enrolledPrograms }) => {
-  const [isVisible, setIsVisible] = useState(false)
-  const [animatedCards, setAnimatedCards] = useState<boolean[]>(new Array(cycle.formations.length).fill(false))
+  const [isVisible, setIsVisible] = useState(false);
+  const [animatedCards, setAnimatedCards] = useState<boolean[]>(new Array(cycle.formations.length).fill(false));
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setIsVisible(true)
-      // Animer les cartes avec délai
+      setIsVisible(true);
       cycle.formations.forEach((_, index) => {
         setTimeout(() => {
           setAnimatedCards((prev) => {
-            const newState = [...prev]
-            newState[index] = true
-            return newState
-          })
-        }, index * 150)
-      })
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [cycle.formations])
+            const newState = [...prev];
+            newState[index] = true;
+            return newState;
+          });
+        }, index * 150);
+      });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [cycle.formations]);
 
   const handleEnrollCycle = () => {
-    onEnroll(cycle.id)
-  }
+    onEnroll(cycle.id);
+  };
 
-  const isEnrolled = enrolledPrograms.includes(cycle.id)
+  const isEnrolled = enrolledPrograms.includes(cycle.id);
 
   return (
     <div className="min-h-screen bg-white">
@@ -168,17 +170,12 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
 
                 {/* Contenu */}
                 <div className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-xl font-bold text-gray-800 group-hover:text-[#06668C] transition-colors duration-300">
-                      {formation.title}
-                    </h3>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-green-600">{formation.price}</div>
-                    </div>
+                  <h3 className="text-xl font-bold text-gray-800 group-hover:text-[#06668C] transition-colors duration-300">
+                    {formation.title}
+                  </h3>
+                  <div className="text-sm text-gray-500 mb-4">
+                    <p><strong>Mode:</strong> {formation.mode || "Non spécifié"}</p>
                   </div>
-
-                  <p className="text-gray-600 mb-4 leading-relaxed">{formation.description}</p>
-
 
                   {/* Actions */}
                   <div className="flex gap-3">
@@ -208,7 +205,7 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
 
       <Footer />
     </div>
-  )
-}
+  );
+};
 
-export default CycleDetails
+export default CycleDetails;

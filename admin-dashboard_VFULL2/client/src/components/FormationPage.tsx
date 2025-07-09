@@ -16,6 +16,9 @@ interface Formation {
   image: string;
   objectives: string[];
   prerequisites: string[];
+  mode: string;
+  start_date: string;
+  end_date: string;
 }
 
 interface Program {
@@ -80,7 +83,7 @@ const FormationPage: React.FC = () => {
           start_date: cp.start_date || "Non spécifié",
           end_date: cp.end_date || "Non spécifié",
           instructor: cp.facilitator || "Équipe pédagogique",
-          image: cp.type === "cycle" ? "/images/cycle.jpg" : "/images/program.jpg", // Use cycle.png or program.png
+          image: cp.type === "cycle" ? "/images/cycle.jpg" : "/images/program.jpg",
           category: cp.type === "cycle" ? "Cycle de formation" : cp.program_type || "Programme spécialisé",
           type: cp.type,
           modules: cp.modules?.map((m: any) => m.title) || [],
@@ -93,9 +96,12 @@ const FormationPage: React.FC = () => {
             title: m.title,
             description: stripHtmlTags(m.description || "Description non disponible"),
             instructor: cp.facilitator || "Équipe pédagogique",
-            image: cp.type === "cycle" ? "/cycle.png" : "/program.png", // Use cycle.png or program.png for modules
+            image: cp.type === "cycle" ? "/cycle.png" : "/program.png",
             objectives: m.objectives || ["Objectif 1", "Objectif 2"],
             prerequisites: m.prerequisites || ["Aucun"],
+            mode: m.offline || "Non spécifié",
+            start_date: m.times?.[0]?.dateRanges?.[0]?.startTime || "Non spécifié",
+            end_date: m.times?.[0]?.dateRanges?.[0]?.endTime || "Non spécifié",
           })) || [],
         }));
         setPrograms(transformedPrograms);

@@ -1,75 +1,77 @@
-"use client"
-import type React from "react"
-import { useState, useEffect } from "react"
-import Header from "../components/header.tsx"
-import Footer from "../components/footer.tsx"
+"use client";
+import type React from "react";
+import { useState, useEffect } from "react";
+import Header from "../components/header.tsx";
+import Footer from "../components/footer.tsx";
 
 interface Formation {
-  id: number
-  title: string
-  description: string
-  duration: string
-  level: string
-  price: string
-  instructor: string
-  image: string
-  objectives: string[]
-  prerequisites: string[]
+  id: number;
+  title: string;
+  description: string;
+  duration: string;
+  level: string;
+  price: string;
+  instructor: string;
+  image: string;
+  objectives: string[];
+  prerequisites: string[];
+  mode: string; // Ajout du champ mode (online, offline, hybrid)
+  start_date: string; // Ajout de la date de début
+  end_date: string; // Ajout de la date de fin
 }
 
 interface Program {
-  id: number
-  title: string
-  description: string
-  shortDescription: string
-  duration: string
-  level: string
-  price: string
-  instructor: string
-  image: string
-  category: string
-  type: "cycle" | "programme"
-  modules: string[]
-  prerequisites: string[]
-  objectives: string[]
-  color: string
-  rating: number
-  students: number
-  formations: Formation[]
+  id: number;
+  title: string;
+  description: string;
+  shortDescription: string;
+  duration: string;
+  level: string;
+  price: string;
+  instructor: string;
+  image: string;
+  category: string;
+  type: "cycle" | "programme";
+  modules: string[];
+  prerequisites: string[];
+  objectives: string[];
+  color: string;
+  rating: number;
+  students: number;
+  formations: Formation[];
 }
 
 interface ProgramDetailsProps {
-  program: Program
-  onBack: () => void
-  enrolledPrograms: number[]
+  program: Program;
+  onBack: () => void;
+  enrolledPrograms: number[];
 }
 
 const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enrolledPrograms }) => {
-  const [isVisible, setIsVisible] = useState(false)
-  const [animatedCards, setAnimatedCards] = useState<boolean[]>(new Array(program.formations.length).fill(false))
-  const [enrolledFormations, setEnrolledFormations] = useState<number[]>([])
+  const [isVisible, setIsVisible] = useState(false);
+  const [animatedCards, setAnimatedCards] = useState<boolean[]>(new Array(program.formations.length).fill(false));
+  const [enrolledFormations, setEnrolledFormations] = useState<number[]>([]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setIsVisible(true)
-      // Animer les cartes avec délai
+      setIsVisible(true);
       program.formations.forEach((_, index) => {
         setTimeout(() => {
           setAnimatedCards((prev) => {
-            const newState = [...prev]
-            newState[index] = true
-            return newState
-          })
-        }, index * 150)
-      })
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [program.formations])
+            const newState = [...prev];
+            newState[index] = true;
+            return newState;
+          });
+        }, index * 150);
+      });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [program.formations]);
 
   const handleEnrollFormation = (formationId: number) => {
-    setEnrolledFormations((prev) => [...prev, formationId])
-    alert("Inscription réussie à la formation ! Vous recevrez un email de confirmation.")
-  }
+    setEnrolledFormations((prev) => [...prev, formationId]);
+    alert("Inscription réussie à la formation ! Vous recevrez un email de confirmation.");
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -167,16 +169,12 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
 
                 {/* Contenu */}
                 <div className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-xl font-bold text-gray-800 group-hover:text-[#06668C] transition-colors duration-300">
-                      {formation.title}
-                    </h3>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-[#06668C]">{formation.price}</div>
-                    </div>
+                  <h3 className="text-xl font-bold text-gray-800 group-hover:text-[#06668C] transition-colors duration-300">
+                    {formation.title}
+                  </h3>
+                  <div className="text-sm text-gray-500 mb-4">
+                    <p><strong>Mode:</strong> {formation.mode || "Non spécifié"}</p>
                   </div>
-
-                  <p className="text-gray-600 mb-4 leading-relaxed">{formation.description}</p>
 
                   {/* Actions */}
                   <div className="flex gap-3">
@@ -216,11 +214,9 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
         </div>
       </section>
 
-     
-
       <Footer />
     </div>
-  )
-}
+  );
+};
 
-export default ProgramDetails
+export default ProgramDetails;
