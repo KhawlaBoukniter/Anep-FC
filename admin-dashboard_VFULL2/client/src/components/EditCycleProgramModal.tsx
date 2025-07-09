@@ -355,7 +355,7 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
                             </div>
                         </>
                     )}
-                    {(formData.type === "cycle" || formData.type === "program") && (
+                    {/* {(formData.type === "cycle" || formData.type === "program") && (
                         <div className="space-y-2">
                             <Label htmlFor="support_url">Support (URL ou fichier)</Label>
                             <Input
@@ -377,8 +377,8 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
                                 </a>
                             )}
                         </div>
-                    )}
-                    {formData.type === "program" && (
+                    )} */}
+                    {/* {formData.type === "program" && (
                         <div className="space-y-2">
                             <Label htmlFor="photos">Photos</Label>
                             <Input
@@ -401,8 +401,8 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
                                 </div>
                             )}
                         </div>
-                    )}
-                    {(formData.type === "cycle" || formData.type === "program") && (
+                    )} */}
+                    {/* {(formData.type === "cycle" || formData.type === "program") && (
                         <div className="space-y-2">
                             <Label htmlFor="evaluation_url">Évaluation (URL ou fichier)</Label>
                             <Input
@@ -424,8 +424,8 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
                                 </a>
                             )}
                         </div>
-                    )}
-                    {(formData.type === "cycle" || (formData.type === "program" && (formData.program_type === "mardi_du_partage" || formData.program_type === "other"))) && (
+                    )} */}
+                    {/* {(formData.type === "cycle" || (formData.type === "program" && (formData.program_type === "mardi_du_partage" || formData.program_type === "other"))) && (
                         <div className="space-y-2">
                             <Label htmlFor="attendance_list_url">Liste de présence (URL ou fichier)</Label>
                             <Input
@@ -447,7 +447,7 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
                                 </a>
                             )}
                         </div>
-                    )}
+                    )} */}
                     <div className="space-y-2">
                         <Label htmlFor="module_ids">Modules</Label>
                         <Select

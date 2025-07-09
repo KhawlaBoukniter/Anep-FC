@@ -272,7 +272,7 @@ export function AddCycleProgramModal({ onCycleProgramCreated }) {
                             </div>
                         </>
                     )}
-                    {(cycleProgram.type === "cycle" || cycleProgram.type === "program") && (
+                    {/* {(cycleProgram.type === "cycle" || cycleProgram.type === "program") && (
                         <div className="space-y-2">
                             <Label htmlFor="support_url">Support (URL ou fichier)</Label>
                             <Input
@@ -289,7 +289,7 @@ export function AddCycleProgramModal({ onCycleProgramCreated }) {
                                 accept=".pdf,.doc,.docx"
                             />
                         </div>
-                    )}
+                    )} */}
                     <div className="space-y-2">
                         <Label htmlFor="module_ids">Modules</Label>
                         <Select
