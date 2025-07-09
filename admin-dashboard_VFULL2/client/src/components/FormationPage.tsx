@@ -3,6 +3,21 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import Header from "../components/header.tsx"
 import Footer from "../components/footer.tsx"
+import ProgramDetails from "../components/program-details.tsx"
+import CycleDetails from "../components/cycle-details.tsx"
+
+interface Formation {
+  id: number
+  title: string
+  description: string
+  duration: string
+  level: string
+  price: string
+  instructor: string
+  image: string
+  objectives: string[]
+  prerequisites: string[]
+}
 
 interface Program {
   id: number
@@ -22,6 +37,7 @@ interface Program {
   color: string
   rating: number
   students: number
+  formations: Formation[]
 }
 
 interface ProgramModalProps {
@@ -64,6 +80,44 @@ const programsData: Program[] = [
     color: "from-[#06668C] to-blue-700",
     rating: 4.9,
     students: 156,
+    formations: [
+      {
+        id: 101,
+        title: "Fondamentaux HTML/CSS/JavaScript",
+        description: "Maîtrisez les bases du développement web avec HTML5, CSS3 et JavaScript moderne",
+        duration: "40 heures",
+        level: "Débutant",
+        price: "Inclus dans le cycle",
+        instructor: "Marie Dupont",
+        image: "/placeholder.svg?height=200&width=300",
+        objectives: ["Créer des pages web responsives", "Maîtriser JavaScript ES6+"],
+        prerequisites: ["Aucun"],
+      },
+      {
+        id: 102,
+        title: "React.js Avancé",
+        description: "Développez des applications React performantes avec hooks et state management",
+        duration: "50 heures",
+        level: "Intermédiaire",
+        price: "Inclus dans le cycle",
+        instructor: "Thomas Martin",
+        image: "/placeholder.svg?height=200&width=300",
+        objectives: ["Maîtriser React hooks", "Gérer l'état global"],
+        prerequisites: ["JavaScript ES6+"],
+      },
+      {
+        id: 103,
+        title: "Backend Node.js",
+        description: "Créez des APIs robustes avec Node.js, Express et bases de données",
+        duration: "45 heures",
+        level: "Intermédiaire",
+        price: "Inclus dans le cycle",
+        instructor: "Alexandre Petit",
+        image: "/placeholder.svg?height=200&width=300",
+        objectives: ["Créer des APIs REST", "Gérer les bases de données"],
+        prerequisites: ["JavaScript", "Bases de données"],
+      },
+    ],
   },
   {
     id: 2,
@@ -96,38 +150,32 @@ const programsData: Program[] = [
     color: "from-purple-600 to-purple-800",
     rating: 4.8,
     students: 89,
-  },
-  {
-    id: 3,
-    title: "Cycle UX/UI Design",
-    description:
-      "Formation complète de 4 mois pour maîtriser le design d'expérience utilisateur et d'interface. De la recherche utilisateur au prototypage, créez des expériences digitales exceptionnelles.",
-    shortDescription: "Cycle de 4 mois pour maîtriser l'UX/UI Design",
-    duration: "4 mois",
-    level: "Débutant",
-    price: "1899€",
-    instructor: "Sophie Laurent",
-    image: "/placeholder.svg?height=200&width=300",
-    category: "Design",
-    type: "cycle",
-    modules: [
-      "Fondamentaux du design",
-      "Recherche utilisateur",
-      "Wireframing et prototypage",
-      "Design systems",
-      "Outils Figma/Adobe XD",
-      "Tests utilisateur",
+    formations: [
+      {
+        id: 201,
+        title: "Python pour Data Science",
+        description: "Maîtrisez Python et ses librairies pour l'analyse de données",
+        duration: "35 heures",
+        level: "Débutant",
+        price: "Inclus dans le cycle",
+        instructor: "Dr. Jean Dupont",
+        image: "/placeholder.svg?height=200&width=300",
+        objectives: ["Maîtriser Pandas et NumPy", "Visualiser des données"],
+        prerequisites: ["Bases de programmation"],
+      },
+      {
+        id: 202,
+        title: "Machine Learning Avancé",
+        description: "Implémentez des algorithmes de ML et créez des modèles prédictifs",
+        duration: "60 heures",
+        level: "Avancé",
+        price: "Inclus dans le cycle",
+        instructor: "Dr. Marie Dubois",
+        image: "/placeholder.svg?height=200&width=300",
+        objectives: ["Créer des modèles ML", "Optimiser les performances"],
+        prerequisites: ["Python", "Statistiques"],
+      },
     ],
-    prerequisites: ["Créativité", "Sens esthétique"],
-    objectives: [
-      "Conduire une recherche UX",
-      "Créer des interfaces intuitives",
-      "Prototyper des solutions",
-      "Tester et itérer",
-    ],
-    color: "from-pink-500 to-rose-600",
-    rating: 4.7,
-    students: 134,
   },
 
   // PROGRAMMES
@@ -161,6 +209,44 @@ const programsData: Program[] = [
     color: "from-blue-500 to-blue-700",
     rating: 4.8,
     students: 245,
+    formations: [
+      {
+        id: 401,
+        title: "React Hooks Avancés",
+        description: "Maîtrisez tous les hooks React et créez vos propres hooks personnalisés",
+        duration: "15 heures",
+        level: "Intermédiaire",
+        price: "299€",
+        instructor: "Thomas Martin",
+        image: "/placeholder.svg?height=200&width=300",
+        objectives: ["Maîtriser useEffect, useContext", "Créer des hooks personnalisés"],
+        prerequisites: ["React de base"],
+      },
+      {
+        id: 402,
+        title: "State Management avec Redux",
+        description: "G��rez l'état global de vos applications React avec Redux Toolkit",
+        duration: "12 heures",
+        level: "Intermédiaire",
+        price: "249€",
+        instructor: "Sophie Laurent",
+        image: "/placeholder.svg?height=200&width=300",
+        objectives: ["Implémenter Redux", "Gérer l'état complexe"],
+        prerequisites: ["React hooks"],
+      },
+      {
+        id: 403,
+        title: "Tests React avec Jest",
+        description: "Testez vos composants React et assurez la qualité de votre code",
+        duration: "13 heures",
+        level: "Intermédiaire",
+        price: "279€",
+        instructor: "Alexandre Petit",
+        image: "/placeholder.svg?height=200&width=300",
+        objectives: ["Écrire des tests unitaires", "Tester les composants"],
+        prerequisites: ["React avancé"],
+      },
+    ],
   },
   {
     id: 5,
@@ -186,87 +272,32 @@ const programsData: Program[] = [
     color: "from-gray-700 to-gray-900",
     rating: 4.7,
     students: 156,
-  },
-  {
-    id: 6,
-    title: "Programme Cybersécurité",
-    description:
-      "Programme spécialisé en cybersécurité et ethical hacking. Identifiez les vulnérabilités et mettez en place des défenses efficaces.",
-    shortDescription: "Spécialisez-vous en cybersécurité et ethical hacking",
-    duration: "45 heures",
-    level: "Intermédiaire",
-    price: "1099€",
-    instructor: "Captain Security",
-    image: "/placeholder.svg?height=200&width=300",
-    category: "Sécurité",
-    type: "programme",
-    modules: ["Tests de pénétration", "Sécurité web", "Forensique numérique", "Gestion d'incidents", "Ethical hacking"],
-    prerequisites: ["Réseaux", "Systèmes", "Linux"],
-    objectives: [
-      "Identifier les vulnérabilités",
-      "Réaliser des pentests",
-      "Sécuriser les applications",
-      "Gérer les incidents",
+    formations: [
+      {
+        id: 501,
+        title: "Docker et Containerisation",
+        description: "Maîtrisez Docker pour containeriser vos applications",
+        duration: "20 heures",
+        level: "Intermédiaire",
+        price: "449€",
+        instructor: "Alexandre Petit",
+        image: "/placeholder.svg?height=200&width=300",
+        objectives: ["Créer des containers", "Orchestrer avec Docker Compose"],
+        prerequisites: ["Linux de base"],
+      },
+      {
+        id: 502,
+        title: "Kubernetes en Production",
+        description: "Déployez et gérez vos applications avec Kubernetes",
+        duration: "30 heures",
+        level: "Avancé",
+        price: "699€",
+        instructor: "Captain DevOps",
+        image: "/placeholder.svg?height=200&width=300",
+        objectives: ["Déployer sur Kubernetes", "Gérer la scalabilité"],
+        prerequisites: ["Docker", "Réseaux"],
+      },
     ],
-    color: "from-red-600 to-red-800",
-    rating: 4.8,
-    students: 134,
-  },
-  {
-    id: 7,
-    title: "Programme Marketing Digital",
-    description:
-      "Programme complet en marketing digital et SEO. Boostez votre présence en ligne avec les stratégies les plus efficaces.",
-    shortDescription: "Maîtrisez le marketing digital et le SEO",
-    duration: "30 heures",
-    level: "Débutant",
-    price: "599€",
-    instructor: "Marie Dubois",
-    image: "/placeholder.svg?height=200&width=300",
-    category: "Marketing",
-    type: "programme",
-    modules: ["SEO et référencement", "Google Ads", "Réseaux sociaux", "Email marketing", "Analytics"],
-    prerequisites: ["Bases du web"],
-    objectives: [
-      "Optimiser le référencement",
-      "Gérer les campagnes pub",
-      "Analyser les performances",
-      "Développer sa stratégie",
-    ],
-    color: "from-green-500 to-green-700",
-    rating: 4.6,
-    students: 312,
-  },
-  {
-    id: 8,
-    title: "Programme Machine Learning",
-    description:
-      "Programme spécialisé en Machine Learning. Créez des modèles prédictifs et implémentez des solutions d'IA dans vos projets.",
-    shortDescription: "Créez des modèles ML et implémentez l'IA",
-    duration: "60 heures",
-    level: "Avancé",
-    price: "1599€",
-    instructor: "Dr. Jean Dupont",
-    image: "/placeholder.svg?height=200&width=300",
-    category: "Intelligence Artificielle",
-    type: "programme",
-    modules: [
-      "Algorithmes ML supervisés",
-      "Deep Learning",
-      "Traitement du langage",
-      "Computer Vision",
-      "Déploiement de modèles",
-    ],
-    prerequisites: ["Python", "Mathématiques", "Statistiques"],
-    objectives: [
-      "Créer des modèles ML",
-      "Implémenter du Deep Learning",
-      "Traiter des données",
-      "Déployer en production",
-    ],
-    color: "from-orange-500 to-orange-700",
-    rating: 4.9,
-    students: 98,
   },
 ]
 
@@ -361,12 +392,14 @@ const ProgramModal: React.FC<ProgramModalProps> = ({ program, isOpen, onClose, o
           </div>
           {/* Actions */}
           <div className="mt-8 flex flex-col sm:flex-row gap-4">
-            <button
-              onClick={() => onEnroll(program.id)}
-              className={`flex-1 bg-gradient-to-r ${program.color} text-white py-4 px-6 rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300`}
-            >
-              S'inscrire maintenant - {program.price}
-            </button>
+            {program.type === "cycle" && (
+              <button
+                onClick={() => onEnroll(program.id)}
+                className={`flex-1 bg-gradient-to-r ${program.color} text-white py-4 px-6 rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300`}
+              >
+                S'inscrire au cycle - {program.price}
+              </button>
+            )}
             <button className="flex-1 border-2 border-[#06668C] text-[#06668C] py-4 px-6 rounded-lg font-semibold hover:bg-[#06668C] hover:text-white transition-all duration-300">
               Demander plus d'infos
             </button>
@@ -384,6 +417,8 @@ const FormationPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [enrolledPrograms, setEnrolledPrograms] = useState<number[]>([])
   const [activeFilter, setActiveFilter] = useState<"all" | "cycle" | "programme">("all")
+  const [showDetails, setShowDetails] = useState(false)
+  const [selectedProgramForDetails, setSelectedProgramForDetails] = useState<Program | null>(null)
 
   const filteredPrograms = programsData.filter((program) => {
     if (activeFilter === "all") return true
@@ -424,8 +459,13 @@ const FormationPage: React.FC = () => {
   }, [activeFilter])
 
   const handleViewDetails = (program: Program) => {
-    setSelectedProgram(program)
-    setIsModalOpen(true)
+    setSelectedProgramForDetails(program)
+    setShowDetails(true)
+  }
+
+  const handleBackToList = () => {
+    setShowDetails(false)
+    setSelectedProgramForDetails(null)
   }
 
   const handleCloseModal = () => {
@@ -441,6 +481,28 @@ const FormationPage: React.FC = () => {
 
   const cyclesCount = programsData.filter((p) => p.type === "cycle").length
   const programmesCount = programsData.filter((p) => p.type === "programme").length
+
+  // Si on affiche les détails, on affiche le bon composant selon le type
+  if (showDetails && selectedProgramForDetails) {
+    if (selectedProgramForDetails.type === "cycle") {
+      return (
+        <CycleDetails
+          cycle={selectedProgramForDetails}
+          onBack={handleBackToList}
+          onEnroll={handleEnroll}
+          enrolledPrograms={enrolledPrograms}
+        />
+      )
+    } else {
+      return (
+        <ProgramDetails
+          program={selectedProgramForDetails}
+          onBack={handleBackToList}
+          enrolledPrograms={enrolledPrograms}
+        />
+      )
+    }
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -618,17 +680,19 @@ const FormationPage: React.FC = () => {
                       </svg>
                       Détails
                     </button>
-                    <button
-                      onClick={() => handleEnroll(program.id)}
-                      disabled={enrolledPrograms.includes(program.id)}
-                      className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-all duration-300 ${
-                        enrolledPrograms.includes(program.id)
-                          ? "bg-green-500 text-white cursor-not-allowed"
-                          : `bg-gradient-to-r ${program.color} text-white hover:shadow-lg transform hover:-translate-y-1`
-                      }`}
-                    >
-                      {enrolledPrograms.includes(program.id) ? "Inscrit ✓" : "S'inscrire"}
-                    </button>
+                    {program.type === "cycle" && (
+                      <button
+                        onClick={() => handleEnroll(program.id)}
+                        disabled={enrolledPrograms.includes(program.id)}
+                        className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-all duration-300 ${
+                          enrolledPrograms.includes(program.id)
+                            ? "bg-green-500 text-white cursor-not-allowed"
+                            : `bg-gradient-to-r ${program.color} text-white hover:shadow-lg transform hover:-translate-y-1`
+                        }`}
+                      >
+                        {enrolledPrograms.includes(program.id) ? "Inscrit ✓" : "S'inscrire"}
+                      </button>
+                    )}
                   </div>
                 </div>
                 {/* Ligne décorative */}
