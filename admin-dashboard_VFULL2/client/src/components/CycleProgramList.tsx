@@ -5,11 +5,11 @@ import { useQuery, useMutation, useQueryClient } from "react-query";
 import { Button } from "./ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.tsx";
 import { Badge } from "./ui/badge.tsx";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog.tsx";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "./ui/dialog.tsx";
 import { Input } from "./ui/input.tsx";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table.tsx";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip.tsx";
-import { Plus, Edit, Trash, Users, Download, Archive, ArchiveRestore, Search } from "lucide-react";
+import { Plus, Edit, Trash, Users, Download, Archive, ArchiveRestore, Search, Eye } from "lucide-react";
 import useApiAxios from "../config/axios.js";
 import { AddCycleProgramModal } from "./AddCycleProgramModal.tsx";
 import { EditCycleProgramModal } from "./EditCycleProgramModal.tsx";
@@ -30,6 +30,7 @@ export const CycleProgramList = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
     const [unarchiveDialogOpen, setUnarchiveDialogOpen] = useState(false);
+    const [modulesDialogOpen, setModulesDialogOpen] = useState(false);
     const [selectedCycleProgram, setSelectedCycleProgram] = useState<CycleProgram | null>(null);
     const queryClient = useQueryClient();
 
@@ -84,6 +85,11 @@ export const CycleProgramList = () => {
             unarchiveCycleProgram.mutate(selectedCycleProgram.id);
         }
     };
+
+    const handleViewModules = (cycleProgram: CycleProgram) => {
+        setSelectedCycleProgram(cycleProgram);
+        setModulesDialogOpen(true);
+    }
 
     const handleDownloadRegistrations = async (id: number) => {
         try {
@@ -150,7 +156,6 @@ export const CycleProgramList = () => {
                                         <TableHead className="text-blue-900 text-center">Modules</TableHead>
                                         <TableHead className="text-blue-900 text-center">Période</TableHead>
                                         <TableHead className="text-blue-900 text-center">Budget</TableHead>
-                                        <TableHead className="text-blue-900 text-center">Archivé</TableHead>
                                         <TableHead className="text-blue-900 text-center">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -159,10 +164,45 @@ export const CycleProgramList = () => {
                                         <TableRow key={cp.id} className="hover:bg-gray-50">
                                             <TableCell className="text-center">{cp.title}</TableCell>
                                             <TableCell className="text-center">{cp.type === "cycle" ? "Cycle" : "Programme"}</TableCell>
-                                            <TableCell className="text-center">{cp.modules.map(m => m.title).join(", ")}</TableCell>
+                                            <TableCell className="text-center">
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Dialog>
+                                                            <DialogTrigger asChild>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8"
+                                                                    onClick={() => handleViewModules(cp)}
+                                                                >
+                                                                    <Eye className="h-4 w-4 text-green-600" />
+                                                                </Button>
+                                                            </DialogTrigger>
+                                                            <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+                                                                <DialogHeader>
+                                                                    <DialogTitle>Modules de {cp.title}</DialogTitle>
+                                                                </DialogHeader>
+                                                                <div className="my-6">
+                                                                    {cp.modules.length > 0 ? (
+                                                                        <ul className="list-disc pl-5 text-gray-600">
+                                                                            {cp.modules.map((module) => (
+                                                                                <li key={module._id}>{module.title}</li>
+                                                                            ))}
+                                                                        </ul>
+                                                                    ) : (
+                                                                        <p className="text-gray-600">Aucun module associé.</p>
+                                                                    )}
+                                                                </div>
+                                                            </DialogContent>
+                                                        </Dialog>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Voir les modules</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TableCell>
                                             <TableCell className="text-center">{`${new Date(cp.start_date).toLocaleDateString()} - ${new Date(cp.end_date).toLocaleDateString()}`}</TableCell>
                                             <TableCell className="text-center">{cp.budget}</TableCell>
-                                            <TableCell className="text-center">{cp.archived ? "Oui" : "Non"}</TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex gap-1 justify-center">
                                                     <Tooltip>
