@@ -59,6 +59,7 @@ export const CycleProgramList = () => {
     const [filters, setFilters] = useState<Filter[]>([]);
     const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
     const [unarchiveDialogOpen, setUnarchiveDialogOpen] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [modulesDialogOpen, setModulesDialogOpen] = useState(false);
     const [filterDialogOpen, setFilterDialogOpen] = useState(false);
     const [newFilterType, setNewFilterType] = useState("");
@@ -107,6 +108,17 @@ export const CycleProgramList = () => {
         }
     );
 
+    const deleteCycleProgram = useMutation(
+        (id: number) => useApiAxios.delete(`/api/cycles-programs/${id}`),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries(["cycles-programs"]);
+                setDeleteDialogOpen(false);
+                setSelectedCycleProgram(null);
+            },
+        }
+    );
+
     const handleArchive = (cycleProgram: CycleProgram) => {
         setSelectedCycleProgram(cycleProgram);
         setArchiveDialogOpen(true);
@@ -126,6 +138,17 @@ export const CycleProgramList = () => {
     const confirmUnarchive = () => {
         if (selectedCycleProgram) {
             unarchiveCycleProgram.mutate(selectedCycleProgram.id);
+        }
+    };
+
+    const handleDelete = (cycleProgram: CycleProgram) => {
+        setSelectedCycleProgram(cycleProgram);
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = () => {
+        if (selectedCycleProgram) {
+            deleteCycleProgram.mutate(selectedCycleProgram.id);
         }
     };
 
@@ -502,51 +525,84 @@ export const CycleProgramList = () => {
                                                 <TableCell className="text-center">{cp.budget}</TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex gap-1 justify-center">
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <EditCycleProgramModal
-                                                                    cycleProgram={cp}
-                                                                    onCycleProgramUpdated={() => queryClient.invalidateQueries(["cyclePrograms"])}
-                                                                />
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <p>Modifier</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="h-8 w-8"
-                                                                    onClick={() => handleDownloadRegistrations(cp.id)}
-                                                                >
-                                                                    <Download className="h-4 w-4 text-blue-600" />
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <p>Télécharger les inscriptions</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="h-8 w-8"
-                                                                    onClick={() => cp.archived ? handleUnarchive(cp) : handleArchive(cp)}
-                                                                >
-                                                                    {cp.archived ? (
-                                                                        <ArchiveRestore className="h-4 w-4 text-green-600" />
-                                                                    ) : (
-                                                                        <Archive className="h-4 w-4 text-yellow-600" />
-                                                                    )}
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <p>{cp.archived ? "Désarchiver" : "Archiver"}</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
+                                                        {cp.archived ? (
+                                                            <>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-8 w-8 text-red-600"
+                                                                            onClick={() => handleDelete(cp)}
+                                                                        >
+                                                                            <Trash className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>Supprimer le cycle/programme</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-8 w-8"
+                                                                            onClick={() => handleUnarchive(cp)}
+                                                                        >
+                                                                            <ArchiveRestore className="h-4 w-4 text-green-600" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>Désarchiver</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <EditCycleProgramModal
+                                                                            cycleProgram={cp}
+                                                                            onCycleProgramUpdated={() => queryClient.invalidateQueries(["cyclePrograms"])}
+                                                                        />
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>Modifier</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-8 w-8"
+                                                                            onClick={() => handleDownloadRegistrations(cp.id)}
+                                                                        >
+                                                                            <Download className="h-4 w-4 text-blue-600" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>Télécharger les inscriptions</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-8 w-8"
+                                                                            onClick={() => handleArchive(cp)}
+                                                                        >
+                                                                            <Archive className="h-4 w-4 text-yellow-600" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>Archiver</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
@@ -661,6 +717,23 @@ export const CycleProgramList = () => {
                             </Button>
                             <Button variant="default" onClick={confirmUnarchive}>
                                 Désarchiver
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Confirmer la suppression</DialogTitle>
+                        </DialogHeader>
+                        <p>Voulez-vous vraiment supprimer {selectedCycleProgram?.title} ? Cette action est irréversible.</p>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                                Annuler
+                            </Button>
+                            <Button variant="destructive" onClick={confirmDelete}>
+                                Supprimer
                             </Button>
                         </DialogFooter>
                     </DialogContent>

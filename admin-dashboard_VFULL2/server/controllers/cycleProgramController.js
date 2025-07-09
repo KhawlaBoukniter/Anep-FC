@@ -228,7 +228,6 @@ const getCycleProgramById = async (req, res) => {
     }
 };
 
-// Other functions (archiveCycleProgram, unarchiveCycleProgram, registerUserToCycleProgram, downloadRegistrations) remain unchanged
 const archiveCycleProgram = async (req, res) => {
     const { id } = req.params;
 
@@ -259,6 +258,46 @@ const unarchiveCycleProgram = async (req, res) => {
         res.status(200).json({ message: 'Cycle/Program unarchived successfully' });
     } catch (error) {
         console.error('Error unarchiving cycle/program:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const deleteCycleProgram = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const cycleProgram = await CycleProgram.findByPk(id);
+        if (!cycleProgram) {
+            return res.status(404).json({ message: 'Cycle/Program not found' });
+        }
+
+        if (!cycleProgram.archived) {
+            return res.status(400).json({ message: 'Only archived cycles/programs can be deleted' });
+        }
+
+        await CycleProgramModule.destroy({
+            where: { cycle_program_id: id },
+        });
+
+        const registrations = await CycleProgramRegistration.findAll({
+            where: { cycle_program_id: id },
+        });
+
+        const registrationIds = registrations.map(reg => reg.id);
+        if (registrationIds.length > 0) {
+            await CycleProgramUserModule.destroy({
+                where: { registration_id: registrationIds },
+            });
+            await CycleProgramRegistration.destroy({
+                where: { cycle_program_id: id },
+            });
+        }
+
+        await cycleProgram.destroy();
+
+        res.status(200).json({ message: 'Cycle/Program deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting cycle/program:', error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -340,6 +379,7 @@ module.exports = {
     updateCycleProgram,
     archiveCycleProgram,
     unarchiveCycleProgram,
+    deleteCycleProgram,
     getAllCyclePrograms,
     getCycleProgramById,
     registerUserToCycleProgram,
