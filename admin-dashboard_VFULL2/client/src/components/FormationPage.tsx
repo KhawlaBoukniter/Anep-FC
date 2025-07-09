@@ -55,6 +55,16 @@ const stripHtmlTags = (html: string): string => {
   return html.replace(/<[^>]+>/g, "").trim();
 };
 
+// Utility function to construct full image URL
+const getImageUrl = (imagePath: string | null | undefined, type?: "cycle" | "program"): string => {
+  if (!imagePath) {
+    // Fallback to type-specific images if imagePath is missing
+    return type === "cycle" ? "/images/cycle.jpg" : type === "program" ? "/images/program.jpg" : "/placeholder.svg";
+  }
+  // Ensure the image path is prefixed with the base URL if it's a relative path
+  return imagePath.startsWith("http") ? imagePath : `${API_BASE_URL}${imagePath}`;
+};
+
 const FormationPage: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [animatedCards, setAnimatedCards] = useState<boolean[]>([]);
@@ -83,7 +93,7 @@ const FormationPage: React.FC = () => {
           start_date: cp.start_date || "Non spécifié",
           end_date: cp.end_date || "Non spécifié",
           instructor: cp.facilitator || "Équipe pédagogique",
-          image: cp.type === "cycle" ? "/images/cycle.jpg" : "/images/program.jpg",
+          image: getImageUrl(cp.photos_url?.[0], cp.type), // Use first photo if available, else type-specific fallback
           category: cp.type === "cycle" ? "Cycle de formation" : cp.program_type || "Programme spécialisé",
           type: cp.type,
           modules: cp.modules?.map((m: any) => m.title) || [],
@@ -96,7 +106,7 @@ const FormationPage: React.FC = () => {
             title: m.title,
             description: stripHtmlTags(m.description || "Description non disponible"),
             instructor: cp.facilitator || "Équipe pédagogique",
-            image: cp.type === "cycle" ? "/cycle.png" : "/program.png",
+            image: getImageUrl(m.imageUrl, cp.type), // Use imageUrl from Course model, else type-specific fallback
             objectives: m.objectives || ["Objectif 1", "Objectif 2"],
             prerequisites: m.prerequisites || ["Aucun"],
             mode: m.offline || "Non spécifié",

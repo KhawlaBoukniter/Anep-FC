@@ -148,11 +148,6 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                     alt={formation.title}
                     className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
                   />
-                  <div className="absolute top-4 left-4">
-                    <span className="px-3 py-1 bg-black bg-opacity-70 text-white text-xs font-semibold rounded-full">
-                      {formation.level}
-                    </span>
-                  </div>
                   <div className="absolute top-4 right-4">
                     <span className="px-3 py-1 bg-green-600 text-white text-xs font-semibold rounded-full">
                       Formation {index + 1}
