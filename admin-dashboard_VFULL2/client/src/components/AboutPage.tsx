@@ -147,21 +147,18 @@ const AboutPage: React.FC = () => {
             >
               <h2 className="text-4xl font-bold text-[#06668C] mb-6">Notre Histoire</h2>
               <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                Fondée en 2014, notre entreprise est née de la passion commune de créer des solutions digitales
-                innovantes qui transforment la façon dont les entreprises interagissent avec leurs clients.
+                L’ANEP est un établissement public marocain, créé en 2013 par le décret n°2-13-39 du 24 avril 2013, placé sous la tutelle du Ministère de l'Équipement et de l’Eau. Elle a été mise en place pour professionnaliser la maîtrise d’ouvrage déléguée dans les projets publics d’infrastructure.
               </p>
               <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                Depuis nos débuts, nous avons accompagné plus de 1000 clients dans leur transformation digitale, en
-                alliant expertise technique et créativité pour livrer des projets qui dépassent les attentes.
+                L’ANEP agit souvent comme maître d’ouvrage délégué, ce qui permet aux ministères et institutions de se concentrer sur leur cœur de métier tout en confiant à l’ANEP la conduite technique et administrative des projets.
               </p>
               <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                Aujourd'hui, nous sommes fiers d'être reconnus comme l'un des leaders dans notre domaine, tout en
-                gardant l'esprit startup qui nous anime depuis le premier jour.
+                L’agence contribue aussi à l’optimisation des coûts, des délais et de la qualité des ouvrages publics, avec un objectif de transparence, d’efficacité et de durabilité.
               </p>
 
               <div className="grid grid-cols-2 gap-6">
                 <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <div className="text-3xl font-bold text-[#06668C] mb-2">2014</div>
+                  <div className="text-3xl font-bold text-[#06668C] mb-2">2013</div>
                   <div className="text-gray-600">Année de création</div>
                 </div>
                 <div className="text-center p-4 bg-gray-50 rounded-lg">
@@ -178,18 +175,8 @@ const AboutPage: React.FC = () => {
                 <div className="bg-gradient-to-br from-[#06668C] to-green-600 rounded-2xl p-8 text-white">
                   <h3 className="text-2xl font-bold mb-4">Notre Mission</h3>
                   <p className="text-lg opacity-90 mb-6">
-                    Accompagner les entreprises dans leur transformation digitale en créant des solutions sur mesure qui
-                    génèrent de la valeur et améliorent l'expérience utilisateur.
+                    Sa mission principale est de concevoir, gérer et suivre la réalisation des équipements publics (bâtiments administratifs, établissements de santé, écoles, centres culturels, etc.) pour le compte de l’État, des collectivités territoriales, ou d’autres établissements publics. 
                   </p>
-                  <div className="flex items-center">
-                    <div className="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-4">
-                      <span className="text-2xl">🎯</span>
-                    </div>
-                    <div>
-                      <div className="font-semibold">Vision 2025</div>
-                      <div className="text-sm opacity-80">Devenir la référence européenne</div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -289,51 +276,7 @@ const AboutPage: React.FC = () => {
           </div>
         </div>
       </section>
-
-      {/* Stats Section */}
-      <section className="py-20 bg-gradient-to-r from-[#06668C] to-green-600 text-white">
-        <div className="container mx-auto px-4">
-          <div
-            className={`grid grid-cols-2 md:grid-cols-4 gap-8 transition-all duration-1000 ${animatedElements.stats ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
-          >
-            <div className="text-center">
-              <div className="text-4xl md:text-5xl font-bold mb-2">10+</div>
-              <div className="text-lg opacity-90">Années d'expérience</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl md:text-5xl font-bold mb-2">1000+</div>
-              <div className="text-lg opacity-90">Projets réalisés</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl md:text-5xl font-bold mb-2">50+</div>
-              <div className="text-lg opacity-90">Collaborateurs</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl md:text-5xl font-bold mb-2">98%</div>
-              <div className="text-lg opacity-90">Clients satisfaits</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Contact CTA */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold text-[#06668C] mb-6">Rejoignez l'Aventure</h2>
-          <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-            Vous partagez nos valeurs et souhaitez faire partie de notre équipe ? Nous sommes toujours à la recherche de
-            talents passionnés.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-gradient-to-r from-[#06668C] to-green-600 text-white px-8 py-4 rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300">
-              Voir nos offres
-            </button>
-            <button className="border-2 border-[#06668C] text-[#06668C] px-8 py-4 rounded-lg font-semibold hover:bg-[#06668C] hover:text-white transition-all duration-300">
-              Nous contacter
-            </button>
-          </div>
-        </div>
-      </section>
+     
       <Footer/>
     </div>
   )
