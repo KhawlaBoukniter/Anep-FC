@@ -11,8 +11,6 @@ interface Formation {
   id: number;
   title: string;
   description: string;
-  duration: string;
-  level: string;
   price: string;
   instructor: string;
   image: string;
@@ -25,8 +23,8 @@ interface Program {
   title: string;
   description: string;
   shortDescription: string;
-  duration: string;
-  level: string;
+  start_date: string; // Ajouté
+  end_date: string;   // Ajouté
   price: string;
   instructor: string;
   image: string;
@@ -36,7 +34,6 @@ interface Program {
   prerequisites: string[];
   objectives: string[];
   color: string;
-  rating: number;
   students: number;
   formations: Formation[];
 }
@@ -75,9 +72,8 @@ const FormationPage: React.FC = () => {
           title: cp.title,
           description: cp.description || "Description non disponible",
           shortDescription: cp.description?.slice(0, 100) + "..." || "Description non disponible",
-          duration: `${Math.ceil((new Date(cp.end_date) - new Date(cp.start_date)) / (1000 * 60 * 60 * 24 * 30))} mois`,
-          level: "Intermédiaire", // À adapter selon les données réelles
-          price: cp.budget ? `${cp.budget}€` : "Prix sur demande",
+          start_date: cp.start_date || "Non spécifié", // Ajouté
+          end_date: cp.end_date || "Non spécifié",     // Ajouté
           instructor: cp.facilitator || "Équipe pédagogique",
           image: cp.photos_url?.[0] || "/placeholder.svg?height=200&width=300",
           category: cp.type === "cycle" ? "Cycle de formation" : cp.program_type || "Programme spécialisé",
@@ -86,14 +82,11 @@ const FormationPage: React.FC = () => {
           prerequisites: ["Motivation", "Logique de base"], // À adapter
           objectives: ["Objectif 1", "Objectif 2"], // À adapter
           color: cp.type === "cycle" ? "from-purple-600 to-purple-800" : "from-blue-500 to-blue-700",
-          rating: 4.8, // À adapter
           students: cp.CycleProgramRegistrations?.length || 0,
           formations: cp.modules?.map((m: any) => ({
             id: m._id,
             title: m.title,
             description: m.description || "Description non disponible",
-            duration: m.duration || "Non spécifié",
-            level: m.level || "Intermédiaire",
             price: "Inclus dans le cycle",
             instructor: cp.facilitator || "Équipe pédagogique",
             image: m.image || "/placeholder.svg?height=200&width=300",
@@ -331,11 +324,6 @@ const FormationPage: React.FC = () => {
                       {program.type === "cycle" ? "🔄 Cycle" : "📚 Programme"}
                     </span>
                   </div>
-                  <div className="absolute top-4 right-4">
-                    <span className="px-3 py-1 bg-black bg-opacity-70 text-white text-xs font-semibold rounded-full">
-                      {program.level}
-                    </span>
-                  </div>
                   {enrolledPrograms.includes(program.id) && (
                     <div className="absolute bottom-4 left-4">
                       <span className="px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">
@@ -356,14 +344,22 @@ const FormationPage: React.FC = () => {
                   </div>
                   <p className="text-gray-600 mb-4 leading-relaxed line-clamp-3">{program.shortDescription}</p>
                   {/* Infos */}
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                  <div className="flex flex-wrap items-center justify-between text-sm text-gray-500 mb-4 gap-2">
                     <div className="flex items-center">
-                      <span className="mr-1">⏱️</span>
-                      <span>{program.duration}</span>
+                      <span className="mr-1">📅 Début</span>
+                      <span>
+                        {program.start_date !== "Non spécifié"
+                          ? new Date(program.start_date).toLocaleDateString("fr-FR")
+                          : "Non spécifié"}
+                      </span>
                     </div>
                     <div className="flex items-center">
-                      <span className="mr-1">⭐</span>
-                      <span>{program.rating}</span>
+                      <span className="mr-1">📅 Fin</span>
+                      <span>
+                        {program.end_date !== "Non spécifié"
+                          ? new Date(program.end_date).toLocaleDateString("fr-FR")
+                          : "Non spécifié"}
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <span className="mr-1">👥</span>
@@ -441,7 +437,6 @@ const FormationPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Modal */}
       <Footer />
     </div>
   );
