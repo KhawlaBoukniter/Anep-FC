@@ -23,8 +23,8 @@ interface Program {
   title: string;
   description: string;
   shortDescription: string;
-  start_date: string; // Ajouté
-  end_date: string;   // Ajouté
+  start_date: string;
+  end_date: string;
   price: string;
   instructor: string;
   image: string;
@@ -47,6 +47,11 @@ interface ProgramModalProps {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
 
+// Utility function to strip HTML tags
+const stripHtmlTags = (html: string): string => {
+  return html.replace(/<[^>]+>/g, "").trim();
+};
+
 const FormationPage: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [animatedCards, setAnimatedCards] = useState<boolean[]>([]);
@@ -60,33 +65,33 @@ const FormationPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Récupérer les cycles et programmes depuis l'API
+  // Fetch cycles and programs from the API
   useEffect(() => {
     const fetchPrograms = async () => {
       try {
         setLoading(true);
         const response = await axios.get(`${API_BASE_URL}/api/cycles-programs`);
-        // Transformer les données backend pour correspondre au format frontend
+        // Transform backend data to match frontend format
         const transformedPrograms = response.data.map((cp: any) => ({
           id: cp.id,
           title: cp.title,
-          description: cp.description || "Description non disponible",
-          shortDescription: cp.description?.slice(0, 100) + "..." || "Description non disponible",
-          start_date: cp.start_date || "Non spécifié", // Ajouté
-          end_date: cp.end_date || "Non spécifié",     // Ajouté
+          description: stripHtmlTags(cp.description || "Description non disponible"),
+          shortDescription: stripHtmlTags(cp.description?.slice(0, 100) + "..." || "Description non disponible"),
+          start_date: cp.start_date || "Non spécifié",
+          end_date: cp.end_date || "Non spécifié",
           instructor: cp.facilitator || "Équipe pédagogique",
           image: cp.photos_url?.[0] || "/placeholder.svg?height=200&width=300",
           category: cp.type === "cycle" ? "Cycle de formation" : cp.program_type || "Programme spécialisé",
           type: cp.type,
           modules: cp.modules?.map((m: any) => m.title) || [],
-          prerequisites: ["Motivation", "Logique de base"], // À adapter
-          objectives: ["Objectif 1", "Objectif 2"], // À adapter
+          prerequisites: ["Motivation", "Logique de base"],
+          objectives: ["Objectif 1", "Objectif 2"],
           color: cp.type === "cycle" ? "from-purple-600 to-purple-800" : "from-blue-500 to-blue-700",
           students: cp.CycleProgramRegistrations?.length || 0,
           formations: cp.modules?.map((m: any) => ({
             id: m._id,
             title: m.title,
-            description: m.description || "Description non disponible",
+            description: stripHtmlTags(m.description || "Description non disponible"),
             price: "Inclus dans le cycle",
             instructor: cp.facilitator || "Équipe pédagogique",
             image: m.image || "/placeholder.svg?height=200&width=300",
@@ -160,11 +165,10 @@ const FormationPage: React.FC = () => {
 
   const handleEnroll = async (programId: number) => {
     try {
-      // Supposons que l'utilisateur est authentifié et que vous avez un user_id
-      const userId = 1; // Remplacer par l'ID utilisateur réel (obtenu via authentification)
+      const userId = 1; // Replace with actual user ID from authentication
       await axios.post(`${API_BASE_URL}/api/cycles-programs/${programId}/register`, {
         user_id: userId,
-        module_ids: [], // À adapter si des modules spécifiques doivent être sélectionnés
+        module_ids: [],
       });
       setEnrolledPrograms((prev) => [...prev, programId]);
       setIsModalOpen(false);
@@ -308,7 +312,7 @@ const FormationPage: React.FC = () => {
                   animatedCards[index] ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-10 scale-95"
                 } hover:-translate-y-2`}
               >
-                {/* Image et badges */}
+                {/* Image and badges */}
                 <div className="relative overflow-hidden rounded-t-2xl">
                   <img
                     src={program.image || "/placeholder.svg"}
@@ -332,7 +336,7 @@ const FormationPage: React.FC = () => {
                     </div>
                   )}
                 </div>
-                {/* Contenu */}
+                {/* Content */}
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <h3 className="text-xl font-bold text-gray-800 group-hover:text-[#06668C] transition-colors duration-300">
@@ -343,7 +347,7 @@ const FormationPage: React.FC = () => {
                     </div>
                   </div>
                   <p className="text-gray-600 mb-4 leading-relaxed line-clamp-3">{program.shortDescription}</p>
-                  {/* Infos */}
+                  {/* Info */}
                   <div className="flex flex-wrap items-center justify-between text-sm text-gray-500 mb-4 gap-2">
                     <div className="flex items-center">
                       <span className="mr-1">📅 Début</span>
@@ -403,7 +407,7 @@ const FormationPage: React.FC = () => {
                     )}
                   </div>
                 </div>
-                {/* Ligne décorative */}
+                {/* Decorative line */}
                 <div
                   className={`h-1 bg-gradient-to-r ${program.color} w-0 group-hover:w-full transition-all duration-500 rounded-b-2xl`}
                 ></div>
