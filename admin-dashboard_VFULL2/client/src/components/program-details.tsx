@@ -178,17 +178,6 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
 
                   <p className="text-gray-600 mb-4 leading-relaxed">{formation.description}</p>
 
-                  {/* Infos */}
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                    <div className="flex items-center">
-                      <span className="mr-1">⏱️</span>
-                      <span>{formation.duration}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="mr-1">👨‍🏫</span>
-                      <span>{formation.instructor}</span>
-                    </div>
-                  </div>
                   {/* Actions */}
                   <div className="flex gap-3">
                     <button className="flex-1 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg transition-colors duration-300">
