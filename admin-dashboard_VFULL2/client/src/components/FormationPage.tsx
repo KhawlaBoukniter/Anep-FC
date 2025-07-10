@@ -1,379 +1,238 @@
-"use client"
-
-import type React from "react"
-import { useState, useEffect } from "react"
+"use client";
+import type React from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import Header from "../components/header.tsx";
 import Footer from "../components/footer.tsx";
+import ProgramDetails from "../components/program-details.tsx";
+import CycleDetails from "../components/cycle-details.tsx";
 
 interface Formation {
-  id: number
-  title: string
-  description: string
-  shortDescription: string
-  duration: string
-  level: string
-  price: string
-  instructor: string
-  image: string
-  category: string
-  modules: string[]
-  prerequisites: string[]
-  objectives: string[]
-  color: string
-  rating: number
-  students: number
+  id: number;
+  title: string;
+  description: string;
+  price: string;
+  instructor: string;
+  image: string;
+  objectives: string[];
+  prerequisites: string[];
+  mode: string;
+  start_date: string;
+  end_date: string;
 }
 
-interface FormationModalProps {
-  formation: Formation | null
-  isOpen: boolean
-  onClose: () => void
-  onEnroll: (formationId: number) => void
+interface Program {
+  id: number;
+  title: string;
+  description: string;
+  shortDescription: string;
+  start_date: string;
+  end_date: string;
+  price: string;
+  instructor: string;
+  image: string;
+  category: string;
+  type: "cycle" | "program";
+  modules: string[];
+  prerequisites: string[];
+  objectives: string[];
+  color: string;
+  students: number;
+  formations: Formation[];
 }
 
-const formationsData: Formation[] = [
-  {
-    id: 1,
-    title: "Développement React Avancé",
-    description:
-      "Maîtrisez React.js de A à Z avec les hooks, le state management et les bonnes pratiques modernes. Cette formation complète vous permettra de créer des applications web performantes et maintenables.",
-    shortDescription: "Maîtrisez React.js avec les hooks et le state management moderne",
-    duration: "40 heures",
-    level: "Intermédiaire",
-    price: "899€",
-    instructor: "Thomas Martin",
-    image: "/placeholder.svg?height=200&width=300",
-    category: "Développement Web",
-    modules: [
-      "Introduction à React et JSX",
-      "Hooks et State Management",
-      "Context API et Redux",
-      "Optimisation des performances",
-      "Tests unitaires avec Jest",
-      "Déploiement et CI/CD",
-    ],
-    prerequisites: ["JavaScript ES6+", "HTML/CSS", "Bases de Git"],
-    objectives: [
-      "Créer des applications React complexes",
-      "Maîtriser les hooks avancés",
-      "Optimiser les performances",
-      "Implémenter des tests robustes",
-    ],
-    color: "from-[#06668C] to-blue-700",
-    rating: 4.8,
-    students: 245,
-  },
-  {
-    id: 2,
-    title: "Design UI/UX Professionnel",
-    description:
-      "Apprenez à créer des interfaces utilisateur exceptionnelles et des expériences utilisateur mémorables. De la recherche utilisateur au prototypage, maîtrisez tous les aspects du design digital.",
-    shortDescription: "Créez des interfaces utilisateur exceptionnelles et des expériences mémorables",
-    duration: "35 heures",
-    level: "Débutant",
-    price: "749€",
-    instructor: "Sophie Laurent",
-    image: "/placeholder.svg?height=200&width=300",
-    category: "Design",
-    modules: [
-      "Principes fondamentaux du design",
-      "Recherche utilisateur et personas",
-      "Wireframing et prototypage",
-      "Design systems et composants",
-      "Outils Figma et Adobe XD",
-      "Tests utilisateur et itération",
-    ],
-    prerequisites: ["Aucun prérequis", "Créativité et curiosité"],
-    objectives: [
-      "Maîtriser les principes du design",
-      "Créer des prototypes interactifs",
-      "Conduire des recherches utilisateur",
-      "Développer un design system",
-    ],
-    color: "from-green-600 to-green-700",
-    rating: 4.9,
-    students: 189,
-  },
-  {
-    id: 3,
-    title: "DevOps et Cloud Computing",
-    description:
-      "Découvrez les pratiques DevOps modernes et le déploiement cloud. Automatisez vos workflows, gérez l'infrastructure as code et maîtrisez les plateformes cloud comme AWS et Azure.",
-    shortDescription: "Maîtrisez DevOps, l'automatisation et le déploiement cloud",
-    duration: "50 heures",
-    level: "Avancé",
-    price: "1299€",
-    instructor: "Alexandre Petit",
-    image: "/placeholder.svg?height=200&width=300",
-    category: "Infrastructure",
-    modules: [
-      "Introduction au DevOps",
-      "Containerisation avec Docker",
-      "Orchestration avec Kubernetes",
-      "CI/CD avec GitHub Actions",
-      "Infrastructure as Code",
-      "Monitoring et observabilité",
-    ],
-    prerequisites: ["Linux de base", "Réseaux", "Développement"],
-    objectives: [
-      "Automatiser les déploiements",
-      "Gérer l'infrastructure cloud",
-      "Implémenter CI/CD",
-      "Monitorer les applications",
-    ],
-    color: "from-gray-800 to-black",
-    rating: 4.7,
-    students: 156,
-  },
-  {
-    id: 4,
-    title: "Marketing Digital & SEO",
-    description:
-      "Boostez votre présence en ligne avec les stratégies de marketing digital les plus efficaces. SEO, SEM, réseaux sociaux et analytics n'auront plus de secrets pour vous.",
-    shortDescription: "Boostez votre présence en ligne avec le marketing digital",
-    duration: "30 heures",
-    level: "Débutant",
-    price: "599€",
-    instructor: "Marie Dubois",
-    image: "/placeholder.svg?height=200&width=300",
-    category: "Marketing",
-    modules: [
-      "Stratégie marketing digital",
-      "SEO et référencement naturel",
-      "Google Ads et SEM",
-      "Réseaux sociaux et community management",
-      "Email marketing et automation",
-      "Analytics et mesure de performance",
-    ],
-    prerequisites: ["Bases du web", "Curiosité marketing"],
-    objectives: [
-      "Développer une stratégie digitale",
-      "Optimiser le référencement",
-      "Gérer les campagnes publicitaires",
-      "Analyser les performances",
-    ],
-    color: "from-purple-600 to-purple-700",
-    rating: 4.6,
-    students: 312,
-  },
-  {
-    id: 5,
-    title: "Intelligence Artificielle & Machine Learning",
-    description:
-      "Plongez dans le monde de l'IA et du Machine Learning. Apprenez à créer des modèles prédictifs, à traiter des données et à implémenter des solutions d'IA dans vos projets.",
-    shortDescription: "Créez des modèles d'IA et implémentez le Machine Learning",
-    duration: "60 heures",
-    level: "Avancé",
-    price: "1599€",
-    instructor: "Dr. Jean Dupont",
-    image: "/placeholder.svg?height=200&width=300",
-    category: "Intelligence Artificielle",
-    modules: [
-      "Fondamentaux de l'IA",
-      "Python pour le Machine Learning",
-      "Algorithmes d'apprentissage supervisé",
-      "Deep Learning et réseaux de neurones",
-      "Traitement du langage naturel",
-      "Déploiement de modèles en production",
-    ],
-    prerequisites: ["Python", "Mathématiques", "Statistiques"],
-    objectives: [
-      "Comprendre les concepts de l'IA",
-      "Créer des modèles ML",
-      "Implémenter du Deep Learning",
-      "Déployer des solutions IA",
-    ],
-    color: "from-orange-600 to-red-600",
-    rating: 4.9,
-    students: 98,
-  },
-  {
-    id: 6,
-    title: "Cybersécurité & Ethical Hacking",
-    description:
-      "Protégez les systèmes informatiques en apprenant les techniques de cybersécurité et d'ethical hacking. Identifiez les vulnérabilités et mettez en place des défenses efficaces.",
-    shortDescription: "Maîtrisez la cybersécurité et les techniques d'ethical hacking",
-    duration: "45 heures",
-    level: "Intermédiaire",
-    price: "1099€",
-    instructor: "Captain Security",
-    image: "/placeholder.svg?height=200&width=300",
-    category: "Sécurité",
-    modules: [
-      "Fondamentaux de la cybersécurité",
-      "Techniques de reconnaissance",
-      "Tests de pénétration",
-      "Sécurité des applications web",
-      "Forensique numérique",
-      "Gestion des incidents de sécurité",
-    ],
-    prerequisites: ["Réseaux", "Systèmes", "Linux"],
-    objectives: [
-      "Identifier les vulnérabilités",
-      "Réaliser des tests de pénétration",
-      "Sécuriser les applications",
-      "Gérer les incidents de sécurité",
-    ],
-    color: "from-red-600 to-red-700",
-    rating: 4.8,
-    students: 134,
-  },
-]
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
 
-const FormationModal: React.FC<FormationModalProps> = ({ formation, isOpen, onClose, onEnroll }) => {
-  if (!isOpen || !formation) return null
+const stripHtmlTags = (html: string): string => {
+  return html.replace(/<[^>]+>/g, "").trim();
+};
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className={`bg-gradient-to-r ${formation.color} text-white p-6 rounded-t-2xl relative`}>
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 text-white hover:text-gray-200 transition-colors duration-200"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2">
-              <h2 className="text-3xl font-bold mb-4">{formation.title}</h2>
-              <p className="text-lg opacity-90 mb-4">{formation.description}</p>
-
-              <div className="flex flex-wrap gap-4 text-sm">
-                <div className="flex items-center">
-                  <span className="mr-2">⏱️</span>
-                  <span>{formation.duration}</span>
-                </div>
-                <div className="flex items-center">
-                  <span className="mr-2">📊</span>
-                  <span>{formation.level}</span>
-                </div>
-                <div className="flex items-center">
-                  <span className="mr-2">⭐</span>
-                  <span>
-                    {formation.rating}/5 ({formation.students} étudiants)
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-center md:text-right">
-              <div className="text-4xl font-bold mb-2">{formation.price}</div>
-              <div className="text-sm opacity-80">Instructeur: {formation.instructor}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Modules */}
-            <div>
-              <h3 className="text-xl font-bold text-[#06668C] mb-4">📚 Modules de formation</h3>
-              <ul className="space-y-2">
-                {formation.modules.map((module, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="text-green-500 mr-2 mt-1">✓</span>
-                    <span className="text-gray-700">{module}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Objectifs */}
-            <div>
-              <h3 className="text-xl font-bold text-[#06668C] mb-4">🎯 Objectifs pédagogiques</h3>
-              <ul className="space-y-2">
-                {formation.objectives.map((objective, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="text-blue-500 mr-2 mt-1">→</span>
-                    <span className="text-gray-700">{objective}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Prérequis */}
-          <div className="mt-8">
-            <h3 className="text-xl font-bold text-[#06668C] mb-4">📋 Prérequis</h3>
-            <div className="flex flex-wrap gap-2">
-              {formation.prerequisites.map((prereq, index) => (
-                <span key={index} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                  {prereq}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="mt-8 flex flex-col sm:flex-row gap-4">
-            <button
-              onClick={() => onEnroll(formation.id)}
-              className={`flex-1 bg-gradient-to-r ${formation.color} text-white py-4 px-6 rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300`}
-            >
-              S'inscrire maintenant - {formation.price}
-            </button>
-            <button className="flex-1 border-2 border-[#06668C] text-[#06668C] py-4 px-6 rounded-lg font-semibold hover:bg-[#06668C] hover:text-white transition-all duration-300">
-              Demander plus d'infos
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
+const getImageUrl = (imagePath: string | null | undefined, type?: "cycle" | "program"): string => {
+  if (!imagePath) {
+    return type === "cycle" ? "/images/cycle.jpg" : type === "program" ? "/images/program.jpg" : "/placeholder.svg";
+  }
+  return imagePath.startsWith("http") ? imagePath : `${API_BASE_URL}${imagePath}`;
+};
 
 const FormationPage: React.FC = () => {
-  const [isVisible, setIsVisible] = useState(false)
-  const [animatedCards, setAnimatedCards] = useState<boolean[]>(new Array(formationsData.length).fill(false))
-  const [selectedFormation, setSelectedFormation] = useState<Formation | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [enrolledFormations, setEnrolledFormations] = useState<number[]>([])
+  const [isVisible, setIsVisible] = useState(false);
+  const [animatedCards, setAnimatedCards] = useState<boolean[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [enrolledPrograms, setEnrolledPrograms] = useState<number[]>([]);
+  const [activeFilter, setActiveFilter] = useState<"all" | "cycle" | "program">("all");
+  const [showDetails, setShowDetails] = useState(false);
+  const [selectedProgramForDetails, setSelectedProgramForDetails] = useState<Program | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch enrolled programs for the user
+  useEffect(() => {
+    const fetchEnrolledPrograms = async () => {
+      try {
+        const userId = 1; // Replace with actual user ID from authentication
+        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/registrations?user_id=${userId}`);
+        const enrolledIds = response.data.map((reg: any) => reg.cycle_program_id);
+        setEnrolledPrograms(enrolledIds);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des inscriptions:", err);
+      }
+    };
+
+    fetchEnrolledPrograms();
+  }, []);
+
+  useEffect(() => {
+    const fetchPrograms = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs`);
+        const transformedPrograms = response.data.map((cp: any) => ({
+          id: cp.id,
+          title: cp.title,
+          description: stripHtmlTags(cp.description || "Description non disponible"),
+          shortDescription: stripHtmlTags(cp.description?.slice(0, 100) + "..." || "Description non disponible"),
+          start_date: cp.start_date || "Non spécifié",
+          end_date: cp.end_date || "Non spécifié",
+          instructor: cp.facilitator || "Équipe pédagogique",
+          image: getImageUrl(cp.photos_url?.[0], cp.type),
+          category: cp.type === "cycle" ? "Cycle de formation" : cp.program_type || "Programme spécialisé",
+          type: cp.type,
+          modules: cp.modules?.map((m: any) => m.title) || [],
+          prerequisites: ["Motivation", "Logique de base"],
+          objectives: ["Objectif 1", "Objectif 2"],
+          color: cp.type === "cycle" ? "from-purple-600 to-purple-800" : "from-blue-500 to-blue-700",
+          students: cp.CycleProgramRegistrations?.length || 0,
+          formations: cp.modules?.map((m: any) => ({
+            id: m._id,
+            title: m.title,
+            description: stripHtmlTags(m.description || "Description non disponible"),
+            instructor: cp.facilitator || "Équipe pédagogique",
+            image: getImageUrl(m.imageUrl, cp.type),
+            objectives: m.objectives || ["Objectif 1", "Objectif 2"],
+            prerequisites: m.prerequisites || ["Aucun"],
+            mode: m.offline || "Non spécifié",
+            start_date: m.times?.[0]?.dateRanges?.[0]?.startTime || "Non spécifié",
+            end_date: m.times?.[0]?.dateRanges?.[0]?.endTime || "Non spécifié",
+          })) || [],
+        }));
+        setPrograms(transformedPrograms);
+        setAnimatedCards(new Array(transformedPrograms.length).fill(false));
+        setLoading(false);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des cycles/programmes:", err);
+        setError("Impossible de charger les formations. Veuillez réessayer plus tard.");
+        setLoading(false);
+      }
+    };
+
+    fetchPrograms();
+  }, []);
+
+  const filteredPrograms = programs.filter((program) => {
+    if (activeFilter === "all") return true;
+    return program.type === activeFilter;
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setIsVisible(true)
-
-      // Animer les cartes avec délai
-      formationsData.forEach((_, index) => {
+      setIsVisible(true);
+      filteredPrograms.forEach((_, index) => {
         setTimeout(() => {
           setAnimatedCards((prev) => {
-            const newState = [...prev]
-            newState[index] = true
-            return newState
-          })
-        }, index * 150)
-      })
-    }, 300)
+            const newState = [...prev];
+            newState[index] = true;
+            return newState;
+          });
+        }, index * 150);
+      });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [filteredPrograms]);
 
-    return () => clearTimeout(timer)
-  }, [])
+  useEffect(() => {
+    setAnimatedCards(new Array(filteredPrograms.length).fill(false));
+    setTimeout(() => {
+      filteredPrograms.forEach((_, index) => {
+        setTimeout(() => {
+          setAnimatedCards((prev) => {
+            const newState = [...prev];
+            newState[index] = true;
+            return newState;
+          });
+        }, index * 100);
+      });
+    }, 100);
+  }, [activeFilter]);
 
-  const handleViewDetails = (formation: Formation) => {
-    setSelectedFormation(formation)
-    setIsModalOpen(true)
-  }
+  const handleViewDetails = (program: Program) => {
+    setSelectedProgramForDetails(program);
+    setShowDetails(true);
+  };
+
+  const handleBackToList = () => {
+    setShowDetails(false);
+    setSelectedProgramForDetails(null);
+  };
 
   const handleCloseModal = () => {
-    setIsModalOpen(false)
-    setSelectedFormation(null)
+    setIsModalOpen(false);
+    setSelectedProgram(null);
+  };
+
+  const handleEnroll = async (programId: number) => {
+    try {
+      const userId = 1; // Replace with actual user ID from authentication
+      const response = await axios.post(`${API_BASE_URL}/api/cycles-programs/${programId}/register`, {
+        user_id: userId,
+        module_ids: [], // Empty for cycles
+      });
+      setEnrolledPrograms((prev) => [...prev, programId]);
+      setIsModalOpen(false);
+      alert("Inscription réussie ! Vous recevrez un email de confirmation.");
+    } catch (err: any) {
+      console.error("Erreur lors de l'inscription:", err);
+      const errorMessage = err.response?.data?.message || "Erreur lors de l'inscription. Veuillez réessayer.";
+      alert(errorMessage);
+    }
+  };
+
+  const cyclesCount = programs.filter((p) => p.type === "cycle").length;
+  const programmesCount = programs.filter((p) => p.type === "program").length;
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Chargement...</div>;
   }
 
-  const handleEnroll = (formationId: number) => {
-    setEnrolledFormations((prev) => [...prev, formationId])
-    setIsModalOpen(false)
-    // Ici vous pouvez ajouter la logique d'inscription (API call, etc.)
-    alert("Inscription réussie ! Vous recevrez un email de confirmation.")
+  if (error) {
+    return <div className="min-h-screen flex items-center justify-center text-red-600">{error}</div>;
+  }
+
+  if (showDetails && selectedProgramForDetails) {
+    if (selectedProgramForDetails.type === "cycle") {
+      return (
+        <CycleDetails
+          cycle={selectedProgramForDetails}
+          onBack={handleBackToList}
+          onEnroll={handleEnroll}
+          enrolledPrograms={enrolledPrograms}
+        />
+      );
+    } else {
+      return (
+        <ProgramDetails
+          program={selectedProgramForDetails}
+          onBack={handleBackToList}
+          enrolledPrograms={enrolledPrograms}
+        />
+      );
+    }
   }
 
   return (
     <div className="min-h-screen bg-white">
       <Header />
-      {/* Hero Section */}
       <section className="relative py-20 bg-gradient-to-br from-[#06668C] via-blue-700 to-green-600 text-white overflow-hidden">
         <div className="absolute inset-0 bg-black bg-opacity-20"></div>
         <div className="absolute inset-0 opacity-10">
@@ -381,56 +240,110 @@ const FormationPage: React.FC = () => {
           <div className="absolute bottom-20 right-20 w-24 h-24 bg-white rounded-full"></div>
           <div className="absolute top-1/2 left-1/2 w-16 h-16 bg-white rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
         </div>
-
         <div className="container mx-auto px-4 relative z-10">
           <div
-            className={`text-center transition-all duration-1000 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
+            className={`text-center transition-all duration-1000 ${
+              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+            }`}
           >
             <h1 className="text-5xl md:text-7xl font-bold mb-6">Formations</h1>
             <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto opacity-90">
-              Développez vos compétences avec nos formations expertes et certifiantes
+              Choisissez entre nos cycles complets et nos programmes spécialisés
             </p>
             <div className="w-32 h-1 bg-white mx-auto rounded-full"></div>
           </div>
         </div>
       </section>
 
-      {/* Formations Grid */}
+      <section className="py-8 bg-gray-50 border-b">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <h3 className="text-lg font-semibold text-gray-700">Filtrer par :</h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setActiveFilter("all")}
+                  className={`px-4 py-2 rounded-full font-medium transition-all duration-300 ${
+                    activeFilter === "all"
+                      ? "bg-[#06668C] text-white shadow-lg"
+                      : "bg-white text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  Tout ({programs.length})
+                </button>
+                <button
+                  onClick={() => setActiveFilter("cycle")}
+                  className={`px-4 py-2 rounded-full font-medium transition-all duration-300 ${
+                    activeFilter === "cycle"
+                      ? "bg-purple-600 text-white shadow-lg"
+                      : "bg-white text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  🔄 Cycles ({cyclesCount})
+                </button>
+                <button
+                  onClick={() => setActiveFilter("program")}
+                  className={`px-4 py-2 rounded-full font-medium transition-all duration-300 ${
+                    activeFilter === "program"
+                      ? "bg-green-600 text-white shadow-lg"
+                      : "bg-white text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  📚 Programmes ({programmesCount})
+                </button>
+              </div>
+            </div>
+            <div className="text-sm text-gray-500">
+              {filteredPrograms.length} formation{filteredPrograms.length > 1 ? "s" : ""} trouvée
+              {filteredPrograms.length > 1 ? "s" : ""}
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-[#06668C] mb-4">Nos Formations</h2>
+            <h2 className="text-4xl font-bold text-[#06668C] mb-4">
+              {activeFilter === "cycle"
+                ? "Nos Cycles de Formation"
+                : activeFilter === "program"
+                  ? "Nos Programmes Spécialisés"
+                  : "Cycles et Programmes"}
+            </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Choisissez parmi notre catalogue de formations conçues par des experts du secteur
+              {activeFilter === "cycle"
+                ? "Des parcours complets pour une montée en compétences progressive"
+                : activeFilter === "program"
+                  ? "Des formations spécialisées pour approfondir vos expertises"
+                  : "Choisissez le format qui correspond le mieux à vos objectifs"}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {formationsData.map((formation, index) => (
+            {filteredPrograms.map((program, index) => (
               <div
-                key={formation.id}
+                key={program.id}
                 className={`group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 transform ${
                   animatedCards[index] ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-10 scale-95"
                 } hover:-translate-y-2`}
               >
-                {/* Image et badge */}
                 <div className="relative overflow-hidden rounded-t-2xl">
                   <img
-                    src={formation.image || "/placeholder.svg"}
-                    alt={formation.title}
+                    src={program.image}
+                    alt={program.title}
                     className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                   <div className="absolute top-4 left-4">
-                    <span className="px-3 py-1 bg-white bg-opacity-90 text-gray-800 text-xs font-semibold rounded-full">
-                      {formation.category}
+                    <span
+                      className={`px-3 py-1 text-white text-xs font-semibold rounded-full ${
+                        program.type === "cycle" ? "bg-purple-600" : "bg-green-600"
+                      }`}
+                    >
+                      {program.type === "cycle" ? "🔄 Cycle" : "📚 Programme"}
                     </span>
                   </div>
-                  <div className="absolute top-4 right-4">
-                    <span className="px-3 py-1 bg-black bg-opacity-70 text-white text-xs font-semibold rounded-full">
-                      {formation.level}
-                    </span>
-                  </div>
-                  {enrolledFormations.includes(formation.id) && (
+                  {enrolledPrograms.includes(program.id) && (
                     <div className="absolute bottom-4 left-4">
                       <span className="px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">
                         ✓ Inscrit
@@ -438,40 +351,41 @@ const FormationPage: React.FC = () => {
                     </div>
                   )}
                 </div>
-
-                {/* Contenu */}
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <h3 className="text-xl font-bold text-gray-800 group-hover:text-[#06668C] transition-colors duration-300">
-                      {formation.title}
+                      {program.title}
                     </h3>
                     <div className="text-right">
-                      <div className="text-lg font-bold text-[#06668C]">{formation.price}</div>
+                      <div className="text-lg font-bold text-[#06668C]">{program.price}</div>
                     </div>
                   </div>
-
-                  <p className="text-gray-600 mb-4 leading-relaxed line-clamp-3">{formation.shortDescription}</p>
-
-                  {/* Infos */}
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                  <p className="text-gray-600 mb-4 leading-relaxed line-clamp-3">{program.shortDescription}</p>
+                  <div className="flex flex-wrap items-center justify-between text-sm text-gray-500 mb-4 gap-2">
                     <div className="flex items-center">
-                      <span className="mr-1">⏱️</span>
-                      <span>{formation.duration}</span>
+                      <span className="mr-1">📅 Début</span>
+                      <span>
+                        {program.start_date !== "Non spécifié"
+                          ? new Date(program.start_date).toLocaleDateString("fr-FR")
+                          : "Non spécifié"}
+                      </span>
                     </div>
                     <div className="flex items-center">
-                      <span className="mr-1">⭐</span>
-                      <span>{formation.rating}</span>
+                      <span className="mr-1">📅 Fin</span>
+                      <span>
+                        {program.end_date !== "Non spécifié"
+                          ? new Date(program.end_date).toLocaleDateString("fr-FR")
+                          : "Non spécifié"}
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <span className="mr-1">👥</span>
-                      <span>{formation.students}</span>
+                      <span>{program.students}</span>
                     </div>
                   </div>
-
-                  {/* Actions */}
                   <div className="flex gap-3">
                     <button
-                      onClick={() => handleViewDetails(formation)}
+                      onClick={() => handleViewDetails(program)}
                       className="flex-1 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg transition-colors duration-300"
                     >
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -490,23 +404,23 @@ const FormationPage: React.FC = () => {
                       </svg>
                       Détails
                     </button>
-                    <button
-                      onClick={() => handleEnroll(formation.id)}
-                      disabled={enrolledFormations.includes(formation.id)}
-                      className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-all duration-300 ${
-                        enrolledFormations.includes(formation.id)
-                          ? "bg-green-500 text-white cursor-not-allowed"
-                          : `bg-gradient-to-r ${formation.color} text-white hover:shadow-lg transform hover:-translate-y-1`
-                      }`}
-                    >
-                      {enrolledFormations.includes(formation.id) ? "Inscrit ✓" : "S'inscrire"}
-                    </button>
+                    {program.type === "cycle" && (
+                      <button
+                        onClick={() => handleEnroll(program.id)}
+                        disabled={enrolledPrograms.includes(program.id)}
+                        className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-all duration-300 ${
+                          enrolledPrograms.includes(program.id)
+                            ? "bg-green-500 text-white cursor-not-allowed"
+                            : `bg-gradient-to-r ${program.color} text-white hover:shadow-lg transform hover:-translate-y-1`
+                        }`}
+                      >
+                        {enrolledPrograms.includes(program.id) ? "Inscrit ✓" : "S'inscrire"}
+                      </button>
+                    )}
                   </div>
                 </div>
-
-                {/* Ligne décorative */}
                 <div
-                  className={`h-1 bg-gradient-to-r ${formation.color} w-0 group-hover:w-full transition-all duration-500 rounded-b-2xl`}
+                  className={`h-1 bg-gradient-to-r ${program.color} w-0 group-hover:w-full transition-all duration-500 rounded-b-2xl`}
                 ></div>
               </div>
             ))}
@@ -514,40 +428,24 @@ const FormationPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-2  gap-8 text-center">
             <div>
-              <div className="text-4xl font-bold text-[#06668C] mb-2">50+</div>
-              <div className="text-gray-600">Formations disponibles</div>
+              <div className="text-4xl font-bold text-purple-600 mb-2">{cyclesCount}</div>
+              <div className="text-gray-600">Cycles disponibles</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-green-600 mb-2">5000+</div>
-              <div className="text-gray-600">Étudiants formés</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-[#06668C] mb-2">95%</div>
-              <div className="text-gray-600">Taux de satisfaction</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-green-600 mb-2">24/7</div>
-              <div className="text-gray-600">Support disponible</div>
+              <div className="text-4xl font-bold text-green-600 mb-2">{programmesCount}</div>
+              <div className="text-gray-600">Programmes spécialisés</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Modal */}
-      <FormationModal
-        formation={selectedFormation}
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onEnroll={handleEnroll}
-      />
       <Footer />
     </div>
-  )
-}
+  );
+};
 
-export default FormationPage
+export default FormationPage;
