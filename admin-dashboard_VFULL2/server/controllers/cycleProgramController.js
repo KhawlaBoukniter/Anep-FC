@@ -269,28 +269,23 @@ const registerUserToCycleProgram = async (req, res) => {
         });
 
         if (!cycleProgram) {
-            return res.status(404).json({ message: 'Cycle/Program not found' });
+            return res.status(404).json({ message: 'Cycle/Programme non trouvé' });
         }
 
-        // Check if user is already registered in the cycle or program
-        const existingRegistration = await CycleProgramRegistration.findOne({
-            where: {
-                cycle_program_id: id,
-                user_id,
-            },
-        });
-
-        if (existingRegistration) {
-            return res.status(400).json({ message: `Vous êtes déjà inscrit à ce ${cycleProgram.type === 'cycle' ? 'cycle' : 'programme'}.` });
-        }
-
-        // Validate module_ids if provided (for programs)
+        // Parse module_ids if provided (for programs)
         let validModuleIds = [];
         if (cycleProgram.type === 'program' && module_ids && module_ids.length > 0) {
-            const parsedModuleIds = JSON.parse(module_ids);
-            const existingModuleIds = cycleProgram.CycleProgramModules.map(m => m.module_id);
+            let parsedModuleIds;
+            try {
+                parsedModuleIds = JSON.parse(module_ids);
+                if (!Array.isArray(parsedModuleIds)) {
+                    throw new Error('module_ids doit être un tableau');
+                }
+            } catch (err) {
+                return res.status(400).json({ message: 'Format de module_ids invalide' });
+            }
 
-            // Check for already enrolled modules
+            const existingModuleIds = cycleProgram.CycleProgramModules.map(m => m.module_id);
             const existingUserModules = await CycleProgramUserModule.findAll({
                 where: {
                     module_id: parsedModuleIds,
@@ -308,15 +303,43 @@ const registerUserToCycleProgram = async (req, res) => {
             if (validModuleIds.length === 0) {
                 return res.status(400).json({ message: 'Aucun module valide sélectionné ou vous êtes déjà inscrit à ces modules.' });
             }
+        } else if (cycleProgram.type === 'program' && (!module_ids || JSON.parse(module_ids).length === 0)) {
+            return res.status(400).json({ message: 'Aucun module sélectionné pour le programme.' });
         }
 
-        // Create registration
-        const registration = await CycleProgramRegistration.create({
+        // Check if user is already registered
+        let registration = await CycleProgramRegistration.findOne({
+            where: {
+                cycle_program_id: id,
+                user_id,
+            },
+        });
+
+        if (registration) {
+            // User is already enrolled, add new modules
+            if (cycleProgram.type === 'program' && validModuleIds.length > 0) {
+                const moduleEntries = validModuleIds.map(module_id => ({
+                    registration_id: registration.id,
+                    module_id,
+                }));
+                await CycleProgramUserModule.bulkCreate(moduleEntries);
+                return res.status(200).json({
+                    message: 'Nouveaux modules ajoutés avec succès.',
+                    registration,
+                    enrolledModules: validModuleIds,
+                });
+            } else {
+                return res.status(400).json({ message: 'Aucun nouveau module valide à ajouter.' });
+            }
+        }
+
+        // Create new registration for the program
+        registration = await CycleProgramRegistration.create({
             cycle_program_id: id,
             user_id,
         });
 
-        // Handle module enrollment based on type
+        // Handle module enrollment
         let moduleEntries = [];
         if (cycleProgram.type === 'cycle') {
             // For cycles, enroll in all modules automatically
@@ -324,27 +347,25 @@ const registerUserToCycleProgram = async (req, res) => {
                 registration_id: registration.id,
                 module_id: module.module_id,
             }));
-        } else {
+        } else if (cycleProgram.type === 'program') {
             // For programs, enroll only in selected valid modules
-            if (validModuleIds.length > 0) {
-                moduleEntries = validModuleIds.map(module_id => ({
-                    registration_id: registration.id,
-                    module_id,
-                }));
-            }
+            moduleEntries = validModuleIds.map(module_id => ({
+                registration_id: registration.id,
+                module_id,
+            }));
         }
 
-        // Bulk create module entries if any
         if (moduleEntries.length > 0) {
             await CycleProgramUserModule.bulkCreate(moduleEntries);
         }
 
         res.status(201).json({
+            message: 'Inscription au programme réussie.',
             registration,
             enrolledModules: moduleEntries.map(entry => entry.module_id),
         });
     } catch (error) {
-        console.error('Error registering user:', error);
+        console.error('Erreur lors de l\'inscription:', error);
         res.status(500).json({ message: error.message });
     }
 };
