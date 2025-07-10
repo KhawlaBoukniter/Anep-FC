@@ -125,7 +125,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     region: null as { label: string } | null,
   });
   const [allCourses, setAllCourses] = useState<Course[]>([]);
-  const baseUrl = "C:/xampp/htdocs/Anep-FC - Copie (2)/admin-dashboard_VFULL2/server";
+  const baseUrl = "../";
 
   const { data: profiles = [], isLoading, error } = useProfilesPG();
 
