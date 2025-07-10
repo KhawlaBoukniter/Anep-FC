@@ -149,36 +149,8 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
             <h1 className="text-4xl md:text-6xl font-bold mb-6">{program.title}</h1>
             <p className="text-xl md:text-2xl mb-8 max-w-4xl opacity-90">{program.description}</p>
 
-            <div className="flex flex-wrap gap-6 text-lg mb-8">
-              <div className="flex items-center">
-                <span className="mr-2">⏱️</span>
-                <span>{program.duration}</span>
-              </div>
-              <div className="flex items-center">
-                <span className="mr-2">📊</span>
-                <span>{program.level}</span>
-              </div>
-              <div className="flex items-center">
-                <span className="mr-2">⭐</span>
-                <span>
-                  {program.rating}/5 ({program.students} étudiants)
-                </span>
-              </div>
-            </div>
-            {!isEnrolled && (
-              <button
-                onClick={handleEnrollProgram}
-                disabled={selectedModules.length === 0}
-                className={`py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${
-                  selectedModules.length === 0
-                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                    : `bg-gradient-to-r ${program.color} text-white hover:shadow-lg transform hover:-translate-y-1`
-                }`}
-              >
-                S'inscrire au programme ({selectedModules.length} module{selectedModules.length > 1 ? "s" : ""} sélectionné
-                {selectedModules.length > 1 ? "s" : ""})
-              </button>
-            )}
+           
+          
             {isEnrolled && (
               <div className="mt-6 p-4 bg-green-100 border border-green-300 rounded-lg inline-block">
                 <span className="text-green-800 font-semibold">
@@ -198,8 +170,22 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
               Choisissez les formations qui vous intéressent dans ce programme. Vous pouvez vous inscrire à une ou
               plusieurs formations selon vos besoins.
             </p>
+             {!isEnrolled && (
+              <button
+                onClick={handleEnrollProgram}
+                disabled={selectedModules.length === 0}
+                className={`py-3 px-6 m-6 rounded-lg font-semibold transition-all duration-300 ${
+                  selectedModules.length === 0
+                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                    : `bg-gradient-to-r ${program.color} text-white hover:shadow-lg transform hover:-translate-y-1`
+                }`}
+              >
+                S'inscrire au programme ({selectedModules.length} module{selectedModules.length > 1 ? "s" : ""} sélectionné
+                {selectedModules.length > 1 ? "s" : ""})
+              </button>
+            )}
           </div>
-
+           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {program.formations.map((formation, index) => (
               <div

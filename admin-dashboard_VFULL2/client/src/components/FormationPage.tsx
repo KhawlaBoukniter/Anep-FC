@@ -430,7 +430,7 @@ const FormationPage: React.FC = () => {
 
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-2  gap-8 text-center">
             <div>
               <div className="text-4xl font-bold text-purple-600 mb-2">{cyclesCount}</div>
               <div className="text-gray-600">Cycles disponibles</div>
@@ -438,14 +438,6 @@ const FormationPage: React.FC = () => {
             <div>
               <div className="text-4xl font-bold text-green-600 mb-2">{programmesCount}</div>
               <div className="text-gray-600">Programmes spécialisés</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-[#06668C] mb-2">95%</div>
-              <div className="text-gray-600">Taux de satisfaction</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-green-600 mb-2">24/7</div>
-              <div className="text-gray-600">Support disponible</div>
             </div>
           </div>
         </div>
