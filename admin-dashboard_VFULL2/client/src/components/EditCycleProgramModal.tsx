@@ -136,7 +136,9 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
         handleInputChange("module_ids", selectedIds);
     };
 
-    const moduleOptions = modules.map((module) => ({
+    const moduleOptions = modules
+    .filter((module) => !module.archived)
+    .map((module) => ({
         value: module._id,
         label: module.title,
     }));
