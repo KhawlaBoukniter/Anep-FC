@@ -1,8 +1,9 @@
 "use client";
 import type React from "react";
 import { useState, useEffect } from "react";
-import Header from "../components/header.tsx";
-import Footer from "../components/footer.tsx";
+import axios from "axios";
+import Header from "./header.tsx";
+import Footer from "./footer.tsx";
 
 interface Formation {
   id: number;
@@ -15,9 +16,9 @@ interface Formation {
   image: string;
   objectives: string[];
   prerequisites: string[];
-  mode: string; // Ajout du champ mode (online, offline, hybrid)
-  start_date: string; // Ajout de la date de début
-  end_date: string; // Ajout de la date de fin
+  mode: string;
+  start_date: string;
+  end_date: string;
 }
 
 interface Program {
@@ -31,7 +32,7 @@ interface Program {
   instructor: string;
   image: string;
   category: string;
-  type: "cycle" | "programme";
+  type: "cycle" | "program";
   modules: string[];
   prerequisites: string[];
   objectives: string[];
@@ -47,10 +48,31 @@ interface ProgramDetailsProps {
   enrolledPrograms: number[];
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
+
 const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enrolledPrograms }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [animatedCards, setAnimatedCards] = useState<boolean[]>(new Array(program.formations.length).fill(false));
+  const [selectedModules, setSelectedModules] = useState<number[]>([]);
   const [enrolledFormations, setEnrolledFormations] = useState<number[]>([]);
+
+  // Fetch enrolled modules for the program
+  useEffect(() => {
+    const fetchEnrolledModules = async () => {
+      try {
+        const userId = 1; // Replace with actual user ID from authentication
+        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/${program.id}/registrations?user_id=${userId}`);
+        if (response.data.length > 0) {
+          const moduleIds = response.data[0].CycleProgramUserModules.map((m: any) => m.module_id);
+          setEnrolledFormations(moduleIds);
+        }
+      } catch (err) {
+        console.error("Erreur lors de la récupération des modules inscrits:", err);
+      }
+    };
+
+    fetchEnrolledModules();
+  }, [program.id]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -68,16 +90,41 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
     return () => clearTimeout(timer);
   }, [program.formations]);
 
-  const handleEnrollFormation = (formationId: number) => {
-    setEnrolledFormations((prev) => [...prev, formationId]);
-    alert("Inscription réussie à la formation ! Vous recevrez un email de confirmation.");
+  const handleModuleToggle = (formationId: number) => {
+    setSelectedModules((prev) =>
+      prev.includes(formationId)
+        ? prev.filter((id) => id !== formationId)
+        : [...prev, formationId]
+    );
   };
+
+  const handleEnrollProgram = async () => {
+    if (selectedModules.length === 0) {
+      alert("Veuillez sélectionner au moins un module pour vous inscrire.");
+      return;
+    }
+
+    try {
+      const userId = 1; // Replace with actual user ID from authentication
+      const response = await axios.post(`${API_BASE_URL}/api/cycles-programs/${program.id}/register`, {
+        user_id: userId,
+        module_ids: JSON.stringify(selectedModules),
+      });
+      setEnrolledFormations((prev) => [...prev, ...selectedModules]);
+      setSelectedModules([]);
+      alert("Inscription réussie ! Vous recevrez un email de confirmation.");
+    } catch (err: any) {
+      console.error("Erreur lors de l'inscription:", err);
+      const errorMessage = err.response?.data?.message || "Erreur lors de l'inscription. Veuillez réessayer.";
+      alert(errorMessage);
+    }
+  };
+
+  const isEnrolled = enrolledPrograms.includes(program.id);
 
   return (
     <div className="min-h-screen bg-white">
       <Header />
-
-      {/* Hero Section */}
       <section className={`relative py-20 bg-gradient-to-br ${program.color} text-white overflow-hidden`}>
         <div className="absolute inset-0 bg-black bg-opacity-20"></div>
         <div className="container mx-auto px-4 relative z-10">
@@ -118,11 +165,31 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                 </span>
               </div>
             </div>
+            {!isEnrolled && (
+              <button
+                onClick={handleEnrollProgram}
+                disabled={selectedModules.length === 0}
+                className={`py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${
+                  selectedModules.length === 0
+                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                    : `bg-gradient-to-r ${program.color} text-white hover:shadow-lg transform hover:-translate-y-1`
+                }`}
+              >
+                S'inscrire au programme ({selectedModules.length} module{selectedModules.length > 1 ? "s" : ""} sélectionné
+                {selectedModules.length > 1 ? "s" : ""})
+              </button>
+            )}
+            {isEnrolled && (
+              <div className="mt-6 p-4 bg-green-100 border border-green-300 rounded-lg inline-block">
+                <span className="text-green-800 font-semibold">
+                  ✅ Vous êtes inscrit à ce programme !
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Formations Section */}
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -141,7 +208,6 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                   animatedCards[index] ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-10 scale-95"
                 } hover:-translate-y-2`}
               >
-                {/* Image */}
                 <div className="relative overflow-hidden rounded-t-2xl">
                   <img
                     src={formation.image || "/placeholder.svg"}
@@ -161,8 +227,6 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                     </div>
                   )}
                 </div>
-
-                {/* Contenu */}
                 <div className="p-6">
                   <h3 className="text-xl font-bold text-gray-800 group-hover:text-[#06668C] transition-colors duration-300">
                     {formation.title}
@@ -170,8 +234,6 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                   <div className="text-sm text-gray-500 mb-4">
                     <p><strong>Mode:</strong> {formation.mode || "Non spécifié"}</p>
                   </div>
-
-                  {/* Actions */}
                   <div className="flex gap-3">
                     <button className="flex-1 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg transition-colors duration-300">
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -184,27 +246,33 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                       </svg>
                       Plus d'infos
                     </button>
-
-                    <button
-                      onClick={() => handleEnrollFormation(formation.id)}
-                      disabled={enrolledFormations.includes(formation.id)}
-                      className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-all duration-300 ${
-                        enrolledFormations.includes(formation.id)
-                          ? "bg-green-500 text-white cursor-not-allowed"
-                          : `bg-gradient-to-r ${program.color} text-white hover:shadow-lg transform hover:-translate-y-1`
-                      }`}
-                    >
-                      {enrolledFormations.includes(formation.id) ? "Inscrit ✓" : "S'inscrire"}
-                    </button>
-                  </div>
+                    {!enrolledFormations.includes(formation.id) && (
+                      <button
+                        onClick={() => handleModuleToggle(formation.id)}
+                        className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-all duration-300 ${
+                          selectedModules.includes(formation.id)
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        {selectedModules.includes(formation.id) ? "Sélectionné" : "Sélectionner"}
+                      </button>
+                    )}
+                    {enrolledFormations.includes(formation.id) && (
+                      <button
+                        className="flex-1 py-2 px-4 rounded-lg font-semibold bg-green-500 text-white cursor-not-allowed"
+                        disabled
+                      >
+                        Inscrit ✓
+                      </button>
+                    )}
                 </div>
-
-                {/* Ligne décorative */}
-                <div
-                  className={`h-1 bg-gradient-to-r ${program.color} w-0 group-hover:w-full transition-all duration-500 rounded-b-2xl`}
-                ></div>
               </div>
-            ))}
+              <div
+                className={`h-1 bg-gradient-to-r ${program.color} w-0 group-hover:w-full transition-all duration-500 rounded-b-2xl`}
+              />
+            </div>
+             ))}
           </div>
         </div>
       </section>

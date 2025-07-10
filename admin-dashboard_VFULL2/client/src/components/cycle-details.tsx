@@ -1,8 +1,8 @@
 "use client";
 import type React from "react";
 import { useState, useEffect } from "react";
-import Header from "../components/header.tsx";
-import Footer from "../components/footer.tsx";
+import Header from "./header.tsx";
+import Footer from "./footer.tsx";
 
 interface Formation {
   id: number;
@@ -15,9 +15,9 @@ interface Formation {
   image: string;
   objectives: string[];
   prerequisites: string[];
-  mode: string; // Ajout du champ mode
-  start_date: string; // Ajout de la date de début
-  end_date: string; // Ajout de la date de fin
+  mode: string;
+  start_date: string;
+  end_date: string;
 }
 
 interface Cycle {
@@ -31,14 +31,14 @@ interface Cycle {
   instructor: string;
   image: string;
   category: string;
-  type: "cycle" | "programme";
+  type: "cycle" | "program";
   modules: string[];
   prerequisites: string[];
   objectives: string[];
   color: string;
   rating: number;
   students: number;
-  formations: Formation[];
+  formations?: Formation[]; // Make formations optional
 }
 
 interface CycleDetailsProps {
@@ -50,12 +50,16 @@ interface CycleDetailsProps {
 
 const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, enrolledPrograms }) => {
   const [isVisible, setIsVisible] = useState(false);
-  const [animatedCards, setAnimatedCards] = useState<boolean[]>(new Array(cycle.formations.length).fill(false));
+  const [animatedCards, setAnimatedCards] = useState<boolean[]>([]);
 
   useEffect(() => {
+    // Initialize animatedCards based on formations length
+    const formationsLength = cycle.formations?.length || 0;
+    setAnimatedCards(new Array(formationsLength).fill(false));
+    
     const timer = setTimeout(() => {
       setIsVisible(true);
-      cycle.formations.forEach((_, index) => {
+      cycle.formations?.forEach((_, index) => {
         setTimeout(() => {
           setAnimatedCards((prev) => {
             const newState = [...prev];
@@ -64,24 +68,19 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
           });
         }, index * 150);
       });
-    }, 300);
+    }, 25);
     return () => clearTimeout(timer);
   }, [cycle.formations]);
 
-  const handleEnrollCycle = () => {
-    onEnroll(cycle.id);
-  };
-
   const isEnrolled = enrolledPrograms.includes(cycle.id);
+  const formations = cycle.formations || []; // Fallback to empty array if undefined
 
   return (
     <div className="min-h-screen bg-white">
       <Header />
-
-      {/* Hero Section */}
       <section className={`relative py-20 bg-gradient-to-br ${cycle.color} text-white overflow-hidden`}>
         <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-        <div className="container mx-auto px-4 relative z-10">
+        <div className="container mx-auto px-4 relative z-0">
           <div className="flex items-center mb-6">
             <button
               onClick={onBack}
@@ -109,7 +108,7 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
                 <span>{cycle.duration}</span>
               </div>
               <div className="flex items-center">
-                <span className="mr-2">📊</span>
+                <span className="mr-2">📖</span>
                 <span>{cycle.level}</span>
               </div>
               <div className="flex items-center">
@@ -119,11 +118,25 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
                 </span>
               </div>
             </div>
+            {!isEnrolled && (
+              <button
+                onClick={() => onEnroll(cycle.id)}
+                className={`py-3 px-6 rounded-lg font-semibold transition-all duration-300 bg-gradient-to-r ${cycle.color} text-white hover:shadow-lg transform hover:-translate-y-1`}
+              >
+                S'inscrire au cycle
+              </button>
+            )}
+            {isEnrolled && (
+              <div className="mt-6 p-4 bg-green-100 rounded-lg inline-block">
+                <span className="text-green-800 font-semibold">
+                  ✅ Vous êtes inscrit à ce cycle ! Toutes les formations ci-dessous sont accessibles.
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Formations Section */}
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -132,24 +145,16 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
               Toutes ces formations sont incluses dans votre inscription au cycle. Progressez étape par étape vers
               l'expertise complète.
             </p>
-            {isEnrolled && (
-              <div className="mt-6 p-4 bg-green-100 border border-green-300 rounded-lg inline-block">
-                <span className="text-green-800 font-semibold">
-                  ✅ Vous êtes inscrit à ce cycle ! Toutes les formations ci-dessous sont accessibles.
-                </span>
-              </div>
-            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {cycle.formations.map((formation, index) => (
+            {formations.map((formation, index) => (
               <div
                 key={formation.id}
                 className={`group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 transform ${
                   animatedCards[index] ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-10 scale-95"
                 } hover:-translate-y-2`}
               >
-                {/* Image */}
                 <div className="relative overflow-hidden rounded-t-2xl">
                   <img
                     src={formation.image || "/placeholder.svg"}
@@ -167,8 +172,6 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
                     </span>
                   </div>
                 </div>
-
-                {/* Contenu */}
                 <div className="p-6">
                   <h3 className="text-xl font-bold text-gray-800 group-hover:text-[#06668C] transition-colors duration-300">
                     {formation.title}
@@ -176,10 +179,8 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
                   <div className="text-sm text-gray-500 mb-4">
                     <p><strong>Mode:</strong> {formation.mode || "Non spécifié"}</p>
                   </div>
-
-                  {/* Actions */}
                   <div className="flex gap-3">
-                    <button className="flex-1 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg transition-colors duration-300">
+                    <button className="flex-1 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg py-2 px-4 transition-colors duration-300">
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                           strokeLinecap="round"
@@ -192,11 +193,9 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
                     </button>
                   </div>
                 </div>
-
-                {/* Ligne décorative */}
                 <div
                   className={`h-1 bg-gradient-to-r ${cycle.color} w-0 group-hover:w-full transition-all duration-500 rounded-b-2xl`}
-                ></div>
+                />
               </div>
             ))}
           </div>

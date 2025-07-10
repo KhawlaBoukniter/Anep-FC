@@ -41,27 +41,16 @@ interface Program {
   formations: Formation[];
 }
 
-interface ProgramModalProps {
-  program: Program | null;
-  isOpen: boolean;
-  onClose: () => void;
-  onEnroll: (programId: number) => void;
-}
-
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
 
-// Utility function to strip HTML tags
 const stripHtmlTags = (html: string): string => {
   return html.replace(/<[^>]+>/g, "").trim();
 };
 
-// Utility function to construct full image URL
 const getImageUrl = (imagePath: string | null | undefined, type?: "cycle" | "program"): string => {
   if (!imagePath) {
-    // Fallback to type-specific images if imagePath is missing
     return type === "cycle" ? "/images/cycle.jpg" : type === "program" ? "/images/program.jpg" : "/placeholder.svg";
   }
-  // Ensure the image path is prefixed with the base URL if it's a relative path
   return imagePath.startsWith("http") ? imagePath : `${API_BASE_URL}${imagePath}`;
 };
 
@@ -78,13 +67,27 @@ const FormationPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch cycles and programs from the API
+  // Fetch enrolled programs for the user
+  useEffect(() => {
+    const fetchEnrolledPrograms = async () => {
+      try {
+        const userId = 1; // Replace with actual user ID from authentication
+        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/registrations?user_id=${userId}`);
+        const enrolledIds = response.data.map((reg: any) => reg.cycle_program_id);
+        setEnrolledPrograms(enrolledIds);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des inscriptions:", err);
+      }
+    };
+
+    fetchEnrolledPrograms();
+  }, []);
+
   useEffect(() => {
     const fetchPrograms = async () => {
       try {
         setLoading(true);
         const response = await axios.get(`${API_BASE_URL}/api/cycles-programs`);
-        // Transform backend data to match frontend format
         const transformedPrograms = response.data.map((cp: any) => ({
           id: cp.id,
           title: cp.title,
@@ -93,7 +96,7 @@ const FormationPage: React.FC = () => {
           start_date: cp.start_date || "Non spécifié",
           end_date: cp.end_date || "Non spécifié",
           instructor: cp.facilitator || "Équipe pédagogique",
-          image: getImageUrl(cp.photos_url?.[0], cp.type), // Use first photo if available, else type-specific fallback
+          image: getImageUrl(cp.photos_url?.[0], cp.type),
           category: cp.type === "cycle" ? "Cycle de formation" : cp.program_type || "Programme spécialisé",
           type: cp.type,
           modules: cp.modules?.map((m: any) => m.title) || [],
@@ -106,7 +109,7 @@ const FormationPage: React.FC = () => {
             title: m.title,
             description: stripHtmlTags(m.description || "Description non disponible"),
             instructor: cp.facilitator || "Équipe pédagogique",
-            image: getImageUrl(m.imageUrl, cp.type), // Use imageUrl from Course model, else type-specific fallback
+            image: getImageUrl(m.imageUrl, cp.type),
             objectives: m.objectives || ["Objectif 1", "Objectif 2"],
             prerequisites: m.prerequisites || ["Aucun"],
             mode: m.offline || "Non spécifié",
@@ -181,16 +184,17 @@ const FormationPage: React.FC = () => {
   const handleEnroll = async (programId: number) => {
     try {
       const userId = 1; // Replace with actual user ID from authentication
-      await axios.post(`${API_BASE_URL}/api/cycles-programs/${programId}/register`, {
+      const response = await axios.post(`${API_BASE_URL}/api/cycles-programs/${programId}/register`, {
         user_id: userId,
-        module_ids: [],
+        module_ids: [], // Empty for cycles
       });
       setEnrolledPrograms((prev) => [...prev, programId]);
       setIsModalOpen(false);
       alert("Inscription réussie ! Vous recevrez un email de confirmation.");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erreur lors de l'inscription:", err);
-      alert("Erreur lors de l'inscription. Veuillez réessayer.");
+      const errorMessage = err.response?.data?.message || "Erreur lors de l'inscription. Veuillez réessayer.";
+      alert(errorMessage);
     }
   };
 
@@ -229,7 +233,6 @@ const FormationPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
       <Header />
-      {/* Hero Section */}
       <section className="relative py-20 bg-gradient-to-br from-[#06668C] via-blue-700 to-green-600 text-white overflow-hidden">
         <div className="absolute inset-0 bg-black bg-opacity-20"></div>
         <div className="absolute inset-0 opacity-10">
@@ -252,7 +255,6 @@ const FormationPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Filter Section */}
       <section className="py-8 bg-gray-50 border-b">
         <div className="container mx-auto px-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -299,7 +301,6 @@ const FormationPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Programs Grid */}
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -327,7 +328,6 @@ const FormationPage: React.FC = () => {
                   animatedCards[index] ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-10 scale-95"
                 } hover:-translate-y-2`}
               >
-                {/* Image and badges */}
                 <div className="relative overflow-hidden rounded-t-2xl">
                   <img
                     src={program.image}
@@ -351,7 +351,6 @@ const FormationPage: React.FC = () => {
                     </div>
                   )}
                 </div>
-                {/* Content */}
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <h3 className="text-xl font-bold text-gray-800 group-hover:text-[#06668C] transition-colors duration-300">
@@ -362,7 +361,6 @@ const FormationPage: React.FC = () => {
                     </div>
                   </div>
                   <p className="text-gray-600 mb-4 leading-relaxed line-clamp-3">{program.shortDescription}</p>
-                  {/* Info */}
                   <div className="flex flex-wrap items-center justify-between text-sm text-gray-500 mb-4 gap-2">
                     <div className="flex items-center">
                       <span className="mr-1">📅 Début</span>
@@ -385,7 +383,6 @@ const FormationPage: React.FC = () => {
                       <span>{program.students}</span>
                     </div>
                   </div>
-                  {/* Actions */}
                   <div className="flex gap-3">
                     <button
                       onClick={() => handleViewDetails(program)}
@@ -422,7 +419,6 @@ const FormationPage: React.FC = () => {
                     )}
                   </div>
                 </div>
-                {/* Decorative line */}
                 <div
                   className={`h-1 bg-gradient-to-r ${program.color} w-0 group-hover:w-full transition-all duration-500 rounded-b-2xl`}
                 ></div>
@@ -432,7 +428,6 @@ const FormationPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
