@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { SidebarProvider } from "../components/ui/sidebar.tsx";
 import { AppSidebar } from "../components/app-sidebar.tsx";
 import { SidebarInset, SidebarTrigger } from "../components/ui/sidebar.tsx";
@@ -13,7 +14,16 @@ import { ModulesList } from "../components/modules-list.tsx"
 import { CycleProgramList } from "../components/CycleProgramList.tsx";
 
 export default function AdminDashboard() {
-  const [activeSection, setActiveSection] = useState("employees");
+  const location = useLocation();
+  const [activeSection, setActiveSection] = useState(
+    location.state?.activeSection || "employees"
+  );
+
+  useEffect(() => {
+    if (location.state?.activeSection) {
+      setActiveSection(location.state.activeSection);
+    }
+  }, [location.state]);
 
   const renderContent = () => {
     switch (activeSection) {

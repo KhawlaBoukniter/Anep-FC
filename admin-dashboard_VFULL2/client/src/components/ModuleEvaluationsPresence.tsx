@@ -263,7 +263,7 @@ const ModuleEvaluationsPresence: React.FC = () => {
         </h1>
         <Button
           variant="outline"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate("/dashboard", { state: { activeSection: "modules" } })}
           className="rounded-xl border-blue-700 hover:bg-gray-50 text-gray-700"
         >
           <ArrowLeft className="mr-2 h-4 w-4" /> Retour aux modules
