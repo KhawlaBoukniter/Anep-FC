@@ -60,16 +60,46 @@ const getAllCourses = async (req, res) => {
 const getCourseById = async (req, res) => {
     try {
         const course = await Course.findById(req.params.id)
-            .populate('interestedUsers', '_id name')
-            .populate('assignedUsers', '_id name')
+            .populate('interestedUsers', '_id name profileId')
+            .populate('assignedUsers', '_id name profileId')
             .exec();
 
         if (!course) {
             return res.status(404).json({ message: 'Course not found' });
         }
 
-        const duration = calculateModuleDuration(course.times);
-        res.status(200).json({ ...course.toObject(), duration });
+        const assignedUsers = await User.find({ profileId: { $in: course.assignedUsers } }).select('_id name profileId');
+        const interestedUsers = await User.find({ profileId: { $in: course.interestedUsers } }).select('_id name profileId');
+
+        const courseWithUsers = {
+            ...course.toObject(),
+            assignedUsers: course.assignedUsers.map((profileId) => {
+                const user = assignedUsers.find((u) => u.profileId === profileId);
+                return {
+                    profileId,
+                    name: user ? user.name : `Unknown User (${profileId})`,
+                    userId: user ? user._id.toString() : null,
+                };
+            }),
+            interestedUsers: course.interestedUsers.map((profileId) => {
+                const user = interestedUsers.find((u) => u.profileId === profileId);
+                return {
+                    profileId,
+                    name: user ? user.name : `Unknown User (${profileId})`,
+                    userId: user ? user._id.toString() : null,
+                };
+            }),
+            duration: calculateModuleDuration(course.times),
+        };
+
+        // course.assignedUsers.forEach((user) => {
+        //     if (!user.name || !user.profileId) {
+        //         console.warn(`Incomplete user data for _id: ${user._id}, name: ${user.name}, profileId: ${user.profileId}`);
+        //     }
+        // });
+
+        // const duration = calculateModuleDuration(course.times);
+        res.status(200).json(courseWithUsers);
     } catch (error) {
         console.error('Error fetching course details:', error);
         res.status(500).json({ message: 'Internal Server Error', error: error.toString() });
@@ -163,20 +193,34 @@ const updateCourse = async (req, res) => {
 
         // Handle assigned users
         if (assignedUsers) {
-            const newlyAssignedUsers = assignedUsers.filter(userId => !courseToUpdate.assignedUsers.includes(userId));
+            // const users = await User.find({ profileId: { $in: assignedUsers.map(Number) } }).select('profileId');
+            // const foundProfileIds = users.map((u) => u.profileId);
+            // const invalidProfileIds = assignedUsers.filter((id) => !foundProfileIds.includes(Number(id)));
+            // if (invalidProfileIds.length > 0) {
+            //     return res.status(400).json({
+            //         message: `Invalid profileIds: ${invalidProfileIds.join(', ')}`,
+            //         invalidProfileIds,
+            //     });
+            // }
 
-            for (const userId of newlyAssignedUsers) {
-                const userCourses = await Course.find({ assignedUsers: userId });
+            // const numericProfileIds = assignedUsers.map(Number);
+
+            const newlyAssignedUsers = assignedUsers.filter(
+                (profileId) => !courseToUpdate.assignedUsers.includes(Number(profileId))
+            );
+
+            for (const profileId of newlyAssignedUsers) {
+                const userCourses = await Course.find({ assignedUsers: Number(profileId) });
                 for (const course of userCourses) {
-                    if (hasTimeConflict(courseToUpdate, course)) {
+                    if (course._id.toString() !== courseToUpdate._id.toString() && hasTimeConflict(courseToUpdate, course)) {
                         await Course.findByIdAndUpdate(course._id, {
-                            $pull: { assignedUsers: userId }
+                            $pull: { assignedUsers: Number(profileId) },
                         });
                     }
                 }
             }
 
-            updateData.assignedUsers = assignedUsers;
+            updateData.assignedUsers = assignedUsers.map(Number);
         }
 
         if (imageUrl) {
@@ -305,14 +349,17 @@ const getAssignedUsers = async (req, res) => {
         if (!course) {
             return res.status(404).send('Course not found');
         }
+        const users = await User.find({ profileId: { $in: course.assignedUsers } }).select('_id name profileId');
         const duration = calculateModuleDuration(course.times);
-        const usersWithPresence = course.assignedUsers.map(user => {
-            const presence = course.presence.find(p => p.userId && user._id && p.userId.toString() === user._id.toString()) || {};
+        const usersWithPresence = course.assignedUsers.map((profileId) => {
+            const user = users.find((u) => u.profileId === profileId);
+            const presence = course.presence.find((p) => p.profileId === profileId) || {};
             return {
-                _id: user._id,
-                name: user.name,
+                profileId,
+                name: user ? user.name : `Unknown User (${profileId})`,
+                userId: user ? user._id.toString() : null,
                 dailyStatuses: presence.dailyStatuses || Array.from({ length: duration }, (_, i) => ({ day: i + 1, status: 'absent' })),
-                daysPresent: presence.daysPresent || 0
+                daysPresent: presence.daysPresent || 0,
             };
         });
         res.status(200).json({ users: usersWithPresence, duration });

@@ -12,7 +12,7 @@ const resourceSchema = new mongoose.Schema({
 });
 
 const evaluationSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
+    userId: { type: Number },
     evaluationData: [{
         name: { type: String, required: false },
         value: { type: Number, required: false }
@@ -82,19 +82,12 @@ const courseSchema = new mongoose.Schema({
     },
     times: [timeSchema],
     budget: { type: Number, required: false },
-    assignedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    assignedUsers: [{ type: Number }],
     resources: [resourceSchema],
     comments: [commentSchema],
-    interestedUsers: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-    }],
+    interestedUsers: [{ type: Number }],
     presence: [{
-        userId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-            required: false
-        },
+        userId: { type: Number },
         dailyStatuses: [dailyPresenceSchema],
         daysPresent: {
             type: Number,

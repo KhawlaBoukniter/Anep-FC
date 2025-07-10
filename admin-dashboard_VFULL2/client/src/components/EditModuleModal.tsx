@@ -156,19 +156,76 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
         }))
       );
       if (module.assignedUsers?.length || module.interestedUsers?.length) {
-        const mapUsers = (userIds: string[] | Profile[]): Profile[] => {
-          return (Array.isArray(userIds) ? userIds : []).map((id) => {
-            if (typeof id === "string") {
-              return profiles.find((p) => p.id_profile.toString() === id);
+        const mapUsers = (userIds: number[] | Profile[]): Profile[] => {
+          const mappedUsers: Profile[] = [];
+          const missingProfileIds: number[] = [];
+
+          const profileIds = (Array.isArray(userIds) ? userIds : []).map((id) =>
+            typeof id === 'number' ? id : Number(id.id_profile)
+          );
+
+          for (const profileId of profileIds) {
+            const profile = profiles.find((p) => p.id_profile === profileId);
+            if (profile) {
+              mappedUsers.push(profile);
+            } else {
+              missingProfileIds.push(profileId);
+              mappedUsers.push({
+                id_profile: profileId,
+                name: `Unknown User (${profileId})`,
+                'NOM PRENOM': `Unknown User (${profileId})`,
+                ADRESSE: null,
+                DATE_NAISS: null,
+                DAT_REC: null,
+                CIN: null,
+                DETACHE: null,
+                SEXE: null,
+                SIT_F_AG: null,
+                STATUT: null,
+                DAT_POS: null,
+                LIBELLE_GRADE: null,
+                GRADE_ASSIMILE: null,
+                LIBELLE_FONCTION: null,
+                DAT_FCT: null,
+                LIBELLE_LOC: null,
+                LIBELLE_REGION: null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              } as Profile);
             }
-            return id;
-          }).filter((user): user is Profile => !!user);
+          }
+
+          if (missingProfileIds.length > 0) {
+            toast({
+              variant: 'destructive',
+              title: 'Profils manquants',
+              description: `Les profils suivants n'existent pas dans PostgreSQL: ${missingProfileIds.join(', ')}. Veuillez vérifier la base de données.`,
+            });
+          }
+
+          // const mappedUsers = (Array.isArray(userIds) ? userIds : []).map((id) => {
+          //   if (typeof id === "string") {
+          //     const profile = profiles.find((p) => p.id_profile.toString() === id);
+          //     if (!profile) {
+          //       console.warn(`Profile not found for id_profile: ${id}`);
+          //       return { id_profile: id, name: `Unknown User (${id})` } as Profile;
+          //     }
+          //     return profile;
+          //     }
+          //   return id;
+          // }).filter((user): user is Profile => !!user);
+          
+          return mappedUsers;
         };
+        // const assigned = mapUsers(module.assignedUsers);
         setAssignedUsers(mapUsers(module.assignedUsers));
+        // if (assigned.length < (module.assignedUsers?.length || 0)) {
+        //   console.warn(`Incomplete assignedUsers mapping. Expected: ${module.assignedUsers?.length}, Got: ${assigned.length}`);
+        // }
         setInterestedUsers(mapUsers(module.interestedUsers));
       }
     }
-  }, [profiles, module]);
+  }, [profiles, module, toast]);
 
   const onDropImage = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -420,16 +477,13 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
       !assignedUsers.some((assignedUser) => assignedUser.id_profile === user.id_profile)
   );
 
-  const checkConflicts = (userId: string) => {
-    const user = users.find((user) => user.id_profile.toString() === userId);
-    if (!user) return null;
-
+  const checkConflicts = (profileId: string) => {
+    const profileIdNum = Number(profileId);
     for (const course of allCourses) {
       if (course._id !== module._id) {
-        const assignedUserIds = Array.isArray(course.assignedUsers)
-          ? course.assignedUsers.map((u) => (typeof u === "string" ? u : u.id_profile.toString()))
-          : [];
-        if (assignedUserIds.includes(userId)) {
+        // Ensure assignedUsers is an array, default to []
+        const assignedUserIds = Array.isArray(course.assignedUsers) ? course.assignedUsers : [];
+        if (assignedUserIds.includes(profileIdNum)) {
           for (const time of course.times) {
             for (const range of time.dateRanges) {
               for (const session of module.times) {
@@ -445,7 +499,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                     (start2 >= start1 && start2 <= end1) ||
                     (end2 >= start1 && end2 <= end1)
                   ) {
-                    return { type: "course", course };
+                    return { type: 'course', course };
                   }
                 }
               }
@@ -564,29 +618,38 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
 
     try {
       // Step 1: Map id_profile to User._id
-      const profileIds = assignedUsers.map((user) => user.id_profile);
+      const profileIds = assignedUsers.map((user) => Number(user.id_profile));
       console.log("Sending profileIds to map:", profileIds);
-      const userMappingResponse = await useApiAxios.post("/users/map-by-profile-ids", {
-        profileIds,
-      });
-      console.log("User Mapping Response:", userMappingResponse.data);
-      const mappedUserIds = userMappingResponse.data.map((item: { userId: string }) => item.userId);
+      // const userMappingResponse = await useApiAxios.post("/users/map-by-profile-ids", {
+      //   profileIds,
+      // });
+      // console.log("User Mapping Response:", userMappingResponse.data);
+      // const mappedUserIds = userMappingResponse.data.map((item: { userId: string }) => item.userId);
 
-      if (mappedUserIds.length !== profileIds.length) {
-        console.warn("Mismatch detected:", {
-          sent: profileIds.length,
-          received: mappedUserIds.length,
-          missing: profileIds.filter((id) => !mappedUserIds.includes(id.toString())),
-        });
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "Certains profils n'ont pas d'utilisateurs correspondants. Veuillez synchroniser les données ou contacter l'administrateur.",
-        });
-        return;
-      }
+      // if (mappedUserIds.length !== profileIds.length) {
+      //   console.warn("Mismatch detected:", {
+      //     sent: profileIds.length,
+      //     received: mappedUserIds.length,
+      //     missing: profileIds.filter((id) => !mappedUserIds.includes(id.toString())),
+      //   });
+      //   toast({
+      //     variant: "destructive",
+      //     title: "Erreur",
+      //     description: "Certains profils n'ont pas d'utilisateurs correspondants. Veuillez synchroniser les données ou contacter l'administrateur.",
+      //   });
+      //   return;
+      // }
 
-      courseData.assignedUsers = mappedUserIds;
+      // courseData.assignedUsers = mappedUserIds;
+
+      const courseData = {
+        ...course,
+        assignedUsers: profileIds,
+        imageUrl: course.imageUrl,
+        photos: course.photos,
+        link: course.link,
+        support: course.support,
+      };
 
       if (course.image || course.photosFiles?.length || course.times.some((session) => session.externalInstructorDetails?.cv instanceof File)) {
         const formData = new FormData();
@@ -600,7 +663,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
           })
         }
 
-        if (course.support.type === "file" && course.support.value) {
+        if (course.support?.type === 'file' && course.support.value) {
           formData.append("support", course.support.value);
         }
         
@@ -644,8 +707,8 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
           await useApiAxios.put(`/courses/${conflictCourse.course._id}`, {
             ...conflictCourse.course,
             assignedUsers: (conflictCourse.course.assignedUsers as any[])
-              .map((u) => (typeof u === "string" ? u : u.id_profile.toString()))
-              .filter((u) => u !== user.id_profile.toString()),
+              // .map((u) => (typeof u === "string" ? u : u.id_profile.toString()))
+              .filter((id) => id !== Number(user.id_profile)),
           });
         }
       }
@@ -1336,7 +1399,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                       key={user.id_profile}
                       className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium"
                     >
-                      {user.name}
+                      {user.name|| `Unknown User (${user.id_profile})`}
                       <Button
                         variant="ghost"
                         size="icon"
