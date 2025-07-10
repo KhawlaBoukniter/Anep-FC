@@ -137,7 +137,15 @@ const updateCourse = async (req, res) => {
                         return res.status(400).json({ message: 'startTime must be before endTime in dateRanges' });
                     }
                 }
+
+                session.dateRanges = session.dateRanges.map(range => ({
+                    startTime: range.startTime,
+                    endTime: range.endTime,
+                    _id: range._id || undefined
+                }));
             }
+
+            updateData.times = times;
         }
 
         if (support) {
@@ -181,9 +189,15 @@ const updateCourse = async (req, res) => {
             updateData.link = link;
         }
 
-        const updatedCourse = await Course.findByIdAndUpdate(req.params.id, updateData, { new: true });
+        console.log('Update data:', JSON.stringify(updateData, null, 2));
+
+        const updatedCourse = await Course.findByIdAndUpdate(req.params.id, { $set: updateData }, { new: true });
+
+        console.log('Updated course:', JSON.stringify(updatedCourse, null, 2));
+
         res.status(200).json(updatedCourse);
     } catch (error) {
+        console.error('Error updating course:', error);
         res.status(400).json({ message: error.message });
     }
 };

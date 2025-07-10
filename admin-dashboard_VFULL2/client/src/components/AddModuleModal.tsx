@@ -250,10 +250,14 @@ export function AddModuleModal({ onCourseCreated }) {
     setCourse((prev) => ({ ...prev, times: updatedTimes }));
   };
 
-  const handleAddDateRange = (sessionIndex) => {
+  const handleAddDateRange = (sessionIndex: number) => {
     const updatedTimes = [...course.times];
     updatedTimes[sessionIndex].dateRanges.push({ startTime: "", endTime: "" });
-    setCourse((prev) => ({ ...prev, times: updatedTimes }));
+    setCourse((prev) => {
+      const newCourse = { ...prev, times: updatedTimes };
+      console.log("After adding date range:", newCourse.times[sessionIndex].dateRanges);
+      return newCourse;
+    });
   };
 
   const handleRemoveDateRange = (sessionIndex, dateRangeIndex) => {

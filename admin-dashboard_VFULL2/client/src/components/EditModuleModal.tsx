@@ -108,10 +108,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
       dateRanges: time.dateRanges || [{ startTime: time.startTime || "", endTime: time.endTime || "" }],
     })),
     image: null,
-    support: {
-        type: "link",
-        value: ""
-    },
+    support: module.support || { type: "link", value: "" },
     photosFiles: [],
     assignedUsers: module.assignedUsers,
     interestedUsers: module.interestedUsers,
