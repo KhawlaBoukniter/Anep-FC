@@ -102,22 +102,6 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
             <h1 className="text-4xl md:text-6xl font-bold mb-6">{cycle.title}</h1>
             <p className="text-xl md:text-2xl mb-8 max-w-4xl opacity-90">{cycle.description}</p>
 
-            <div className="flex flex-wrap gap-6 text-lg mb-8">
-              <div className="flex items-center">
-                <span className="mr-2">⏱️</span>
-                <span>{cycle.duration}</span>
-              </div>
-              <div className="flex items-center">
-                <span className="mr-2">📖</span>
-                <span>{cycle.level}</span>
-              </div>
-              <div className="flex items-center">
-                <span className="mr-2">⭐</span>
-                <span>
-                  {cycle.rating}/5 ({cycle.students} étudiants)
-                </span>
-              </div>
-            </div>
             {!isEnrolled && (
               <button
                 onClick={() => onEnroll(cycle.id)}
