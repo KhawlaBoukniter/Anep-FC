@@ -49,6 +49,11 @@ const timeSchema = new mongoose.Schema({
     }
 });
 
+const dailyPresenceSchema = new mongoose.Schema({
+    day: { type: Number, required: true },
+    status: { type: String, enum: ['present', 'absent'], default: 'absent' }
+});
+
 const courseSchema = new mongoose.Schema({
     title: { type: String, required: false },
     location: { type: String, required: false },
@@ -90,12 +95,7 @@ const courseSchema = new mongoose.Schema({
             ref: 'User',
             required: false
         },
-        status: {
-            type: String,
-            enum: ['present', 'absent'],
-            default: 'absent',
-            required: false
-        },
+        dailyStatuses: [dailyPresenceSchema],
         daysPresent: {
             type: Number,
             default: 0,

@@ -5,6 +5,21 @@ const XLSX = require('xlsx');
 const path = require('path')
 const fs = require('fs').promises
 
+const calculateModuleDuration = (times) => {
+    let minDate = new Date();
+    let maxDate = new Date(0);
+    for (const session of times) {
+        for (const dateRange of session.dateRanges) {
+            const start = new Date(dateRange.startTime);
+            const end = new Date(dateRange.endTime);
+            if (start < minDate) minDate = start;
+            if (end > maxDate) maxDate = end;
+        }
+    }
+    const diffTime = maxDate - minDate;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+};
+
 // Get all courses
 const getAllCourses = async (req, res) => {
     try {
@@ -24,6 +39,7 @@ const getAllCourses = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
 // Get a single course by ID
 // const getCourseNameById = async (req, res) => {
 //     const { courseId } = req.params;
@@ -52,13 +68,13 @@ const getCourseById = async (req, res) => {
             return res.status(404).json({ message: 'Course not found' });
         }
 
-        res.status(200).json(course);
+        const duration = calculateModuleDuration(course.times);
+        res.status(200).json({ ...course.toObject(), duration });
     } catch (error) {
         console.error('Error fetching course details:', error);
         res.status(500).json({ message: 'Internal Server Error', error: error.toString() });
     }
 };
-
 
 // Create a new course
 const createCourse = async (req, res) => {
@@ -204,6 +220,7 @@ const hasTimeConflict = (course1, course2) => {
     }
     return false;
 };
+
 // Controller method for uploading an image
 const uploadImage = (req, res) => {
     try {
@@ -256,7 +273,6 @@ const uploadImage = (req, res) => {
     }
 };
 
-
 const getAllComments = async (req, res) => {
     try {
         const courses = await Course.find().select('comments');
@@ -269,34 +285,29 @@ const getAllComments = async (req, res) => {
 }
 
 const getAssignedUsers = async (req, res) => {
-    const { id } = req.params; // course ID
-
+    const { id } = req.params;
     try {
         const course = await Course.findById(id).populate('assignedUsers');
         if (!course) {
             return res.status(404).send('Course not found');
         }
-
-        // Initialize an empty array if presence data is missing
-        const presenceData = course.presence || [];
-
+        const duration = calculateModuleDuration(course.times);
         const usersWithPresence = course.assignedUsers.map(user => {
-            // Find the presence entry for the user, if it exists
-            const presence = presenceData.find(p => p.userId && user._id && p.userId.toString() === user._id.toString());
+            const presence = course.presence.find(p => p.userId && user._id && p.userId.toString() === user._id.toString()) || {};
             return {
                 _id: user._id,
                 name: user.name,
-                status: presence ? presence.status : 'absent',  // Default to 'absent' if no presence data found
-                daysPresent: presence ? presence.daysPresent : 0 // Default to 0 if no presence data found
+                dailyStatuses: presence.dailyStatuses || Array.from({ length: duration }, (_, i) => ({ day: i + 1, status: 'absent' })),
+                daysPresent: presence.daysPresent || 0
             };
         });
-
-        res.status(200).json(usersWithPresence);
+        res.status(200).json({ users: usersWithPresence, duration });
     } catch (error) {
         console.error('Error fetching assigned users:', error);
         res.status(500).send('Failed to fetch assigned users: ' + error.message);
     }
 };
+
 const getCoursesByUserId = async (req, res) => {
     const { userId } = req.params;
 
@@ -314,7 +325,6 @@ const getCoursesByUserId = async (req, res) => {
     }
 };
 
-
 const updateCoursePresence = async (req, res) => {
     const { id } = req.params;
     const { presence } = req.body;
@@ -325,18 +335,32 @@ const updateCoursePresence = async (req, res) => {
             return res.status(404).send('Course not found');
         }
 
-        // Update presence data
+        const duration = calculateModuleDuration(course.times);
+
         presence.forEach(p => {
             const existingPresence = course.presence.find(ep => ep.userId.toString() === p.userId);
             if (existingPresence) {
-                existingPresence.status = p.daysPresent > 0 ? 'present' : 'absent';
-                existingPresence.daysPresent = p.daysPresent;
+                existingPresence.dailyStatuses = p.dailyStatuses.map(ds => ({
+                    day: ds.day,
+                    status: ds.status
+                }));
+                existingPresence.daysPresent = existingPresence.dailyStatuses.filter(ds => ds.status === 'present').length;
             } else {
                 course.presence.push({
                     userId: p.userId,
-                    status: p.daysPresent > 0 ? 'present' : 'absent',
-                    daysPresent: p.daysPresent
+                    dailyStatuses: p.dailyStatuses.map(ds => ({
+                        day: ds.day,
+                        status: ds.status
+                    })),
+                    daysPresent: p.dailyStatuses.filter(ds => ds.status === 'present').length
                 });
+            }
+
+            if (p.dailyStatuses.some(ds => ds.day < 1 || ds.day > duration)) {
+                throw new Error(`Invalid day number. Must be between 1 and ${duration}`);
+            }
+            if (p.dailyStatuses.some(ds => !['present', 'absent'].includes(ds.status))) {
+                throw new Error('Invalid status. Must be "present" or "absent"');
             }
         });
 
@@ -348,6 +372,7 @@ const updateCoursePresence = async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 };
+
 const getLastestComments = async (req, res) => {
     try {
         const courses = await Course.find()
@@ -532,30 +557,39 @@ const deleteComment = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
-// user assigned download 
+
 const userAssignedDownload = async (req, res) => {
     try {
         const courseId = req.params.courseId;
         const course = await Course.findById(courseId)
             .populate('assignedUsers')
-            .select('assignedUsers presence'); // Ensure presence is populated
+            .select('assignedUsers presence times');
 
         if (!course) {
             return res.status(404).send('Course not found');
         }
 
-        // Map assigned users and include presence
-        const usersData = course.assignedUsers.map(user => ({
-            Name: user.name,
-            GRADE_fonction: user.GRADE_fonction,
-            AFFECTATION: user.AFFECTATION,
-            DEPARTEMENT_DIVISION: user.DEPARTEMENT_DIVISION,
-            SERVICE: user.SERVICE,
-            Localite: user.Localite,
-            FONCTION: user.FONCTION,
-            Presence: course.presence.find(p => p.userId.equals(user._id))?.status || 'absent',
-            DaysPresent: course.presence.find(p => p.userId.equals(user._id))?.daysPresent || 0
-        }));
+        const duration = calculateModuleDuration(course.times);
+
+        const usersData = course.assignedUsers.map(user => {
+            const presence = course.presence.find(p => p.userId.equals(user._id)) || {};
+            const dailyStatuses = presence.dailyStatuses || Array.from({ length: duration }, (_, i) => ({ day: i + 1, status: 'absent' }));
+            const statusColumns = {};
+            dailyStatuses.forEach(ds => {
+                statusColumns[`Day_${ds.day}`] = ds.status;
+            });
+            return {
+                Name: user.name,
+                GRADE_fonction: user.GRADE_fonction,
+                AFFECTATION: user.AFFECTATION,
+                DEPARTEMENT_DIVISION: user.DEPARTEMENT_DIVISION,
+                SERVICE: user.SERVICE,
+                Localite: user.Localite,
+                FONCTION: user.FONCTION,
+                DaysPresent: presence.daysPresent || 0,
+                ...statusColumns
+            };
+        });
 
         const worksheet = XLSX.utils.json_to_sheet(usersData);
         const workbook = XLSX.utils.book_new();

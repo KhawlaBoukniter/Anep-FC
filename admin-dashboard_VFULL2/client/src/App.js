@@ -6,6 +6,7 @@ import AboutPage from "./components/AboutPage.tsx";
 import FormationPage from "./components/FormationPage.tsx";
 import ProfilePage from "./pages/profile.tsx";
 import "./App.css";
+import ModuleEvaluationsPresence from "./components/ModuleEvaluationsPresence.tsx";
 
 // Configuration du client React Query
 const queryClient = new QueryClient({
@@ -33,6 +34,7 @@ function App() {
             <Route path="/profile/:employeeId" element={<ProfilePage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/formation" element={<FormationPage />} />
+            <Route path="/modules/:id/evaluations-presence" element={<ModuleEvaluationsPresence />} />
           </Routes>
         </div>
       </Router>
