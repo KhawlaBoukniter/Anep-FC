@@ -28,6 +28,18 @@ async function getEmployee(req, res) {
         const id = parseInt(req.params.id);
         if (isNaN(id)) return res.status(400).json({ message: "ID invalide." });
 
+        const token = req.headers.authorization?.split(" ")[1];
+        if (!token) return res.status(401).json({ message: "Token requis." });
+
+        const decoded = jwt.verify(token, SECRET_KEY);
+        console.log("Decoded token:", decoded);
+        const user = await employeeModel.getEmployeeById(decoded.id);
+        console.log("Authenticated user:", user);
+
+        if (decoded.id !== id && decoded.role !== "admin") {
+            return res.status(403).json({ message: "Accès non autorisé." });
+        }
+
         const employee = await employeeModel.getEmployeeById(id);
         console.log("Employee fetched:", employee);
         if (!employee) return res.status(404).json({ message: "Employé non trouvé." });
@@ -231,7 +243,7 @@ async function verifySession(req, res) {
         if (!user) {
             return res.status(401).json({ message: "Utilisateur non trouvé." });
         }
-        res.json({ id: user.id, email: user.email });
+        res.json({ id: user.id, email: user.email, role: user.role });
     } catch (error) {
         console.error("Controller error in verifySession:", error.stack);
         res.status(401).json({ message: "Token invalide ou expiré." });

@@ -29,6 +29,8 @@ interface Course {
   budget: number;
   location: string;
   imageUrl: string;
+  photos: string[];
+  link: string;
   notification: any[];
   times: {
     dateRanges: { startTime: string; endTime: string }[];
@@ -42,6 +44,11 @@ interface Course {
     };
   }[];
   image: File | null;
+  support: {
+    type: "link",
+    value: ""
+  };
+  photosFiles: File[];
   assignedUsers: Profile[] | string[];
   interestedUsers: Profile[] | string[];
 }
@@ -89,6 +96,8 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     title: module.title,
     location: module.location,
     imageUrl: module.imageUrl,
+    photos: module.photos || [],
+    link: module.link || "",
     offline: module.offline,
     description: module.description,
     hidden: module.hidden,
@@ -98,7 +107,9 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
       ...time,
       dateRanges: time.dateRanges || [{ startTime: time.startTime || "", endTime: time.endTime || "" }],
     })),
-    image: module.image,
+    image: null,
+    support: module.support || { type: "link", value: "" },
+    photosFiles: [],
     assignedUsers: module.assignedUsers,
     interestedUsers: module.interestedUsers,
   });
@@ -114,7 +125,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     region: null as { label: string } | null,
   });
   const [allCourses, setAllCourses] = useState<Course[]>([]);
-  const baseUrl = "https://anep-proejct.onrender.com";
+  const baseUrl = "../";
 
   const { data: profiles = [], isLoading, error } = useProfilesPG();
 
@@ -145,21 +156,78 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
         }))
       );
       if (module.assignedUsers?.length || module.interestedUsers?.length) {
-        const mapUsers = (userIds: string[] | Profile[]): Profile[] => {
-          return (Array.isArray(userIds) ? userIds : []).map((id) => {
-            if (typeof id === "string") {
-              return profiles.find((p) => p.id_profile.toString() === id);
+        const mapUsers = (userIds: number[] | Profile[]): Profile[] => {
+          const mappedUsers: Profile[] = [];
+          const missingProfileIds: number[] = [];
+
+          const profileIds = (Array.isArray(userIds) ? userIds : []).map((id) =>
+            typeof id === 'number' ? id : Number(id.id_profile)
+          );
+
+          for (const profileId of profileIds) {
+            const profile = profiles.find((p) => p.id_profile === profileId);
+            if (profile) {
+              mappedUsers.push(profile);
+            } else {
+              missingProfileIds.push(profileId);
+              mappedUsers.push({
+                id_profile: profileId,
+                name: `Unknown User (${profileId})`,
+                'NOM PRENOM': `Unknown User (${profileId})`,
+                ADRESSE: null,
+                DATE_NAISS: null,
+                DAT_REC: null,
+                CIN: null,
+                DETACHE: null,
+                SEXE: null,
+                SIT_F_AG: null,
+                STATUT: null,
+                DAT_POS: null,
+                LIBELLE_GRADE: null,
+                GRADE_ASSIMILE: null,
+                LIBELLE_FONCTION: null,
+                DAT_FCT: null,
+                LIBELLE_LOC: null,
+                LIBELLE_REGION: null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              } as Profile);
             }
-            return id;
-          }).filter((user): user is Profile => !!user);
+          }
+
+          if (missingProfileIds.length > 0) {
+            toast({
+              variant: 'destructive',
+              title: 'Profils manquants',
+              description: `Les profils suivants n'existent pas dans PostgreSQL: ${missingProfileIds.join(', ')}. Veuillez vérifier la base de données.`,
+            });
+          }
+
+          // const mappedUsers = (Array.isArray(userIds) ? userIds : []).map((id) => {
+          //   if (typeof id === "string") {
+          //     const profile = profiles.find((p) => p.id_profile.toString() === id);
+          //     if (!profile) {
+          //       console.warn(`Profile not found for id_profile: ${id}`);
+          //       return { id_profile: id, name: `Unknown User (${id})` } as Profile;
+          //     }
+          //     return profile;
+          //     }
+          //   return id;
+          // }).filter((user): user is Profile => !!user);
+          
+          return mappedUsers;
         };
+        // const assigned = mapUsers(module.assignedUsers);
         setAssignedUsers(mapUsers(module.assignedUsers));
+        // if (assigned.length < (module.assignedUsers?.length || 0)) {
+        //   console.warn(`Incomplete assignedUsers mapping. Expected: ${module.assignedUsers?.length}, Got: ${assigned.length}`);
+        // }
         setInterestedUsers(mapUsers(module.interestedUsers));
       }
     }
-  }, [profiles, module]);
+  }, [profiles, module, toast]);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDropImage = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
@@ -185,7 +253,90 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     }
   }, [toast]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+  const { getRootProps: getImageRootProps, getInputProps: getImageInputProps, isDragActive: isImageDragActive } = useDropzone({
+    onDrop: onDropImage,
+    multiple: false,
+    accept: { 'image/jpeg': [], 'image/png': [], 'image/gif': [] },
+  });
+
+  const onDropPhotos = useCallback((acceptedFiles: File[]) => {
+    const validFiles = acceptedFiles.filter((file) => {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Chaque photo ne doit pas dépasser 5 Mo.",
+        });
+        return false;
+      }
+      if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Seuls les formats JPEG, PNG et GIF sont acceptés.",
+        });
+        return false;
+      }
+      return true;
+    });
+
+    setCourse((prev) => ({
+      ...prev,
+      photosFiles: [...(prev.photosFiles || []), ...validFiles.map((file) => Object.assign(file, { preview: URL.createObjectURL(file) }))],
+    }));
+  }, [toast]);
+
+  const { getRootProps: getPhotosRootProps, getInputProps: getPhotosInputProps, isDragActive: isPhotosDragActive } = useDropzone({
+    onDrop: onDropPhotos,
+    multiple: true,
+    accept: { 'image/jpeg': [], 'image/png': [], 'image/gif': [] },
+  });
+
+    const onDropSupport = useCallback((acceptedFiles) => {
+      const file = acceptedFiles[0];
+      if (file) {
+        // Validate file size (e.g., max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Le fichier de support ne doit pas dépasser 5 Mo.",
+          });
+          return;
+        }
+        // Validate file type (e.g., PDF, Word, images)
+        if (!['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Seuls les formats PDF, Word, JPEG, PNG et GIF sont acceptés pour le support.",
+          });
+          return;
+        }
+        handleSupportChange("file", Object.assign(file, {
+          preview: URL.createObjectURL(file),
+        }));
+      }
+    }, [toast]);
+  
+    const { getRootProps: getSupportRootProps, getInputProps: getSupportInputProps, isDragActive: isSupportDragActive } = useDropzone({ onDrop: onDropSupport });
+
+  const handleRemovePhoto = (index: number) => {
+    setCourse((prev) => ({
+      ...prev,
+      photosFiles: (prev.photosFiles || []).filter((_, i) => i !== index),
+    }));
+  };
+
+    const handleSupportChange = (type, value) => {
+    setCourse((prev) => ({
+        ...prev,
+        support: {
+            type,
+            value
+        }
+    }));
+  };
 
   const handleInputChange = (field: keyof Course, value: any) => {
     setCourse((prev) => ({ ...prev, [field]: value }));
@@ -326,16 +477,13 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
       !assignedUsers.some((assignedUser) => assignedUser.id_profile === user.id_profile)
   );
 
-  const checkConflicts = (userId: string) => {
-    const user = users.find((user) => user.id_profile.toString() === userId);
-    if (!user) return null;
-
+  const checkConflicts = (profileId: string) => {
+    const profileIdNum = Number(profileId);
     for (const course of allCourses) {
       if (course._id !== module._id) {
-        const assignedUserIds = Array.isArray(course.assignedUsers)
-          ? course.assignedUsers.map((u) => (typeof u === "string" ? u : u.id_profile.toString()))
-          : [];
-        if (assignedUserIds.includes(userId)) {
+        // Ensure assignedUsers is an array, default to []
+        const assignedUserIds = Array.isArray(course.assignedUsers) ? course.assignedUsers : [];
+        if (assignedUserIds.includes(profileIdNum)) {
           for (const time of course.times) {
             for (const range of time.dateRanges) {
               for (const session of module.times) {
@@ -351,7 +499,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                     (start2 >= start1 && start2 <= end1) ||
                     (end2 >= start1 && end2 <= end1)
                   ) {
-                    return { type: "course", course };
+                    return { type: 'course', course };
                   }
                 }
               }
@@ -404,6 +552,14 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
       });
       return;
     }
+    if (course.support?.type === "link" && course.support.value && !/^https?:\/\/[^\s$.?#].[^\s]*$/.test(course.support.value)) {
+        toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Lien de support invalide.",
+        });
+        return;
+    }
     for (const time of course.times || []) {
       if (!time.instructorName) {
         toast({
@@ -454,39 +610,63 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     const courseData = {
       ...course,
       assignedUsers: assignedUsers.map((user) => user.id_profile.toString()),
+      imageUrl: course.imageUrl,
+      photos: course.photos,
+      link: course.link,
+      support: course.support
     };
 
     try {
       // Step 1: Map id_profile to User._id
-      const profileIds = assignedUsers.map((user) => user.id_profile);
+      const profileIds = assignedUsers.map((user) => Number(user.id_profile));
       console.log("Sending profileIds to map:", profileIds);
-      const userMappingResponse = await useApiAxios.post("/users/map-by-profile-ids", {
-        profileIds,
-      });
-      console.log("User Mapping Response:", userMappingResponse.data);
-      const mappedUserIds = userMappingResponse.data.map((item: { userId: string }) => item.userId);
+      // const userMappingResponse = await useApiAxios.post("/users/map-by-profile-ids", {
+      //   profileIds,
+      // });
+      // console.log("User Mapping Response:", userMappingResponse.data);
+      // const mappedUserIds = userMappingResponse.data.map((item: { userId: string }) => item.userId);
 
-      if (mappedUserIds.length !== profileIds.length) {
-        console.warn("Mismatch detected:", {
-          sent: profileIds.length,
-          received: mappedUserIds.length,
-          missing: profileIds.filter((id) => !mappedUserIds.includes(id.toString())),
-        });
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "Certains profils n'ont pas d'utilisateurs correspondants. Veuillez synchroniser les données ou contacter l'administrateur.",
-        });
-        return;
-      }
+      // if (mappedUserIds.length !== profileIds.length) {
+      //   console.warn("Mismatch detected:", {
+      //     sent: profileIds.length,
+      //     received: mappedUserIds.length,
+      //     missing: profileIds.filter((id) => !mappedUserIds.includes(id.toString())),
+      //   });
+      //   toast({
+      //     variant: "destructive",
+      //     title: "Erreur",
+      //     description: "Certains profils n'ont pas d'utilisateurs correspondants. Veuillez synchroniser les données ou contacter l'administrateur.",
+      //   });
+      //   return;
+      // }
 
-      courseData.assignedUsers = mappedUserIds;
+      // courseData.assignedUsers = mappedUserIds;
 
-      if (course.image || course.times.some((session) => session.externalInstructorDetails?.cv instanceof File)) {
+      const courseData = {
+        ...course,
+        assignedUsers: profileIds,
+        imageUrl: course.imageUrl,
+        photos: course.photos,
+        link: course.link,
+        support: course.support,
+      };
+
+      if (course.image || course.photosFiles?.length || course.times.some((session) => session.externalInstructorDetails?.cv instanceof File)) {
         const formData = new FormData();
         if (course.image) {
           formData.append("image", course.image);
         }
+
+        if (course.photosFiles?.length) {
+          course.photosFiles.forEach((photo) => {
+            formData.append("photos", photo)
+          })
+        }
+
+        if (course.support?.type === 'file' && course.support.value) {
+          formData.append("support", course.support.value);
+        }
+        
         course.times.forEach((session, index) => {
           if (session.externalInstructorDetails?.cv instanceof File) {
             formData.append("cvs", session.externalInstructorDetails.cv);
@@ -498,12 +678,17 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
         });
 
         if (imageUploadResponse.status === 200) {
-          courseData.imageUrl = imageUploadResponse.data.imageUrl || course.imageUrl;
+          if (imageUploadResponse.data.imageUrl) {
+            courseData.imageUrl = imageUploadResponse.data.imageUrl;
+          }
+          courseData.photos = [...(course.photos || []), ...(imageUploadResponse.data.photoUrls || [])];
           courseData.times = course.times.map((session, index) => ({
             ...session,
             externalInstructorDetails: {
               ...session.externalInstructorDetails,
-              cv: imageUploadResponse.data.cvUrls && imageUploadResponse.data.cvUrls[index] ? imageUploadResponse.data.cvUrls[index] : session.externalInstructorDetails.cv,
+              cv: imageUploadResponse.data.cvUrls && imageUploadResponse.data.cvUrls[index]
+                ? imageUploadResponse.data.cvUrls[index]
+                : session.externalInstructorDetails.cv,
             },
           }));
         } else {
@@ -522,8 +707,8 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
           await useApiAxios.put(`/courses/${conflictCourse.course._id}`, {
             ...conflictCourse.course,
             assignedUsers: (conflictCourse.course.assignedUsers as any[])
-              .map((u) => (typeof u === "string" ? u : u.id_profile.toString()))
-              .filter((u) => u !== user.id_profile.toString()),
+              // .map((u) => (typeof u === "string" ? u : u.id_profile.toString()))
+              .filter((id) => id !== Number(user.id_profile)),
           });
         }
       }
@@ -552,6 +737,8 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
       title: "",
       location: "",
       imageUrl: "",
+      photos: [],
+      link: "",
       offline: "",
       description: "",
       hidden: "",
@@ -567,6 +754,10 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
         },
       ],
       image: null,
+      support: {
+        type: "link",
+        value: ""
+      },
       assignedUsers: [],
       interestedUsers: [],
     });
@@ -679,33 +870,119 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                 />
               </div>
               <div className="space-y-2">
-                <Label>Image</Label>
+                <Label>Image (illustration du module)</Label>
                 <div
-                  {...getRootProps()}
+                  {...getImageRootProps()}
                   className={`border-2 border-dashed p-4 text-center ${
-                    isDragActive ? "border-blue-600 bg-blue-50" : "border-gray-300"
+                    isImageDragActive ? "border-blue-600 bg-blue-50" : "border-gray-300"
                   }`}
                 >
-                  <input {...getInputProps()} accept="image/jpeg,image/png,image/gif" />
+                  <input {...getImageInputProps()} accept="image/jpeg,image/png,image/gif" />
                   <p className="text-gray-600">
-                    {isDragActive
+                    {isImageDragActive
                       ? "Déposez l'image ici..."
                       : "Glissez-déposez une image ici, ou cliquez pour sélectionner (JPEG, PNG, GIF, max 5 Mo)"}
                   </p>
                 </div>
                 {course.image ? (
-                  <img
-                    src={course.image.preview}
-                    alt="Aperçu"
-                    className="mt-4 w-full h-auto rounded"
-                  />
+                  <div className="relative">
+                    <img
+                      src={course.image.preview}
+                      alt="Aperçu de l'illustration"
+                      className="mt-4 w-full h-auto rounded"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 bg-red-500 text-white hover:bg-red-600"
+                      onClick={() => setCourse((prev) => ({ ...prev, image: null }))}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 ) : course.imageUrl ? (
-                  <img
-                    src={`${baseUrl}${course.imageUrl}`}
-                    alt="Cours"
-                    className="mt-4 w-full h-auto rounded"
-                  />
+                  <div className="relative">
+                    <img
+                      src={`${baseUrl}${course.imageUrl}`}
+                      alt="Illustration du module"
+                      className="mt-4 w-full h-auto rounded"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 bg-red-500 text-white hover:bg-red-600"
+                      onClick={() => setCourse((prev) => ({ ...prev, imageUrl: "" }))}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 ) : null}
+              </div>
+              <div className="space-y-2">
+                <Label>Photos (Photos prises du module)</Label>
+                <div
+                  {...getPhotosRootProps()}
+                  className={`border-2 border-dashed p-4 text-center ${
+                    isPhotosDragActive ? "border-blue-600 bg-blue-50" : "border-gray-300"
+                  }`}
+                >
+                  <input {...getPhotosInputProps()} accept="image/jpeg,image/png,image/gif" />
+                  <p className="text-gray-600">
+                    {isPhotosDragActive
+                      ? "Déposez les photos ici..."
+                      : "Glissez-déposez des photos ici, ou cliquez pour sélectionner (JPEG, PNG, GIF, max 5 Mo par photo)"}
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-4 mt-4">
+                  {course.photosFiles?.map((photo, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={photo.preview}
+                        alt={`Photo ${index + 1}`}
+                        className="w-full h-auto rounded"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 bg-red-500 text-white hover:bg-red-600"
+                        onClick={() => handleRemovePhoto(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  {course.photos?.map((url, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={`${baseUrl}${url}`}
+                        alt={`Photo ${index + 1}`}
+                        className="w-full h-auto rounded"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 bg-red-500 text-white hover:bg-red-600"
+                        onClick={() =>
+                          setCourse((prev) => ({
+                            ...prev,
+                            photos: prev.photos?.filter((_, i) => i !== index) || [],
+                          }))
+                        }
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="link">Lien</Label>
+                <Input
+                  id="link"
+                  placeholder="Entrez un lien (optionnel)"
+                  value={course.link || ""}
+                  onChange={(e) => handleInputChange("link", e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="offline">En ligne/Présentiel</Label>
@@ -758,6 +1035,54 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                   required
                 />
               </div>
+              <div className="space-y-2">
+                                <Label htmlFor="support-type">Type de support</Label>
+                                <Select
+                                    value={course.support?.type}
+                                    onValueChange={(value) => handleSupportChange(value, "")}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Sélectionner le type de support" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="link">Lien</SelectItem>
+                                        <SelectItem value="file">Fichier</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                              </div>
+                              {course.support?.type === "link" ? (
+                                <div className="space-y-2">
+                                    <Label htmlFor="support-link">Lien du support</Label>
+                                    <Input
+                                        id="support-link"
+                                        placeholder="Entrez le lien (https://...)"
+                                        value={course.support.value}
+                                        onChange={(e) => handleSupportChange("link", e.target.value)}
+                                    />
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <Label>Fichier de support</Label>
+                                  <div
+                                      {...getSupportRootProps()}
+                                      className={`border-2 border-dashed p-4 text-center ${
+                                          isSupportDragActive ? "border-blue-600 bg-blue-50" : "border-gray-300"
+                                      }`}
+                                  >
+                                      <input {...getSupportInputProps()} accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/gif" />
+                                      <p className="text-gray-600">
+                                          {isSupportDragActive
+                                              ? "Déposez le fichier ici..."
+                                              : "Glissez-déposez un fichier ici, ou cliquez pour sélectionner (PDF, Word, JPEG, PNG, GIF, max 5 Mo)"}
+                                      </p>
+                                  </div>
+                                  {course.support?.value && course.support.type === "file" && (
+                                      <p className="mt-2 text-sm text-gray-600">
+                                          Fichier sélectionné : {course.support.value.name}
+                                      </p>
+                                  )}
+                                </div>
+                              )}
             </div>
           )}
           {currentStep === 2 && (
@@ -1074,7 +1399,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                       key={user.id_profile}
                       className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium"
                     >
-                      {user.name}
+                      {user.name|| `Unknown User (${user.id_profile})`}
                       <Button
                         variant="ghost"
                         size="icon"

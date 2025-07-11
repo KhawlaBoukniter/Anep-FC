@@ -5,6 +5,21 @@ const XLSX = require('xlsx');
 const path = require('path')
 const fs = require('fs').promises
 
+const calculateModuleDuration = (times) => {
+    let minDate = new Date();
+    let maxDate = new Date(0);
+    for (const session of times) {
+        for (const dateRange of session.dateRanges) {
+            const start = new Date(dateRange.startTime);
+            const end = new Date(dateRange.endTime);
+            if (start < minDate) minDate = start;
+            if (end > maxDate) maxDate = end;
+        }
+    }
+    const diffTime = maxDate - minDate;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+};
+
 // Get all courses
 const getAllCourses = async (req, res) => {
     try {
@@ -24,6 +39,7 @@ const getAllCourses = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
 // Get a single course by ID
 // const getCourseNameById = async (req, res) => {
 //     const { courseId } = req.params;
@@ -44,27 +60,70 @@ const getAllCourses = async (req, res) => {
 const getCourseById = async (req, res) => {
     try {
         const course = await Course.findById(req.params.id)
-            .populate('interestedUsers', '_id name')
-            .populate('assignedUsers', '_id name')
+            .populate('interestedUsers', '_id name profileId')
+            .populate('assignedUsers', '_id name profileId')
             .exec();
 
         if (!course) {
             return res.status(404).json({ message: 'Course not found' });
         }
 
-        res.status(200).json(course);
+        const assignedUsers = await User.find({ profileId: { $in: course.assignedUsers } }).select('_id name profileId');
+        const interestedUsers = await User.find({ profileId: { $in: course.interestedUsers } }).select('_id name profileId');
+
+        const courseWithUsers = {
+            ...course.toObject(),
+            assignedUsers: course.assignedUsers.map((profileId) => {
+                const user = assignedUsers.find((u) => u.profileId === profileId);
+                return {
+                    profileId,
+                    name: user ? user.name : `Unknown User (${profileId})`,
+                    userId: user ? user._id.toString() : null,
+                };
+            }),
+            interestedUsers: course.interestedUsers.map((profileId) => {
+                const user = interestedUsers.find((u) => u.profileId === profileId);
+                return {
+                    profileId,
+                    name: user ? user.name : `Unknown User (${profileId})`,
+                    userId: user ? user._id.toString() : null,
+                };
+            }),
+            duration: calculateModuleDuration(course.times),
+        };
+
+        // course.assignedUsers.forEach((user) => {
+        //     if (!user.name || !user.profileId) {
+        //         console.warn(`Incomplete user data for _id: ${user._id}, name: ${user.name}, profileId: ${user.profileId}`);
+        //     }
+        // });
+
+        // const duration = calculateModuleDuration(course.times);
+        res.status(200).json(courseWithUsers);
     } catch (error) {
         console.error('Error fetching course details:', error);
         res.status(500).json({ message: 'Internal Server Error', error: error.toString() });
     }
 };
 
-
 // Create a new course
 const createCourse = async (req, res) => {
     console.log('Received data for new course:', req.body);
     try {
-        const { times } = req.body;
+        const { times, support } = req.body;
+
+        if (support) {
+            if (!['file', 'link'].includes(support.type)) {
+                return res.status(400).json({ message: 'Invalid support type. Must be "file" or "link".' });
+            }
+            if (!support.value) {
+                return res.status(400).json({ message: 'Support value is required.' });
+            }
+            if (support.type === 'link' && !/^https?:\/\/[^\s$.?#].[^\s]*$/.test(support.value)) {
+                return res.status(400).json({ message: 'Invalid link format.' });
+            }
+        }
+
         for (const session of times) {
             for (const dateRange of session.dateRanges) {
                 const start = new Date(dateRange.startTime);
@@ -89,7 +148,7 @@ const createCourse = async (req, res) => {
 
 // Update an existing course
 const updateCourse = async (req, res) => {
-    const { assignedUsers, times, ...updateData } = req.body;
+    const { assignedUsers, times, imageUrl, photos, link, support, ...updateData } = req.body;
     try {
         const courseToUpdate = await Course.findById(req.params.id);
         if (!courseToUpdate) {
@@ -108,30 +167,81 @@ const updateCourse = async (req, res) => {
                         return res.status(400).json({ message: 'startTime must be before endTime in dateRanges' });
                     }
                 }
+
+                session.dateRanges = session.dateRanges.map(range => ({
+                    startTime: range.startTime,
+                    endTime: range.endTime,
+                    _id: range._id || undefined
+                }));
             }
+
+            updateData.times = times;
+        }
+
+        if (support) {
+            if (!['file', 'link'].includes(support.type)) {
+                return res.status(400).json({ message: 'Invalid support type. Must be "file" or "link".' });
+            }
+            if (!support.value) {
+                return res.status(400).json({ message: 'Support value is required.' });
+            }
+            if (support.type === 'link' && !/^https?:\/\/[^\s$.?#].[^\s]*$/.test(support.value)) {
+                return res.status(400).json({ message: 'Invalid link format.' });
+            }
+            updateData.support = support;
         }
 
         // Handle assigned users
         if (assignedUsers) {
-            const newlyAssignedUsers = assignedUsers.filter(userId => !courseToUpdate.assignedUsers.includes(userId));
+            // const users = await User.find({ profileId: { $in: assignedUsers.map(Number) } }).select('profileId');
+            // const foundProfileIds = users.map((u) => u.profileId);
+            // const invalidProfileIds = assignedUsers.filter((id) => !foundProfileIds.includes(Number(id)));
+            // if (invalidProfileIds.length > 0) {
+            //     return res.status(400).json({
+            //         message: `Invalid profileIds: ${invalidProfileIds.join(', ')}`,
+            //         invalidProfileIds,
+            //     });
+            // }
 
-            for (const userId of newlyAssignedUsers) {
-                const userCourses = await Course.find({ assignedUsers: userId });
+            // const numericProfileIds = assignedUsers.map(Number);
+
+            const newlyAssignedUsers = assignedUsers.filter(
+                (profileId) => !courseToUpdate.assignedUsers.includes(Number(profileId))
+            );
+
+            for (const profileId of newlyAssignedUsers) {
+                const userCourses = await Course.find({ assignedUsers: Number(profileId) });
                 for (const course of userCourses) {
-                    if (hasTimeConflict(courseToUpdate, course)) {
+                    if (course._id.toString() !== courseToUpdate._id.toString() && hasTimeConflict(courseToUpdate, course)) {
                         await Course.findByIdAndUpdate(course._id, {
-                            $pull: { assignedUsers: userId }
+                            $pull: { assignedUsers: Number(profileId) },
                         });
                     }
                 }
             }
 
-            updateData.assignedUsers = assignedUsers;
+            updateData.assignedUsers = assignedUsers.map(Number);
         }
 
-        const updatedCourse = await Course.findByIdAndUpdate(req.params.id, updateData, { new: true });
+        if (imageUrl) {
+            updateData.imageUrl = imageUrl;
+        }
+        if (photos) {
+            updateData.photos = photos;
+        }
+        if (link) {
+            updateData.link = link;
+        }
+
+        console.log('Update data:', JSON.stringify(updateData, null, 2));
+
+        const updatedCourse = await Course.findByIdAndUpdate(req.params.id, { $set: updateData }, { new: true });
+
+        console.log('Updated course:', JSON.stringify(updatedCourse, null, 2));
+
         res.status(200).json(updatedCourse);
     } catch (error) {
+        console.error('Error updating course:', error);
         res.status(400).json({ message: error.message });
     }
 };
@@ -168,17 +278,23 @@ const hasTimeConflict = (course1, course2) => {
     }
     return false;
 };
+
 // Controller method for uploading an image
 const uploadImage = (req, res) => {
     try {
         console.log('Received files:', req.files); // Debug: Log received files
 
         // Check if files were uploaded
-        if (!req.files || (!req.files.image && !req.files.cvs)) {
+        if (!req.files || (!req.files.image && !req.files.photos && !req.files.cvs && !req.files.support)) {
             return res.status(400).json({ error: 'No files uploaded' });
         }
 
-        const fileUrls = {};
+        const fileUrls = {
+            imageUrl: null,
+            photoUrls: [],
+            cvUrls: [],
+            supportUrl: null
+        };
 
         // Handle course image
         if (req.files.image) {
@@ -187,14 +303,26 @@ const uploadImage = (req, res) => {
             fileUrls.imageUrl = imageUrl;
         }
 
-        // Handle CVs
-        const cvUrls = [];
-        if (req.files.cvs) {
-            req.files.cvs.forEach((cvFile, index) => {
-                cvUrls.push(`/Uploads/${cvFile.filename}`);
+        if (req.files.photos) {
+            req.files.photos.forEach((photoFile) => {
+                const photoUrl = `/uploads/${photoFile.filename}`;
+                fileUrls.photoUrls.push(photoUrl);
             });
         }
-        fileUrls.cvUrls = cvUrls;
+
+        // Handle CVs
+        if (req.files.cvs) {
+            req.files.cvs.forEach((cvFile) => {
+                const cvUrl = `/uploads/${cvFile.filename}`;
+                fileUrls.cvUrls.push(cvUrl);
+            });
+        }
+
+        if (req.files.support) {
+            const supportFile = req.files.support[0];
+            const supportUrl = `/uploads/${supportFile.filename}`;
+            fileUrls.supportUrl = supportUrl;
+        }
 
         res.status(200).json(fileUrls);
     } catch (error) {
@@ -202,7 +330,6 @@ const uploadImage = (req, res) => {
         res.status(500).json({ error: 'Erreur interne', message: error.message });
     }
 };
-
 
 const getAllComments = async (req, res) => {
     try {
@@ -216,34 +343,32 @@ const getAllComments = async (req, res) => {
 }
 
 const getAssignedUsers = async (req, res) => {
-    const { id } = req.params; // course ID
-
+    const { id } = req.params;
     try {
         const course = await Course.findById(id).populate('assignedUsers');
         if (!course) {
             return res.status(404).send('Course not found');
         }
-
-        // Initialize an empty array if presence data is missing
-        const presenceData = course.presence || [];
-
-        const usersWithPresence = course.assignedUsers.map(user => {
-            // Find the presence entry for the user, if it exists
-            const presence = presenceData.find(p => p.userId && user._id && p.userId.toString() === user._id.toString());
+        const users = await User.find({ profileId: { $in: course.assignedUsers } }).select('_id name profileId');
+        const duration = calculateModuleDuration(course.times);
+        const usersWithPresence = course.assignedUsers.map((profileId) => {
+            const user = users.find((u) => u.profileId === profileId);
+            const presence = course.presence.find((p) => p.profileId === profileId) || {};
             return {
-                _id: user._id,
-                name: user.name,
-                status: presence ? presence.status : 'absent',  // Default to 'absent' if no presence data found
-                daysPresent: presence ? presence.daysPresent : 0 // Default to 0 if no presence data found
+                profileId,
+                name: user ? user.name : `Unknown User (${profileId})`,
+                userId: user ? user._id.toString() : null,
+                dailyStatuses: presence.dailyStatuses || Array.from({ length: duration }, (_, i) => ({ day: i + 1, status: 'absent' })),
+                daysPresent: presence.daysPresent || 0,
             };
         });
-
-        res.status(200).json(usersWithPresence);
+        res.status(200).json({ users: usersWithPresence, duration });
     } catch (error) {
         console.error('Error fetching assigned users:', error);
         res.status(500).send('Failed to fetch assigned users: ' + error.message);
     }
 };
+
 const getCoursesByUserId = async (req, res) => {
     const { userId } = req.params;
 
@@ -261,7 +386,6 @@ const getCoursesByUserId = async (req, res) => {
     }
 };
 
-
 const updateCoursePresence = async (req, res) => {
     const { id } = req.params;
     const { presence } = req.body;
@@ -272,18 +396,32 @@ const updateCoursePresence = async (req, res) => {
             return res.status(404).send('Course not found');
         }
 
-        // Update presence data
+        const duration = calculateModuleDuration(course.times);
+
         presence.forEach(p => {
             const existingPresence = course.presence.find(ep => ep.userId.toString() === p.userId);
             if (existingPresence) {
-                existingPresence.status = p.daysPresent > 0 ? 'present' : 'absent';
-                existingPresence.daysPresent = p.daysPresent;
+                existingPresence.dailyStatuses = p.dailyStatuses.map(ds => ({
+                    day: ds.day,
+                    status: ds.status
+                }));
+                existingPresence.daysPresent = existingPresence.dailyStatuses.filter(ds => ds.status === 'present').length;
             } else {
                 course.presence.push({
                     userId: p.userId,
-                    status: p.daysPresent > 0 ? 'present' : 'absent',
-                    daysPresent: p.daysPresent
+                    dailyStatuses: p.dailyStatuses.map(ds => ({
+                        day: ds.day,
+                        status: ds.status
+                    })),
+                    daysPresent: p.dailyStatuses.filter(ds => ds.status === 'present').length
                 });
+            }
+
+            if (p.dailyStatuses.some(ds => ds.day < 1 || ds.day > duration)) {
+                throw new Error(`Invalid day number. Must be between 1 and ${duration}`);
+            }
+            if (p.dailyStatuses.some(ds => !['present', 'absent'].includes(ds.status))) {
+                throw new Error('Invalid status. Must be "present" or "absent"');
             }
         });
 
@@ -295,6 +433,7 @@ const updateCoursePresence = async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 };
+
 const getLastestComments = async (req, res) => {
     try {
         const courses = await Course.find()
@@ -479,30 +618,39 @@ const deleteComment = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
-// user assigned download 
+
 const userAssignedDownload = async (req, res) => {
     try {
         const courseId = req.params.courseId;
         const course = await Course.findById(courseId)
             .populate('assignedUsers')
-            .select('assignedUsers presence'); // Ensure presence is populated
+            .select('assignedUsers presence times');
 
         if (!course) {
             return res.status(404).send('Course not found');
         }
 
-        // Map assigned users and include presence
-        const usersData = course.assignedUsers.map(user => ({
-            Name: user.name,
-            GRADE_fonction: user.GRADE_fonction,
-            AFFECTATION: user.AFFECTATION,
-            DEPARTEMENT_DIVISION: user.DEPARTEMENT_DIVISION,
-            SERVICE: user.SERVICE,
-            Localite: user.Localite,
-            FONCTION: user.FONCTION,
-            Presence: course.presence.find(p => p.userId.equals(user._id))?.status || 'absent',
-            DaysPresent: course.presence.find(p => p.userId.equals(user._id))?.daysPresent || 0
-        }));
+        const duration = calculateModuleDuration(course.times);
+
+        const usersData = course.assignedUsers.map(user => {
+            const presence = course.presence.find(p => p.userId.equals(user._id)) || {};
+            const dailyStatuses = presence.dailyStatuses || Array.from({ length: duration }, (_, i) => ({ day: i + 1, status: 'absent' }));
+            const statusColumns = {};
+            dailyStatuses.forEach(ds => {
+                statusColumns[`Day_${ds.day}`] = ds.status;
+            });
+            return {
+                Name: user.name,
+                GRADE_fonction: user.GRADE_fonction,
+                AFFECTATION: user.AFFECTATION,
+                DEPARTEMENT_DIVISION: user.DEPARTEMENT_DIVISION,
+                SERVICE: user.SERVICE,
+                Localite: user.Localite,
+                FONCTION: user.FONCTION,
+                DaysPresent: presence.daysPresent || 0,
+                ...statusColumns
+            };
+        });
 
         const worksheet = XLSX.utils.json_to_sheet(usersData);
         const workbook = XLSX.utils.book_new();
