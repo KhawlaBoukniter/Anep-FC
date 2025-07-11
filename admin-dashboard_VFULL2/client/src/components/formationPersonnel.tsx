@@ -15,7 +15,6 @@ interface EnrolledFormation {
   enrollmentDate: string
   progress: number
   status: "en_cours" | "termine" | "non_commence"
-  nextModule: string
   completedModules: number
   totalModules: number
   certificateAvailable: boolean
@@ -41,42 +40,6 @@ const enrolledFormationsData: EnrolledFormation[] = [
     totalModules: 6,
     certificateAvailable: false,
     lastAccessed: "2024-01-20",
-  },
-  {
-    id: 2,
-    title: "Design UI/UX Professionnel",
-    description: "Créez des interfaces utilisateur exceptionnelles et des expériences mémorables",
-    duration: "35 heures",
-    instructor: "Sophie Laurent",
-    image: "/placeholder.svg?height=200&width=300",
-    category: "Design",
-    color: "from-green-600 to-green-700",
-    enrollmentDate: "2023-12-10",
-    progress: 100,
-    status: "termine",
-    nextModule: "Formation terminée",
-    completedModules: 6,
-    totalModules: 6,
-    certificateAvailable: true,
-    lastAccessed: "2024-01-18",
-  },
-  {
-    id: 4,
-    title: "Marketing Digital & SEO",
-    description: "Boostez votre présence en ligne avec le marketing digital",
-    duration: "30 heures",
-    instructor: "Marie Dubois",
-    image: "/placeholder.svg?height=200&width=300",
-    category: "Marketing",
-    color: "from-purple-600 to-purple-700",
-    enrollmentDate: "2024-01-22",
-    progress: 0,
-    status: "non_commence",
-    nextModule: "Stratégie marketing digital",
-    completedModules: 0,
-    totalModules: 6,
-    certificateAvailable: false,
-    lastAccessed: "Jamais",
   },
 ]
 
@@ -191,26 +154,6 @@ const FormationPersonnel: React.FC = () => {
             >
               Toutes ({totalFormations})
             </button>
-            <button
-              onClick={() => setSelectedTab("en_cours")}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                selectedTab === "en_cours"
-                  ? "bg-[#06668C] text-white shadow-lg"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              En cours ({inProgressFormations})
-            </button>
-            <button
-              onClick={() => setSelectedTab("terminees")}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                selectedTab === "terminees"
-                  ? "bg-[#06668C] text-white shadow-lg"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              Terminées ({completedFormations})
-            </button>
           </div>
         </div>
       </section>
@@ -301,15 +244,6 @@ const FormationPersonnel: React.FC = () => {
                         <div className="font-medium">{formatDate(formation.lastAccessed)}</div>
                       </div>
                     </div>
-
-                    {/* Prochain module */}
-                    {formation.status !== "termine" && (
-                      <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                        <div className="text-sm text-blue-800 font-medium">Prochain module:</div>
-                        <div className="text-blue-700">{formation.nextModule}</div>
-                      </div>
-                    )}
-
                     {/* Actions */}
                     <div className="flex gap-3">
                       {formation.status === "termine" ? (
@@ -349,47 +283,6 @@ const FormationPersonnel: React.FC = () => {
           )}
         </div>
       </section>
-
-      {/* Recommendations */}
-      {formations.length > 0 && (
-        <section className="py-16 bg-white">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-[#06668C] mb-4">Formations recommandées</h2>
-              <p className="text-lg text-gray-600">Continuez votre apprentissage avec ces formations complémentaires</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-gradient-to-br from-[#06668C] to-blue-700 text-white p-6 rounded-xl">
-                <div className="text-2xl mb-3">🚀</div>
-                <h3 className="text-lg font-bold mb-2">Node.js Avancé</h3>
-                <p className="text-sm opacity-90 mb-4">Complétez vos compétences React avec Node.js</p>
-                <button className="bg-white text-[#06668C] px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors duration-300">
-                  Découvrir
-                </button>
-              </div>
-
-              <div className="bg-gradient-to-br from-green-600 to-green-700 text-white p-6 rounded-xl">
-                <div className="text-2xl mb-3">📊</div>
-                <h3 className="text-lg font-bold mb-2">Data Analytics</h3>
-                <p className="text-sm opacity-90 mb-4">Analysez les données de vos designs</p>
-                <button className="bg-white text-green-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors duration-300">
-                  Découvrir
-                </button>
-              </div>
-
-              <div className="bg-gradient-to-br from-purple-600 to-purple-700 text-white p-6 rounded-xl">
-                <div className="text-2xl mb-3">🎨</div>
-                <h3 className="text-lg font-bold mb-2">Branding Avancé</h3>
-                <p className="text-sm opacity-90 mb-4">Créez des identités visuelles marquantes</p>
-                <button className="bg-white text-purple-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors duration-300">
-                  Découvrir
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
     </div>
   )
 }
