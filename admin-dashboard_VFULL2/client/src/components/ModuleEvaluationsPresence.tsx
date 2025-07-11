@@ -52,7 +52,7 @@ const ModuleEvaluationsPresence: React.FC = () => {
         description: "Veuillez vous connecter pour continuer.",
         variant: "destructive",
       });
-      navigate("/login");
+      navigate("/");
     }
   }, [navigate]);
 
@@ -71,7 +71,7 @@ const ModuleEvaluationsPresence: React.FC = () => {
           description: "Veuillez vous reconnecter.",
           variant: "destructive",
         });
-        navigate("/login");
+        navigate("/");
       } else if (error.response?.status === 404) {
         toast({
           title: "Module non trouvé",
@@ -103,7 +103,7 @@ const ModuleEvaluationsPresence: React.FC = () => {
           description: "Veuillez vous reconnecter.",
           variant: "destructive",
         });
-        navigate("/login");
+        navigate("/");
       } else if (error.response?.status === 404) {
         toast({
           title: "Évaluations non trouvées",
@@ -149,7 +149,7 @@ const ModuleEvaluationsPresence: React.FC = () => {
           description: "Veuillez vous reconnecter.",
           variant: "destructive",
         });
-        navigate("/login");
+        navigate("/");
       } else if (error.response?.status === 404) {
         toast({
           title: "Utilisateurs non trouvés",
@@ -184,7 +184,7 @@ const ModuleEvaluationsPresence: React.FC = () => {
           description: "Veuillez vous reconnecter.",
           variant: "destructive",
         });
-        navigate("/login");
+        navigate("/");
       } else if (error.response?.status === 404) {
         toast({
           title: "Utilisateurs non trouvés",

@@ -87,11 +87,11 @@ export function AppSidebar({ activeSection, setActiveSection }: AppSidebarProps)
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel className="flex items-center justify-between px-3 py-2 cursor-pointer" onClick={() => setRecOpen(!recOpen)}>
+            <SidebarGroupLabel className="flex items-center justify-between px-3 py-2 cursor-pointer mt-4" onClick={() => setRecOpen(!recOpen)}>
               <span className="font-extrabold text-[1rem] uppercase font-[Oswald,sans-serif] text-shadow-[0_0_80px_rgba(255,255,255,0.5)] animated-text-fill py-2">Gestion Rec</span>
               <ChevronUp className={`h-5 w-5 text-[#06668C] transition-transform ${recOpen ? "rotate-180" : "rotate-90"}`} />
             </SidebarGroupLabel>
-            <SidebarGroupContent className={`${recOpen ? "block" : "hidden"}`}>
+            <SidebarGroupContent className={`${recOpen ? "block" : "hidden"} mb-4`}>
               <SidebarMenu>
                 {menuItems
                   .filter((item) => item.group === "rec")

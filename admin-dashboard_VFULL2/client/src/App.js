@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "react-query";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/Dashboard.tsx";
 import Home from "./pages/Home.tsx";
 import AboutPage from "./components/AboutPage.tsx";
 import FormationPage from "./components/FormationPage.tsx";
