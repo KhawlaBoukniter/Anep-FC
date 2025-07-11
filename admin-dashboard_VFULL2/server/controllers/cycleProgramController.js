@@ -440,6 +440,55 @@ const downloadRegistrations = async (req, res) => {
     }
 };
 
+const getUserEnrolledModules = async (req, res) => {
+    const { user_id } = req.params;
+
+    try {
+        const registrations = await CycleProgramRegistration.findAll({
+            where: { user_id },
+            include: [
+                {
+                    model: CycleProgramUserModule,
+                    as: 'CycleProgramUserModules',
+                },
+                {
+                    model: CycleProgram,
+                    as: 'CycleProgram',
+                },
+            ],
+        });
+
+        const enrolledModules = await Promise.all(
+            registrations.map(async (registration) => {
+                const validModuleIds = registration.CycleProgramUserModules
+                    .map((m) => {
+                        try {
+                            return new mongoose.Types.ObjectId(m.module_id);
+                        } catch (err) {
+                            console.warn(`Invalid ObjectId: ${m.module_id}`);
+                            return null;
+                        }
+                    })
+                    .filter((id) => id !== null);
+
+                const modules = validModuleIds.length > 0
+                    ? await Course.find({ _id: { $in: validModuleIds } })
+                    : [];
+
+                return {
+                    cycleProgram: registration.CycleProgram,
+                    modules,
+                };
+            })
+        );
+
+        res.status(200).json(enrolledModules);
+    } catch (error) {
+        console.error('Error fetching user enrolled modules:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     createCycleProgram,
     updateCycleProgram,
@@ -450,4 +499,5 @@ module.exports = {
     getCycleProgramById,
     registerUserToCycleProgram,
     downloadRegistrations,
+    getUserEnrolledModules,
 };

@@ -12,6 +12,7 @@ const {
     registerUserToCycleProgram,
     downloadRegistrations,
     deleteCycleProgram,
+    getUserEnrolledModules,
 } = require('../controllers/cycleProgramController');
 
 const storage = multer.diskStorage({
@@ -44,5 +45,6 @@ router.get('/', getAllCyclePrograms);
 router.get('/:id', getCycleProgramById);
 router.post('/:id/register', registerUserToCycleProgram);
 router.get('/:id/registrations/download', downloadRegistrations);
+router.get('/user/:user_id/modules', getUserEnrolledModules);
 
 module.exports = router;

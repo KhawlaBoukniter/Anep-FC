@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
+import axios from "axios"
 
 interface EnrolledFormation {
   id: number
@@ -21,34 +22,53 @@ interface EnrolledFormation {
   lastAccessed: string
 }
 
-// Simulation des formations inscrites (normalement récupérées depuis une API/base de données)
-const enrolledFormationsData: EnrolledFormation[] = [
-  {
-    id: 1,
-    title: "Développement React Avancé",
-    description: "Maîtrisez React.js avec les hooks et le state management moderne",
-    duration: "40 heures",
-    instructor: "Thomas Martin",
-    image: "/placeholder.svg?height=200&width=300",
-    category: "Développement Web",
-    color: "from-[#06668C] to-blue-700",
-    enrollmentDate: "2024-01-15",
-    progress: 65,
-    status: "en_cours",
-    nextModule: "Context API et Redux",
-    completedModules: 4,
-    totalModules: 6,
-    certificateAvailable: false,
-    lastAccessed: "2024-01-20",
-  },
-]
-
 const FormationPersonnel: React.FC = () => {
-  const [formations, setFormations] = useState<EnrolledFormation[]>(enrolledFormationsData)
+  const [formations, setFormations] = useState<EnrolledFormation[]>([])
   const [isVisible, setIsVisible] = useState(false)
   const [selectedTab, setSelectedTab] = useState<"toutes" | "en_cours" | "terminees">("toutes")
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    const fetchEnrolledModules = async () => {
+      try {
+        setLoading(true)
+        // Replace '1' with the actual user_id from your auth context
+        const response = await axios.get("http://localhost:3000/api/cycles-programs/user/1/modules")
+        const enrolledData = response.data
+
+        // Map backend response to EnrolledFormation interface
+        const formattedFormations: EnrolledFormation[] = enrolledData.flatMap((program: any) =>
+          program.modules.map((module: any, index: number) => ({
+            id: index + 1, // Temporary ID for frontend display
+            title: module.title || "Module sans titre",
+            description: module.description || "Aucune description disponible",
+            duration: module.duration || "Durée inconnue",
+            instructor: program.cycleProgram.facilitator || "Instructeur inconnu",
+            image: module.image || "/placeholder.svg?height=200&width=300",
+            category: program.cycleProgram.type || "Non catégorisé",
+            color: "from-[#06668C] to-blue-700", // Default color
+            enrollmentDate: program.cycleProgram.created_at || new Date().toISOString(),
+            progress: module.progress || 0,
+            status: module.status || "non_commence",
+            completedModules: module.completedModules || 0,
+            totalModules: module.totalModules || 1,
+            certificateAvailable: module.certificateAvailable || false,
+            lastAccessed: module.lastAccessed || "Jamais",
+          }))
+        )
+
+        setFormations(formattedFormations)
+      } catch (err) {
+        setError("Erreur lors de la récupération des modules")
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchEnrolledModules()
+
     const timer = setTimeout(() => {
       setIsVisible(true)
     }, 300)
@@ -94,7 +114,7 @@ const FormationPersonnel: React.FC = () => {
   const totalFormations = formations.length
   const completedFormations = formations.filter((f) => f.status === "termine").length
   const inProgressFormations = formations.filter((f) => f.status === "en_cours").length
-  const averageProgress = formations.reduce((acc, f) => acc + f.progress, 0) / formations.length
+  const averageProgress = formations.length > 0 ? formations.reduce((acc, f) => acc + f.progress, 0) / formations.length : 0
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -119,24 +139,30 @@ const FormationPersonnel: React.FC = () => {
       {/* Stats Dashboard */}
       <section className="py-12 bg-white shadow-sm">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="text-center p-6 bg-gradient-to-br from-[#06668C] to-blue-700 text-white rounded-xl">
-              <div className="text-3xl font-bold mb-2">{totalFormations}</div>
-              <div className="text-sm opacity-90">Formations inscrites</div>
+          {loading ? (
+            <div className="text-center">Chargement...</div>
+          ) : error ? (
+            <div className="text-center text-red-500">{error}</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="text-center p-6 bg-gradient-to-br from-[#06668C] to-blue-700 text-white rounded-xl">
+                <div className="text-3xl font-bold mb-2">{totalFormations}</div>
+                <div className="text-sm opacity-90">Formations inscrites</div>
+              </div>
+              <div className="text-center p-6 bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl">
+                <div className="text-3xl font-bold mb-2">{completedFormations}</div>
+                <div className="text-sm opacity-90">Formations terminées</div>
+              </div>
+              <div className="text-center p-6 bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-xl">
+                <div className="text-3xl font-bold mb-2">{inProgressFormations}</div>
+                <div className="text-sm opacity-90">En cours</div>
+              </div>
+              <div className="text-center p-6 bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-xl">
+                <div className="text-3xl font-bold mb-2">{Math.round(averageProgress)}%</div>
+                <div className="text-sm opacity-90">Progression moyenne</div>
+              </div>
             </div>
-            <div className="text-center p-6 bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl">
-              <div className="text-3xl font-bold mb-2">{completedFormations}</div>
-              <div className="text-sm opacity-90">Formations terminées</div>
-            </div>
-            <div className="text-center p-6 bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-xl">
-              <div className="text-3xl font-bold mb-2">{inProgressFormations}</div>
-              <div className="text-sm opacity-90">En cours</div>
-            </div>
-            <div className="text-center p-6 bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-xl">
-              <div className="text-3xl font-bold mb-2">{Math.round(averageProgress)}%</div>
-              <div className="text-sm opacity-90">Progression moyenne</div>
-            </div>
-          </div>
+          )}
         </div>
       </section>
 
@@ -154,6 +180,26 @@ const FormationPersonnel: React.FC = () => {
             >
               Toutes ({totalFormations})
             </button>
+            <button
+              onClick={() => setSelectedTab("en_cours")}
+              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
+                selectedTab === "en_cours"
+                  ? "bg-[#06668C] text-white shadow-lg"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              En cours ({inProgressFormations})
+            </button>
+            <button
+              onClick={() => setSelectedTab("terminees")}
+              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
+                selectedTab === "terminees"
+                  ? "bg-[#06668C] text-white shadow-lg"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              Terminées ({completedFormations})
+            </button>
           </div>
         </div>
       </section>
@@ -161,7 +207,11 @@ const FormationPersonnel: React.FC = () => {
       {/* Formations List */}
       <section className="py-12">
         <div className="container mx-auto px-4">
-          {getFilteredFormations().length === 0 ? (
+          {loading ? (
+            <div className="text-center">Chargement des modules...</div>
+          ) : error ? (
+            <div className="text-center text-red-500">{error}</div>
+          ) : getFilteredFormations().length === 0 ? (
             <div className="text-center py-16">
               <div className="text-6xl mb-4">📚</div>
               <h3 className="text-2xl font-bold text-gray-800 mb-4">Aucune formation trouvée</h3>
