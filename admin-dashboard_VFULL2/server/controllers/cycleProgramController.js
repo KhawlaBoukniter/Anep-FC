@@ -1,9 +1,9 @@
 const { CycleProgram, CycleProgramModule, CycleProgramRegistration, CycleProgramUserModule } = require('../models/index');
-const Course = require('../models/Course'); // Mongoose model
+const Course = require('../models/Course');
 const XLSX = require('xlsx');
+const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
-const mongoose = require('mongoose');
 
 const createCycleProgram = async (req, res) => {
     const {
@@ -31,7 +31,6 @@ const createCycleProgram = async (req, res) => {
         fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    // Validate restricted fields during creation
     if (files.photos || evaluation_url || files.evaluation || attendance_list_url || files.attendance_list) {
         return res.status(400).json({ message: 'Photos, evaluation, and attendance list are not allowed during creation' });
     }
@@ -131,12 +130,12 @@ const updateCycleProgram = async (req, res) => {
                 return res.status(400).json({ message: 'Invalid module_ids format' });
             }
 
-            // Validate that module_ids exist in the Course collection
             const validModules = await Course.find({ _id: { $in: parsedModuleIds.map(id => new mongoose.Types.ObjectId(id)) } });
             if (validModules.length !== parsedModuleIds.length) {
                 return res.status(400).json({ message: 'One or more module IDs are invalid' });
             }
 
+            await CycleProgramModule.destroy({ where: { cycle_program_id: cycleProgram.id } });
             const moduleEntries = parsedModuleIds.map(module_id => ({
                 cycle_program_id: cycleProgram.id,
                 module_id,
@@ -210,9 +209,7 @@ const getCycleProgramById = async (req, res) => {
         }
 
         cycleProgram.budget = cycleProgram.budget ?? 0;
-
         cycleProgram.start_date = cycleProgram.start_date || new Date().toISOString();
-        res.json(cycleProgram);
 
         const modules = await Course.find({
             _id: { $in: cycleProgram.CycleProgramModules.map(m => new mongoose.Types.ObjectId(m.module_id)) },
@@ -312,34 +309,103 @@ const registerUserToCycleProgram = async (req, res) => {
         });
 
         if (!cycleProgram) {
-            return res.status(404).json({ message: 'Cycle/Program not found' });
+            return res.status(404).json({ message: 'Cycle/Programme non trouvé' });
         }
 
-        const registration = await CycleProgramRegistration.create({
-            cycle_program_id: id,
-            user_id,
+        // Parse module_ids if provided (for programs)
+        let validModuleIds = [];
+        if (cycleProgram.type === 'program' && module_ids && module_ids.length > 0) {
+            let parsedModuleIds;
+            try {
+                parsedModuleIds = JSON.parse(module_ids);
+                if (!Array.isArray(parsedModuleIds)) {
+                    throw new Error('module_ids doit être un tableau');
+                }
+            } catch (err) {
+                return res.status(400).json({ message: 'Format de module_ids invalide' });
+            }
+
+            const existingModuleIds = cycleProgram.CycleProgramModules.map(m => m.module_id);
+            const existingUserModules = await CycleProgramUserModule.findAll({
+                where: {
+                    module_id: parsedModuleIds,
+                },
+                include: [{
+                    model: CycleProgramRegistration,
+                    as: 'CycleProgramRegistration',
+                    where: { user_id, cycle_program_id: id },
+                }],
+            });
+
+            const alreadyEnrolledModuleIds = existingUserModules.map(m => m.module_id);
+            validModuleIds = parsedModuleIds.filter(id => existingModuleIds.includes(id) && !alreadyEnrolledModuleIds.includes(id));
+
+            if (validModuleIds.length === 0) {
+                return res.status(400).json({ message: 'Aucun module valide sélectionné ou vous êtes déjà inscrit à ces modules.' });
+            }
+        } else if (cycleProgram.type === 'program' && (!module_ids || JSON.parse(module_ids).length === 0)) {
+            return res.status(400).json({ message: 'Aucun module sélectionné pour le programme.' });
+        }
+
+        // Check if user is already registered
+        let registration = await CycleProgramRegistration.findOne({
+            where: {
+                cycle_program_id: id,
+                user_id,
+            },
         });
 
-        if (cycleProgram.type === 'cycle') {
-            const moduleEntries = cycleProgram.CycleProgramModules.map(module => ({
-                registration_id: registration.id,
-                module_id: module.module_id,
-            }));
-            await CycleProgramUserModule.bulkCreate(moduleEntries);
-        } else {
-            if (module_ids && module_ids.length > 0) {
-                const parsedModuleIds = JSON.parse(module_ids);
-                const moduleEntries = parsedModuleIds.map(module_id => ({
+        if (registration) {
+            // User is already enrolled, add new modules
+            if (cycleProgram.type === 'program' && validModuleIds.length > 0) {
+                const moduleEntries = validModuleIds.map(module_id => ({
                     registration_id: registration.id,
                     module_id,
                 }));
                 await CycleProgramUserModule.bulkCreate(moduleEntries);
+                return res.status(200).json({
+                    message: 'Nouveaux modules ajoutés avec succès.',
+                    registration,
+                    enrolledModules: validModuleIds,
+                });
+            } else {
+                return res.status(400).json({ message: 'Aucun nouveau module valide à ajouter.' });
             }
         }
 
-        res.status(201).json(registration);
+        // Create new registration for the program
+        registration = await CycleProgramRegistration.create({
+            cycle_program_id: id,
+            user_id,
+        });
+
+        // Handle module enrollment
+        let moduleEntries = [];
+        if (cycleProgram.type === 'cycle') {
+            // For cycles, enroll in all modules automatically
+            moduleEntries = cycleProgram.CycleProgramModules.map(module => ({
+                registration_id: registration.id,
+                module_id: module.module_id,
+            }));
+        } else if (cycleProgram.type === 'program') {
+            // For programs, enroll only in selected valid modules
+            moduleEntries = validModuleIds.map(module_id => ({
+                registration_id: registration.id,
+                module_id,
+            }));
+        }
+
+        if (moduleEntries.length > 0) {
+            await CycleProgramUserModule.bulkCreate(moduleEntries);
+        }
+
+        res.status(201).json({
+            message: 'Inscription au programme réussie.',
+            registration,
+            enrolledModules: moduleEntries.map(entry => entry.module_id),
+        });
     } catch (error) {
-        console.error('Error registering user:', error);
+        console.error('Erreur lors de l\'inscription:', error);
         res.status(500).json({ message: error.message });
     }
 };
