@@ -1,6 +1,6 @@
 // src/components/ModulesList.tsx
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "react-query";
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Input } from "./ui/input.tsx";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table.tsx";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip.tsx";
-import { Plus, Edit, Trash, Bell, Users, Download, FileText, Search, Filter, XCircle, Info, X, Archive, ArchiveRestore } from "lucide-react";
+import { Plus, Edit, Trash, Bell, Users, Download, FileText, Search, Filter, XCircle, Info, X, Archive, ArchiveRestore, Eye } from "lucide-react";
 import useApiAxios from "../config/axios";
 import PropTypes from "prop-types";
 import { AddModuleModal } from "./AddModuleModal.tsx";
@@ -77,12 +77,12 @@ interface Profile {
   updated_at: string;
 }
 
-interface UserPresence {
-  _id: string;
-  name: string;
-  daysPresent: number;
-  status?: string;
-}
+// interface UserPresence {
+//   _id: string;
+//   name: string;
+//   daysPresent: number;
+//   status?: string;
+// }
 
 interface Filter {
   type: string;
@@ -100,83 +100,83 @@ interface ChangeDetail {
   changedFields: { field: string; before: string; after: string }[];
 }
 
-const PresenceDialog = ({
-  open,
-  onOpenChange,
-  userPresence,
-  handleDaysChange,
-  handleSavePresence,
-  courseTitle,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  userPresence: UserPresence[];
-  handleDaysChange: (userId: string, days: string) => void;
-  handleSavePresence: () => void;
-  courseTitle: string;
-}) => {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-2xl bg-white shadow-xl border border-gray-100 animate-in fade-in duration-300">
-        <DialogHeader className="border-b border-gray-100 p-6">
-          <DialogTitle className="text-2xl font-semibold text-gray-900">
-            Gérer la présence pour {courseTitle}
-          </DialogTitle>
-        </DialogHeader>
-        <div className="p-6 space-y-4">
-          {userPresence.map((user) => (
-            <div key={user._id} className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-900">{user.name}</span>
-              <Input
-                type="number"
-                value={user.daysPresent}
-                onChange={(e) => handleDaysChange(user._id, e.target.value)}
-                placeholder="Jours présents"
-                min="0"
-                className="w-24 p-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-              />
-            </div>
-          ))}
-        </div>
-        <DialogFooter className="border-t border-gray-100 p-6 flex justify-end gap-4">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2 transition-all duration-200"
-          >
-            Annuler
-          </Button>
-          <Button
-            variant="default"
-            onClick={handleSavePresence}
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 py-2 shadow-md transition-all duration-200"
-          >
-            Sauvegarder
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
+// const PresenceDialog = ({
+//   open,
+//   onOpenChange,
+//   userPresence,
+//   handleDaysChange,
+//   handleSavePresence,
+//   courseTitle,
+// }: {
+//   open: boolean;
+//   onOpenChange: (open: boolean) => void;
+//   userPresence: UserPresence[];
+//   handleDaysChange: (userId: string, days: string) => void;
+//   handleSavePresence: () => void;
+//   courseTitle: string;
+// }) => {
+//   return (
+//     <Dialog open={open} onOpenChange={onOpenChange}>
+//       <DialogContent className="max-w-md rounded-2xl bg-white shadow-xl border border-gray-100 animate-in fade-in duration-300">
+//         <DialogHeader className="border-b border-gray-100 p-6">
+//           <DialogTitle className="text-2xl font-semibold text-gray-900">
+//             Gérer la présence pour {courseTitle}
+//           </DialogTitle>
+//         </DialogHeader>
+//         <div className="p-6 space-y-4">
+//           {userPresence.map((user) => (
+//             <div key={user._id} className="flex items-center justify-between">
+//               <span className="text-sm font-medium text-gray-900">{user.name}</span>
+//               <Input
+//                 type="number"
+//                 value={user.daysPresent}
+//                 onChange={(e) => handleDaysChange(user._id, e.target.value)}
+//                 placeholder="Jours présents"
+//                 min="0"
+//                 className="w-24 p-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+//               />
+//             </div>
+//           ))}
+//         </div>
+//         <DialogFooter className="border-t border-gray-100 p-6 flex justify-end gap-4">
+//           <Button
+//             variant="outline"
+//             onClick={() => onOpenChange(false)}
+//             className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2 transition-all duration-200"
+//           >
+//             Annuler
+//           </Button>
+//           <Button
+//             variant="default"
+//             onClick={handleSavePresence}
+//             className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 py-2 shadow-md transition-all duration-200"
+//           >
+//             Sauvegarder
+//           </Button>
+//         </DialogFooter>
+//       </DialogContent>
+//     </Dialog>
+//   );
+// };
 
-PresenceDialog.propTypes = {
-  open: PropTypes.bool.isRequired,
-  onOpenChange: PropTypes.func.isRequired,
-  userPresence: PropTypes.array.isRequired,
-  handleDaysChange: PropTypes.func.isRequired,
-  handleSavePresence: PropTypes.func.isRequired,
-  courseTitle: PropTypes.string.isRequired,
-};
+// PresenceDialog.propTypes = {
+//   open: PropTypes.bool.isRequired,
+//   onOpenChange: PropTypes.func.isRequired,
+//   userPresence: PropTypes.array.isRequired,
+//   handleDaysChange: PropTypes.func.isRequired,
+//   handleSavePresence: PropTypes.func.isRequired,
+//   courseTitle: PropTypes.string.isRequired,
+// };
 
 export function ModulesList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<Filter[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [presenceDialogOpen, setPresenceDialogOpen] = useState(false);
+  // const [presenceDialogOpen, setPresenceDialogOpen] = useState(false);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [unarchiveDialogOpen, setUnarchiveDialogOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [userPresence, setUserPresence] = useState<UserPresence[]>([]);
+  // const [userPresence, setUserPresence] = useState<UserPresence[]>([]);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [newFilterType, setNewFilterType] = useState("");
   const [newFilterValues, setNewFilterValues] = useState<string[]>([]);
@@ -319,49 +319,49 @@ export function ModulesList() {
     }
   };
 
-  const handleMenuOpen = async (course: Course) => {
-    setSelectedCourse(course);
-    try {
-      const response = await useApiAxios.get(`/courses/${course._id}/assignedUsers`);
-      const usersWithPresence = response.data.map((user: any) => ({
-        ...user,
-        daysPresent: user.daysPresent || 0,
-      }));
-      setUserPresence(usersWithPresence);
-      setPresenceDialogOpen(true);
-    } catch (error) {
-      console.error("Échec de la récupération des utilisateurs assignés:", error);
-    }
-  };
+  // const handleMenuOpen = async (course: Course) => {
+  //   setSelectedCourse(course);
+  //   try {
+  //     const response = await useApiAxios.get(`/courses/${course._id}/assignedUsers`);
+  //     const usersWithPresence = response.data.map((user: any) => ({
+  //       ...user,
+  //       daysPresent: user.daysPresent || 0,
+  //     }));
+  //     setUserPresence(usersWithPresence);
+  //     setPresenceDialogOpen(true);
+  //   } catch (error) {
+  //     console.error("Échec de la récupération des utilisateurs assignés:", error);
+  //   }
+  // };
 
-  const handleDaysChange = (userId: string, days: string) => {
-    const daysPresent = parseInt(days, 10);
-    setUserPresence((prevState) =>
-      prevState.map((user) =>
-        user._id === userId
-          ? { ...user, daysPresent, status: daysPresent > 0 ? "present" : "absent" }
-          : user
-      )
-    );
-  };
+  // const handleDaysChange = (userId: string, days: string) => {
+  //   const daysPresent = parseInt(days, 10);
+  //   setUserPresence((prevState) =>
+  //     prevState.map((user) =>
+  //       user._id === userId
+  //         ? { ...user, daysPresent, status: daysPresent > 0 ? "present" : "absent" }
+  //         : user
+  //     )
+  //   );
+  // };
 
-  const handleSavePresence = async () => {
-    const presenceData = userPresence.map((user) => ({
-      userId: user._id,
-      daysPresent: user.daysPresent,
-    }));
+  // const handleSavePresence = async () => {
+  //   const presenceData = userPresence.map((user) => ({
+  //     userId: user._id,
+  //     daysPresent: user.daysPresent,
+  //   }));
 
-    try {
-      await useApiAxios.post(`/courses/${selectedCourse?._id}/updatePresence`, {
-        presence: presenceData,
-      });
-      console.log("Présence mise à jour avec succès");
-      setPresenceDialogOpen(false);
-      setSelectedCourse(null);
-    } catch (error) {
-      console.error("Échec de la mise à jour de la présence:", error);
-    }
-  };
+  //   try {
+  //     await useApiAxios.post(`/courses/${selectedCourse?._id}/updatePresence`, {
+  //       presence: presenceData,
+  //     });
+  //     console.log("Présence mise à jour avec succès");
+  //     setPresenceDialogOpen(false);
+  //     setSelectedCourse(null);
+  //   } catch (error) {
+  //     console.error("Échec de la mise à jour de la présence:", error);
+  //   }
+  // };
 
   const handleDelete = async (id: string) => {
     try {
@@ -407,23 +407,23 @@ export function ModulesList() {
     }
   };
 
-  const handleDownloadEvaluations = async (courseId: string) => {
-    try {
-      const response = await useApiAxios.get(`/evaluations/${courseId}/download`, {
-        responseType: "blob",
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", "evaluations.xlsx");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Échec du téléchargement des évaluations:", error);
-    }
-  };
+  // const handleDownloadEvaluations = async (courseId: string) => {
+  //   try {
+  //     const response = await useApiAxios.get(`/evaluations/${courseId}/download`, {
+  //       responseType: "blob",
+  //     });
+  //     const url = window.URL.createObjectURL(new Blob([response.data]));
+  //     const link = document.createElement("a");
+  //     link.href = url;
+  //     link.setAttribute("download", "evaluations.xlsx");
+  //     document.body.appendChild(link);
+  //     link.click();
+  //     document.body.removeChild(link);
+  //     window.URL.revokeObjectURL(url);
+  //   } catch (error) {
+  //     console.error("Échec du téléchargement des évaluations:", error);
+  //   }
+  // };
 
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =
@@ -782,7 +782,7 @@ export function ModulesList() {
                       <TableHead className="text-blue-900 text-center">Description</TableHead>
                       <TableHead className="text-blue-900 text-center">Statut</TableHead>
                       <TableHead className="text-blue-900 text-center">Budget</TableHead>
-                      <TableHead className="text-blue-900 text-center">Archivé</TableHead>
+                      {/* <TableHead className="text-blue-900 text-center">Archivé</TableHead> */}
                       <TableHead className="text-blue-900 text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -802,7 +802,7 @@ export function ModulesList() {
                         </TableCell>
                         <TableCell className="text-center">{course.hidden === "hidden" ? "Caché" : "Visible"}</TableCell>
                         <TableCell className="text-center">{course.budget}</TableCell>
-                        <TableCell className="text-center">{course.archived ? "Oui" : "Non"}</TableCell>
+                        {/* <TableCell className="text-center">{course.archived ? "Oui" : "Non"}</TableCell> */}
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-center">
                             {!course.archived && (
@@ -832,6 +832,22 @@ export function ModulesList() {
                                 </TooltipContent>
                               </Tooltip>
                             )}
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => navigate(`/modules/${course._id}/evaluations-presence`)}
+                                >
+                                  <Eye className="h-4 w-4 text-gray-600" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Gérer évaluations et présence</p>
+                              </TooltipContent>
+                            </Tooltip>
                             
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -848,7 +864,7 @@ export function ModulesList() {
                                 <p>Quick Notify</p>
                               </TooltipContent>
                             </Tooltip>
-                            <Tooltip>
+                            {/* <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
                                   variant="ghost"
@@ -862,8 +878,8 @@ export function ModulesList() {
                               <TooltipContent>
                                 <p>Gérer la présence</p>
                               </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
+                            </Tooltip> */}
+                            {/* <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
                                   variant="ghost"
@@ -877,7 +893,7 @@ export function ModulesList() {
                               <TooltipContent>
                                 <p>Télécharger les évaluations</p>
                               </TooltipContent>
-                            </Tooltip>
+                            </Tooltip> */}
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -989,7 +1005,7 @@ export function ModulesList() {
           </CardContent>
         </Card>
 
-        {selectedCourse && (
+        {/* {selectedCourse && (
           <PresenceDialog
             open={presenceDialogOpen}
             onOpenChange={setPresenceDialogOpen}
@@ -998,7 +1014,7 @@ export function ModulesList() {
             handleSavePresence={handleSavePresence}
             courseTitle={selectedCourse.title}
           />
-        )}
+        )} */}
 
         {/* Archive Confirmation Dialog */}
         <Dialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>

@@ -17,7 +17,9 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage }).fields([
     { name: 'image', maxCount: 1 },
+    { name: 'photos', maxCount: 10 },
     { name: 'cvs', maxCount: 10 },
+    { name: 'support', maxCount: 1 },
 ]);
 
 // Route groups
@@ -32,7 +34,8 @@ const courseRoutes = [
     { method: 'get', path: '/', handler: courseController.getAllCourses },
     { method: 'get', path: '/latest-courses', handler: courseController.getLastestComments },
     { method: 'post', path: '/', handler: courseController.createCourse },
-    { method: 'get', path: '/:id', middleware: [authenticateUser], handler: courseController.getCourseById },
+    // { method: 'get', path: '/:id', middleware: [authenticateUser], handler: courseController.getCourseById },
+    { method: 'get', path: '/:id', handler: courseController.getCourseById },
     { method: 'put', path: '/:id', handler: courseController.updateCourse },
     { method: 'delete', path: '/:id', handler: courseController.deleteCourse },
     { method: 'get', path: '/user/:userId', handler: courseController.getCoursesByUserId },

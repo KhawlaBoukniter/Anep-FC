@@ -195,13 +195,19 @@ const mapProfilesToUsers = async (req, res) => {
         if (!profileIds || !Array.isArray(profileIds)) {
             return res.status(400).json({ message: "Invalid profileIds array" });
         }
-        const users = await User.find({ profileId: { $in: profileIds } }).select('_id');
-        const mapping = users.map((user) => ({ userId: user._id.toString() }));
-        if (mapping.length < profileIds.length) {
-            console.warn(`Missing users for profileIds: ${profileIds.filter(id => !users.some(u => u.profileId === id))}`);
+        const users = await User.find({ profileId: { $in: profileIds } }).select('_id name profileId');
+        const mapping = users.map((user) => ({
+            userId: user._id.toString(),
+            name: user.name || 'Unknown',
+            profileId: user.profileId
+        }));
+        const missingIds = profileIds.filter(id => !users.some(u => u.profileId === id));
+        if (missingIds.length > 0) {
+            console.warn(`Missing users for profileIds: ${missingIds}`);
         }
         res.status(200).json(mapping);
     } catch (error) {
+        console.error('Error mapping profiles to users:', error);
         res.status(500).json({ message: "Error mapping profiles to users", error: error.message });
     }
 };

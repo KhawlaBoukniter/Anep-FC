@@ -7,7 +7,7 @@ const Header: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+    const [user, setUser] = useState<{ id: string; email: string; role?: string } | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -19,10 +19,12 @@ const Header: React.FC = () => {
                         headers: { Authorization: `Bearer ${token}` },
                         credentials: 'include',
                     });
+                    const text = await response.text();
+                    console.log("Verify session response:", response.status, text);
                     if (response.ok) {
-                        const data = await response.json();
+                        const data = JSON.parse(text);
                         setIsAuthenticated(true);
-                        setUser({ id: data.id, email: data.email });
+                        setUser({ id: data.id, email: data.email, role: data.role });
                     } else {
                         localStorage.removeItem("token");
                         setIsAuthenticated(false);
@@ -55,6 +57,13 @@ const Header: React.FC = () => {
         navigate("/");
     };
 
+    const handleSwitchToProfile = () => {
+        if (user?.id) {
+            navigate(`/profile/${user.id}`);
+            setIsMobileMenuOpen(false);
+        }
+    };
+
     return (
         <header className="top-0 z-50">
             <div className="mx-auto px-4 py-2 flex items-center justify-between">
@@ -83,6 +92,11 @@ const Header: React.FC = () => {
                             <Link to={`/profile/${user.id}`} className="text-[#06668C] font-bold duration-200">
                                 Profile
                             </Link>
+                            {user.role === "admin" && (
+                                <Link to="/dashboard" className="text-[#06668C] font-bold duration-200">
+                                    Tableau de bord
+                                </Link>
+                            )}
                         </>
                     )}
                 </nav>
@@ -90,12 +104,22 @@ const Header: React.FC = () => {
                 {/* Connexion/Déconnexion - Aligné à droite */}
                 <div className="flex items-center">
                     {isAuthenticated ? (
-                        <button
-                            onClick={handleLogout}
-                            className="bg-[#06668c] text-white font-medium px-4 py-2 rounded-lg duration-200"
-                        >
-                            Déconnexion
-                        </button>
+                        <>
+                            {/* {user?.role === "admin" && (
+                                <button
+                                    onClick={handleSwitchToProfile}
+                                    className="bg-[#06668c] text-white font-medium px-4 py-2 rounded-lg mr-2 duration-200"
+                                >
+                                    Mon Profil
+                                </button>
+                            )} */}
+                            <button
+                                onClick={handleLogout}
+                                className="bg-[#06668c] text-white font-medium px-4 py-2 rounded-lg duration-200"
+                            >
+                                Déconnexion
+                            </button>
+                        </>
                     ) : (
                         <button
                             onClick={toggleLoginModal}
@@ -151,6 +175,23 @@ const Header: React.FC = () => {
                                 >
                                     Profile
                                 </Link>
+                                {user.role === "admin" && (
+                                    <>
+                                        <Link
+                                            to="/dashboard"
+                                            className="text-[#06668C] font-bold duration-200"
+                                            onClick={toggleMobileMenu}
+                                        >
+                                            Tableau de bord
+                                        </Link>
+                                        <button
+                                            className="text-[#06668C] font-bold duration-200 text-left"
+                                            onClick={handleSwitchToProfile}
+                                        >
+                                            Mon Profil
+                                        </button>
+                                    </>
+                                )}
                                 <button
                                     className="text-[#06668C] font-bold duration-200 text-left"
                                     onClick={handleLogout}

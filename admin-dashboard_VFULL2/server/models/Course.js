@@ -12,7 +12,7 @@ const resourceSchema = new mongoose.Schema({
 });
 
 const evaluationSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
+    userId: { type: Number },
     evaluationData: [{
         name: { type: String, required: false },
         value: { type: Number, required: false }
@@ -49,10 +49,25 @@ const timeSchema = new mongoose.Schema({
     }
 });
 
+const dailyPresenceSchema = new mongoose.Schema({
+    day: { type: Number, required: true },
+    status: { type: String, enum: ['present', 'absent'], default: 'absent' }
+});
+
 const courseSchema = new mongoose.Schema({
     title: { type: String, required: false },
     location: { type: String, required: false },
     imageUrl: { type: String, required: false },
+    photos: [{ type: String, required: false }],
+    link: { type: String, required: false },
+    support: {
+        type: {
+            type: String,
+            enum: ['file', 'link'],
+            required: false
+        },
+        value: { type: String, required: false }
+    },
     offline: {
         type: String,
         required: false,
@@ -67,25 +82,13 @@ const courseSchema = new mongoose.Schema({
     },
     times: [timeSchema],
     budget: { type: Number, required: false },
-    assignedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    assignedUsers: [{ type: Number }],
     resources: [resourceSchema],
     comments: [commentSchema],
-    interestedUsers: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-    }],
+    interestedUsers: [{ type: Number }],
     presence: [{
-        userId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-            required: false
-        },
-        status: {
-            type: String,
-            enum: ['present', 'absent'],
-            default: 'absent',
-            required: false
-        },
+        userId: { type: Number },
+        dailyStatuses: [dailyPresenceSchema],
         daysPresent: {
             type: Number,
             default: 0,

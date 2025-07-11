@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../co
 import { Badge } from "../components/ui/badge.tsx";
 import { Button } from "../components/ui/button.tsx";
 import { ArrowLeft, User, Shield, ChevronDown, ChevronUp } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import clsx from "clsx";
 import Header from "../components/header.tsx";
 import Footer from "../components/footer.tsx";
@@ -93,6 +93,40 @@ export default function ProfilePage() {
     const navigate = useNavigate();
     const { data: employee, isLoading, isError, error } = useEmployee(employeeId);
     const [showCompetences, setShowCompetences] = useState(false);
+    const [currentUser, setCurrentUser] = useState<{ id: string; role: string } | null>(null);
+
+    useEffect(() => {
+        const checkAuth = async () => {
+            const token = localStorage.getItem("token");
+            console.log("Checking auth with token:", token ? "present" : "missing");
+            if (token) {
+                try {
+                    const response = await fetch("/api/employees/verify-session", {
+                        headers: { Authorization: `Bearer ${token}` },
+                        credentials: "include",
+                    });
+                   const text = await response.text();
+                    console.log("Verify session response:", response.status, text);
+                    if (response.ok) {
+                        const data = JSON.parse(text);
+                        setCurrentUser({ id: data.id, role: data.role });
+                    } else {
+                        console.log("Session verification failed, status:", response.status);
+                        if (response.status === 401) {
+                            localStorage.removeItem("token");
+                            navigate("/");
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error verifying session:", error);
+                    navigate("/");
+                }
+            } else {
+                navigate("/");
+            }
+        };
+        checkAuth();
+    }, [navigate]);
 
     if (isLoading) {
         return (
@@ -103,6 +137,7 @@ export default function ProfilePage() {
     }
 
     if (isError || !employee) {
+        console.log("Profile fetch error:", error);
         return (
             <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-b from-gray-50 to-gray-100 text-red-600">
                 <p className="text-lg font-semibold">Erreur: Impossible de charger le profil de l'employé.</p>
@@ -128,21 +163,29 @@ export default function ProfilePage() {
 
     const isUser = employee.role === "user";
 
+    const isOwnProfile = currentUser?.id === employeeId;
+    const isAdmin = currentUser?.role === "admin";
+
     return (
         <div className="flex flex-col min-h-screen">
-            {isUser && <Header />}
+            <Header />
             <main className="flex-grow px-4 py-8 md:px-8 md:py-12 bg-gray-100">
                 <header className="flex items-center justify-between mb-8">
-                    {!isUser && 
                         <Button
                             variant="outline"
-                            onClick={() => navigate(-1)}
+                            onClick={() => {
+                                if (isAdmin && isOwnProfile) {
+                                navigate("/dashboard");
+                                } else {
+                                navigate(-1);
+                                }
+                            }}
                             className="border-indigo-300 text-white hover:bg-indigo-50 transition-colors duration-200"
-                            style={{ backgroundColor: '#0066cc' }}
-                        >
-                            <ArrowLeft className="mr-2 h-4 w-4" /> Retour à la liste
+                            style={{ backgroundColor: "#0066cc" }}
+                            >
+                            <ArrowLeft className="mr-2 h-4 w-4" />{" "}
+                            {isAdmin && isOwnProfile ? "Retour au tableau de bord" : "Retour à la liste"}
                         </Button>
-                    }
                     <Badge
                         variant={employee.archived ? "destructive" : "secondary"}
                         className={`text-sm font-bold px-3 py-1 transition-colors duration-200 ${employee.archived ? "bg-red-100 text-red-800 hover:bg-red-200 shadow-lg shadow-red-900 " : "bg-blue-100 text-blue-800 hover:bg-blue-200 shadow-lg shadow-blue-900 "}`}
