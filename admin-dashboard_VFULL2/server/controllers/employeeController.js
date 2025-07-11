@@ -36,9 +36,9 @@ async function getEmployee(req, res) {
         const user = await employeeModel.getEmployeeById(decoded.id);
         console.log("Authenticated user:", user);
 
-        if (decoded.id !== id && decoded.role !== "admin") {
-            return res.status(403).json({ message: "Accès non autorisé." });
-        }
+        // if (decoded.id !== id && decoded.role !== "admin") {
+        //     return res.status(403).json({ message: "Accès non autorisé." });
+        // }
 
         const employee = await employeeModel.getEmployeeById(id);
         console.log("Employee fetched:", employee);
