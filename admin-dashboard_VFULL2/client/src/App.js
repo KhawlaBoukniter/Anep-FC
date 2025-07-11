@@ -5,6 +5,8 @@ import Home from "./pages/Home.tsx";
 import AboutPage from "./components/AboutPage.tsx";
 import FormationPage from "./components/FormationPage.tsx";
 import ProfilePage from "./pages/profile.tsx";
+import Disponibilite from "./components/Disponibilite.tsx";
+import FormationPersonnel from "./components/FormationPersonnel.tsx";
 import "./App.css";
 
 // Configuration du client React Query
@@ -33,6 +35,8 @@ function App() {
             <Route path="/profile/:employeeId" element={<ProfilePage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/formation" element={<FormationPage />} />
+            <Route path="/disponibilite" element={<Disponibilite />} />
+            <Route path="/formationPersonnel" element={<FormationPersonnel />} />
           </Routes>
         </div>
       </Router>
