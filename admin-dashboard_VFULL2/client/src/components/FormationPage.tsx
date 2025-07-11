@@ -374,10 +374,6 @@ const FormationPage: React.FC = () => {
                           : "Non spécifié"}
                       </span>
                     </div>
-                    <div className="flex items-center">
-                      <span className="mr-1">👥</span>
-                      <span>{program.students}</span>
-                    </div>
                   </div>
                   <div className="flex gap-3">
                     <button
