@@ -205,6 +205,29 @@ CREATE TABLE common_files (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- nouvelle table 
+CREATE TYPE indisponibilite_type_enum AS ENUM ('CONGE', 'REUNION_HEBDOMADAIRE', 'AUTRE');
+
+CREATE TABLE indisponibilite (
+    id_indisponibilite SERIAL PRIMARY KEY,
+    id_employe INTEGER NOT NULL,
+    type_indisponibilite indisponibilite_type_enum NOT NULL,
+    date_debut TIMESTAMP NOT NULL,
+    date_fin TIMESTAMP NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    archived BOOLEAN DEFAULT FALSE,
+    CONSTRAINT fk_indisponibilite_employe
+        FOREIGN KEY (id_employe)
+        REFERENCES employe(id_employe)
+        ON DELETE CASCADE,
+    CONSTRAINT check_date_fin_after_date_debut
+        CHECK (date_fin > date_debut)
+);
+
+CREATE INDEX idx_indisponibilite_employe ON indisponibilite(id_employe);
+CREATE INDEX idx_indisponibilite_date_debut ON indisponibilite(date_debut);
 	
 
 \copy emploi(entite, formation, experience, codeemploi, poidsemploi, nom_emploi) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_emploi.csv' DELIMITER ';' CSV HEADER;
