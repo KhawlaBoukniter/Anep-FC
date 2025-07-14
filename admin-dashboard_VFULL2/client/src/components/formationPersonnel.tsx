@@ -34,7 +34,7 @@ const FormationPersonnel: React.FC = () => {
       try {
         setLoading(true)
         // Replace '1' with the actual user_id from your auth context
-        const response = await axios.get("http://localhost:3000/api/cycles-programs/user/1/modules")
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/cycles-programs/user/1/modules`)
         const enrolledData = response.data
 
         // Map backend response to EnrolledFormation interface

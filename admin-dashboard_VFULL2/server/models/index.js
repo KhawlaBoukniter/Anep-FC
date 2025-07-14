@@ -9,7 +9,7 @@ const basename = path.basename(__filename);
 const db = {};
 
 // Explicitly list Sequelize model files
-const sequelizeModelFiles = ['cycleprogram.js']; // Add other Sequelize model files here, e.g., ['cycleprogram.js', 'user.js']
+const sequelizeModelFiles = ['CycleProgram.js']; // Add other Sequelize model files here, e.g., ['cycleprogram.js', 'user.js']
 
 sequelizeModelFiles.forEach(file => {
   try {
