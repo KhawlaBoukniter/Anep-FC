@@ -55,8 +55,8 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
   const [animatedCards, setAnimatedCards] = useState<boolean[]>(new Array(program.formations.length).fill(false));
   const [selectedModules, setSelectedModules] = useState<number[]>([]);
   const [enrolledFormations, setEnrolledFormations] = useState<number[]>([]);
+  const [selectedFormation, setSelectedFormation] = useState<Formation | null>(null);
 
-  // Fetch enrolled modules for the program
   useEffect(() => {
     const fetchEnrolledModules = async () => {
       try {
@@ -122,12 +122,20 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
 
   const isEnrolled = enrolledPrograms.includes(program.id);
 
+  const openPopup = (formation: Formation) => {
+    setSelectedFormation(formation);
+  };
+
+  const closePopup = () => {
+    setSelectedFormation(null);
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
       <section className={`relative py-20 bg-gradient-to-br ${program.color} text-white overflow-hidden`}>
         <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-        <div className="mx-auto px-4 relative z-10">
+        <div className="container mx-auto px-4 relative z-10">
           <div className="flex items-center mb-6">
             <button
               onClick={onBack}
@@ -149,8 +157,6 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
             <h1 className="text-4xl md:text-6xl font-bold mb-6">{program.title}</h1>
             <p className="text-xl md:text-2xl mb-8 max-w-4xl opacity-90">{program.description}</p>
 
-           
-          
             {isEnrolled && (
               <div className="mt-6 p-4 bg-green-100 border border-green-300 rounded-lg inline-block">
                 <span className="text-green-800 font-semibold">
@@ -163,14 +169,14 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
       </section>
 
       <section className="py-20 bg-gray-50">
-        <div className="mx-auto px-4">
+        <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-[#06668C] mb-4">Formations de ce programme spécialisé</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Choisissez les formations qui vous intéressent dans ce programme. Vous pouvez vous inscrire à une ou
               plusieurs formations selon vos besoins.
             </p>
-             {!isEnrolled && (
+            {!isEnrolled && (
               <button
                 onClick={handleEnrollProgram}
                 disabled={selectedModules.length === 0}
@@ -185,7 +191,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
               </button>
             )}
           </div>
-           
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {program.formations.map((formation, index) => (
               <div
@@ -221,7 +227,10 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                     <p><strong>Mode:</strong> {formation.mode || "Non spécifié"}</p>
                   </div>
                   <div className="flex gap-3">
-                    <button className="flex-1 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg transition-colors duration-300">
+                    <button
+                      onClick={() => openPopup(formation)}
+                      className="flex-1 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg transition-colors duration-300"
+                    >
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                           strokeLinecap="round"
@@ -252,14 +261,34 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                         Inscrit ✓
                       </button>
                     )}
+                  </div>
                 </div>
+                <div
+                  className={`h-1 bg-gradient-to-r ${program.color} w-0 group-hover:w-full transition-all duration-500 rounded-b-2xl`}
+                />
               </div>
-              <div
-                className={`h-1 bg-gradient-to-r ${program.color} w-0 group-hover:w-full transition-all duration-500 rounded-b-2xl`}
-              />
-            </div>
-             ))}
+            ))}
           </div>
+
+          {/* Popup Modal */}
+          {selectedFormation && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                <h3 className="text-xl text-blue-900 font-bold mb-4 text-left">Détails de la Formation</h3>
+                <div className="space-y-2 text-left">
+                  <p><strong>Titre du module:</strong> {selectedFormation.title}</p>
+                  <p><strong>Mode:</strong> {selectedFormation.mode || "Non spécifié"}</p>
+                  <p><strong>Description:</strong> {selectedFormation.description || "Aucune description disponible"}</p>
+                </div>
+                <button
+                  onClick={closePopup}
+                  className="mt-4 bg-green-600 text-white font-medium py-2 px-12 rounded-lg hover:bg-green-700 transition-colors duration-200"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

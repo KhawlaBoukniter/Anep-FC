@@ -38,7 +38,7 @@ interface Cycle {
   color: string;
   rating: number;
   students: number;
-  formations?: Formation[]; // Make formations optional
+  formations?: Formation[];
 }
 
 interface CycleDetailsProps {
@@ -51,9 +51,9 @@ interface CycleDetailsProps {
 const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, enrolledPrograms }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [animatedCards, setAnimatedCards] = useState<boolean[]>([]);
+  const [selectedFormation, setSelectedFormation] = useState<Formation | null>(null);
 
   useEffect(() => {
-    // Initialize animatedCards based on formations length
     const formationsLength = cycle.formations?.length || 0;
     setAnimatedCards(new Array(formationsLength).fill(false));
     
@@ -73,14 +73,22 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
   }, [cycle.formations]);
 
   const isEnrolled = enrolledPrograms.includes(cycle.id);
-  const formations = cycle.formations || []; // Fallback to empty array if undefined
+  const formations = cycle.formations || [];
+
+  const openPopup = (formation: Formation) => {
+    setSelectedFormation(formation);
+  };
+
+  const closePopup = () => {
+    setSelectedFormation(null);
+  };
 
   return (
     <div className="min-h-screen bg-white">
       <Header />
       <section className={`relative py-20 bg-gradient-to-br ${cycle.color} text-white overflow-hidden`}>
         <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-        <div className="mx-auto px-4 relative z-0">
+        <div className="container mx-auto px-4 relative z-0">
           <div className="flex items-center mb-6">
             <button
               onClick={onBack}
@@ -122,7 +130,7 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
       </section>
 
       <section className="py-20 bg-gray-50">
-        <div className="mx-auto px-4">
+        <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-[#06668C] mb-4">Formations incluses dans ce cycle</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -164,7 +172,10 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
                     <p><strong>Mode:</strong> {formation.mode || "Non spécifié"}</p>
                   </div>
                   <div className="flex gap-3">
-                    <button className="flex-1 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg py-2 px-4 transition-colors duration-300">
+                    <button
+                      onClick={() => openPopup(formation)}
+                      className="flex-1 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg py-2 px-4 transition-colors duration-300"
+                    >
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                           strokeLinecap="round"
@@ -183,6 +194,26 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
               </div>
             ))}
           </div>
+
+          {/* Popup Modal */}
+          {selectedFormation && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                <h3 className="text-xl font-bold mb-4 text-left text-blue-900">Détails de la Formation</h3>
+                <div className="space-y-2 text-left">
+                  <p><strong>Titre du module:</strong> {selectedFormation.title}</p>
+                  <p><strong>Mode:</strong> {selectedFormation.mode || "Non spécifié"}</p>
+                  <p><strong>Description:</strong> {selectedFormation.description || "Aucune description disponible"}</p>
+                </div>
+                <button
+                  onClick={closePopup}
+                  className="mt-4 bg-blue-800 text-white py-2 px-4 rounded-lg hover:bg-blue-900 transition-colors duration-200"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
