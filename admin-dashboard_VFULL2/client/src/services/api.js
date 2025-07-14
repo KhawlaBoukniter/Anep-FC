@@ -9,7 +9,7 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true,
+  withCredentials: false,
 })
 
 
@@ -48,14 +48,14 @@ api.interceptors.response.use(
 
 // Services pour les employés
 export const employeeService = {
-  getAll: (params = {}) => api.get("/employees", { params }),
-  getById: (id) => api.get(`/employees/${id}`),
-  create: (data) => api.post("/employees", data),
-  update: (id, data) => api.put(`/employees/${id}`, data),
-  delete: (id) => api.delete(`/employees/${id}`),
-  createSkill: (data) => api.post("/skills", data),
-  archive: (id) => api.put(`/employees/${id}/archive`),
-  unarchive: (id) => api.put(`/employees/${id}/unarchive`),
+  getAll: (params = {}) => api.get("/api/employees", { params }),
+  getById: (id) => api.get(`/api/employees/${id}`),
+  create: (data) => api.post("/api/employees", data),
+  update: (id, data) => api.put(`/api/employees/${id}`, data),
+  delete: (id) => api.delete(`/api/employees/${id}`),
+  createSkill: (data) => api.post("/api/skills", data),
+  archive: (id) => api.put(`/api/employees/${id}/archive`),
+  unarchive: (id) => api.put(`/api/employees/${id}/unarchive`),
 }
 
 const apiClient = axios.create({
@@ -66,54 +66,54 @@ const apiClient = axios.create({
 });
 // Services pour les emplois
 export const jobService = {
-  getAll: (params = {}) => api.get("/jobs", { params }),
-  getById: (id) => api.get(`/jobs/${id}`),
-  create: (data) => api.post("/jobs", data),
-  update: (id, data) => api.put(`/jobs/${id}`, data),
-  delete: (id) => api.delete(`/jobs/${id}`),
-  archive: (id) => api.put(`/jobs/${id}/archive`),
-  unarchive: (id) => api.put(`/jobs/${id}/unarchive`),
+  getAll: (params = {}) => api.get("/api/jobs", { params }),
+  getById: (id) => api.get(`/api/jobs/${id}`),
+  create: (data) => api.post("/api/jobs", data),
+  update: (id, data) => api.put(`/api/jobs/${id}`, data),
+  delete: (id) => api.delete(`/api/jobs/${id}`),
+  archive: (id) => api.put(`/api/jobs/${id}/archive`),
+  unarchive: (id) => api.put(`/api/jobs/${id}/unarchive`),
   importFile: async (formData) => {
-    return apiClient.post("/jobs/import", formData, {
+    return api.post("/api/jobs/import", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
     });
-  },
+  }
 }
 
 // Services pour les compétences
 export const skillService = {
-  getAll: (params = {}) => api.get("/skills", { params }),
-  getById: (id) => api.get(`/skills/${id}`),
-  create: (data) => api.post("/skills", data),
-  update: (id, data) => api.put(`/skills/${id}`, data),
-  delete: (id) => api.delete(`/skills/${id}`),
+  getAll: (params = {}) => api.get("/api/skills", { params }),
+  getById: (id) => api.get(`/api/skills/${id}`),
+  create: (data) => api.post("/api/skills", data),
+  update: (id, data) => api.put(`/api/skills/${id}`, data),
+  delete: (id) => api.delete(`/api/skills/${id}`),
 }
 
 export const reqSkillService = {
-  getAll: (params = {}) => api.get("/req-skills", { params }),
-  getById: (id) => api.get(`/req-skills/${id}`),
-  create: (data) => api.post("/req-skills", data),
-  update: (id, data) => api.put(`/req-skills/${id}`, data),
-  delete: (id) => api.delete(`/req-skills/${id}`),
-  getLatestCode: () => api.get("/req-skills/latest-code"),
-  archive: (id) => api.put(`/req-skills/${id}/archive`),
-  unarchive: (id) => api.put(`/req-skills/${id}/unarchive`),
+  getAll: (params = {}) => api.get("/api/req-skills", { params }),
+  getById: (id) => api.get(`/api/req-skills/${id}`),
+  create: (data) => api.post("/api/req-skills", data),
+  update: (id, data) => api.put(`/api/req-skills/${id}`, data),
+  delete: (id) => api.delete(`/api/req-skills/${id}`),
+  getLatestCode: () => api.get("/api/req-skills/latest-code"),
+  archive: (id) => api.put(`/api/req-skills/${id}/archive`),
+  unarchive: (id) => api.put(`/api/req-skills/${id}/unarchive`),
 }
 
 // Services pour les analyses
 export const analysisService = {
-  getSkillsGap: (params) => api.get("/analysis/skills-gap", { params }),
-  getSkillsDistribution: () => api.get("/analysis/skills-distribution"),
-  getDepartmentSkills: () => api.get("/analysis/department-skills"),
-  getJobMatching: (jobId) => api.get("/analysis/job-matching", { params: { job_id: jobId } }),
-  getSkillsAnalysis: () => api.get("/analysis/skills-analysis"),
+  getSkillsGap: (params) => api.get("/api/analysis/skills-gap", { params }),
+  getSkillsDistribution: () => api.get("/api/analysis/skills-distribution"),
+  getDepartmentSkills: () => api.get("/api/analysis/department-skills"),
+  getJobMatching: (jobId) => api.get("/api/analysis/job-matching", { params: { job_id: jobId } }),
+  getSkillsAnalysis: () => api.get("/api/analysis/skills-analysis"),
 }
 
 // Service de santé de l'API
 export const healthService = {
-  check: () => api.get("/health"),
+  check: () => api.get("/api/health"),
 }
 
 export default api

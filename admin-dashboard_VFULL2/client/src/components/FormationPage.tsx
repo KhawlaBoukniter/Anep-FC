@@ -41,7 +41,7 @@ interface Program {
   formations: Formation[];
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:3000";
 
 const stripHtmlTags = (html: string): string => {
   return html.replace(/<[^>]+>/g, "").trim();

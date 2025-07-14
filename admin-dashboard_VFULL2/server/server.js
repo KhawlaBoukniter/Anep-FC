@@ -14,6 +14,7 @@ const setupSocket = require('./utils/socketManager');
 
 // Express app
 const app = express();
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 const { io, broadcastMessage } = setupSocket(server);
 
@@ -115,7 +116,7 @@ const startServer = async () => {
 
     const port = process.env.PORT || 5000;
     server.listen(port, () => {
-      console.log(`🚀 Serveur démarré sur http://localhost:${port}`);
+      console.log(`🚀 Serveur démarré sur le port ${port}`);
     });
 
     broadcastMessage('🛰 Notification test envoyée');

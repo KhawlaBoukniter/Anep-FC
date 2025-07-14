@@ -101,7 +101,7 @@ export default function ProfilePage() {
             console.log("Checking auth with token:", token ? "present" : "missing");
             if (token) {
                 try {
-                    const response = await fetch("/api/employees/verify-session", {
+                    const response = await fetch(`${process.env.REACT_APP_API_URL}/api/employees/verify-session`, {
                         headers: { Authorization: `Bearer ${token}` },
                         credentials: "include",
                     });
