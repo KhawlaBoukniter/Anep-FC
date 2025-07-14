@@ -284,4 +284,5 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
   );
 };
 
+
 export default ProgramDetails;
