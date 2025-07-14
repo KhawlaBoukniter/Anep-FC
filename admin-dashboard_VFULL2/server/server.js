@@ -5,6 +5,14 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const dotenv = require('dotenv');
+
+const envPath = process.env.NODE_ENV === 'production'
+  ? path.resolve(__dirname, '.env.production')
+  : path.resolve(__dirname, '.env.development');
+
+dotenv.config({ path: envPath });
+console.log(`✅ Chargement config depuis: ${envPath}`);
 
 // DB Connections
 const { connectDB, pool, testPostgresConnection } = require('./config/database'); // Mongo + PostgreSQL
@@ -19,7 +27,7 @@ const server = http.createServer(app);
 const { io, broadcastMessage } = setupSocket(server);
 
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: process.env.CORS_ORIGIN,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -126,6 +134,7 @@ const startServer = async () => {
   }
 };
 console.log("✅ Le BON serveur a démarré depuis :", __dirname);
+
 
 startServer();
 

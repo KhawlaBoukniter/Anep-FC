@@ -38,22 +38,22 @@ const upload = multer({
 
 router.post('/', upload, createCycleProgram);
 
-router.get('/registrations', async (req, res) => {
-    const { user_id } = req.query;
-    if (!user_id) {
-        return res.status(400).json({ message: 'user_id est requis' });
-    }
+// router.get('/registrations', async (req, res) => {
+//     const { user_id } = req.query;
+//     if (!user_id) {
+//         return res.status(400).json({ message: 'user_id est requis' });
+//     }
 
-    try {
-        const registrations = await CycleProgramRegistration.findAll({
-            where: { user_id },
-        });
-        res.status(200).json(registrations);
-    } catch (error) {
-        console.error("Erreur lors de la récupération des inscriptions:", error);
-        res.status(500).json({ message: 'Erreur serveur' });
-    }
-});
+//     try {
+//         const registrations = await CycleProgramRegistration.findAll({
+//             where: { user_id },
+//         });
+//         res.status(200).json(registrations);
+//     } catch (error) {
+//         console.error("Erreur lors de la récupération des inscriptions:", error);
+//         res.status(500).json({ message: 'Erreur serveur' });
+//     }
+// });
 router.get('/user/:user_id/modules', getUserEnrolledModules);
 router.get('/:id/registrations/download', downloadRegistrations);
 router.post('/:id/register', registerUserToCycleProgram);
