@@ -6,7 +6,6 @@ import Header from "../components/header.tsx";
 import Footer from "../components/footer.tsx";
 import ProgramDetails from "../components/program-details.tsx";
 import CycleDetails from "../components/cycle-details.tsx";
-import { useAuth } from "../contexts/AuthContext"; // Hypothetical auth hook
 
 interface Formation {
   id: number;
@@ -56,7 +55,8 @@ const getImageUrl = (imagePath: string | null | undefined, type?: "cycle" | "pro
 };
 
 const FormationPage: React.FC = () => {
-  const { user } = useAuth(); // Get the authenticated user
+  // Replace with your actual method to get the current user's ID (e.g., from context, session, or auth library)
+  const currentUserId = /* Your method to get user ID, e.g., useAuth().user?.id or session.user.id */ null;
   const [isVisible, setIsVisible] = useState(false);
   const [animatedCards, setAnimatedCards] = useState<boolean[]>([]);
   const [programs, setPrograms] = useState<Program[]>([]);
@@ -72,12 +72,12 @@ const FormationPage: React.FC = () => {
   // Fetch enrolled programs for the user
   useEffect(() => {
     const fetchEnrolledPrograms = async () => {
-      if (!user?.id) {
-        setError("Utilisateur non connecté.");
+      if (!currentUserId) {
+        setError("Vous devez être connecté pour voir vos inscriptions.");
         return;
       }
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/registrations?user_id=${user.id}`);
+        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/registrations?user_id=${currentUserId}`);
         const enrolledIds = response.data.map((reg: any) => reg.cycle_program_id);
         setEnrolledPrograms(enrolledIds);
       } catch (err) {
@@ -87,7 +87,7 @@ const FormationPage: React.FC = () => {
     };
 
     fetchEnrolledPrograms();
-  }, [user?.id]);
+  }, [currentUserId]);
 
   useEffect(() => {
     const fetchPrograms = async () => {
@@ -188,13 +188,13 @@ const FormationPage: React.FC = () => {
   };
 
   const handleEnroll = async (programId: number) => {
-    if (!user?.id) {
+    if (!currentUserId) {
       alert("Vous devez être connecté pour vous inscrire.");
       return;
     }
     try {
       const response = await axios.post(`${API_BASE_URL}/api/cycles-programs/${programId}/register`, {
-        user_id: user.id,
+        user_id: currentUserId,
         module_ids: [], // Empty for cycles
       });
       setEnrolledPrograms((prev) => [...prev, programId]);
@@ -408,10 +408,10 @@ const FormationPage: React.FC = () => {
                     {program.type === "cycle" && (
                       <button
                         onClick={() => handleEnroll(program.id)}
-                        disabled={enrolledPrograms.includes(program.id) || !user?.id}
+                        disabled={enrolledPrograms.includes(program.id) || !currentUserId}
                         className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-all duration-300 ${
-                          enrolledPrograms.includes(program.id)
-                            ? "bg-green-500 text-white cursor-not-allowed"
+                          enrolledPrograms.includes(program.id) || !currentUserId
+                            ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                             : `bg-gradient-to-r ${program.color} text-white hover:shadow-lg transform hover:-translate-y-1`
                         }`}
                       >

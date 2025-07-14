@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import Header from "./header.tsx";
 import Footer from "./footer.tsx";
-import { useAuth } from "../contexts/AuthContext"; // Hypothetical auth hook
 
 interface Formation {
   id: number;
@@ -52,7 +51,8 @@ interface ProgramDetailsProps {
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:3000";
 
 const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enrolledPrograms }) => {
-  const { user } = useAuth(); // Get the authenticated user
+  // Replace with your actual method to get the current user's ID
+  const currentUserId = /* Your method to get user ID, e.g., useAuth().user?.id or session.user.id */ null;
   const [isVisible, setIsVisible] = useState(false);
   const [selectedModules, setSelectedModules] = useState<number[]>([]);
   const [enrolledFormations, setEnrolledFormations] = useState<number[]>([]);
@@ -61,12 +61,12 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
 
   useEffect(() => {
     const fetchEnrolledModules = async () => {
-      if (!user?.id) {
+      if (!currentUserId) {
         console.error("Utilisateur non connecté.");
         return;
       }
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/${program.id}/registrations?user_id=${user.id}`);
+        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/${program.id}/registrations?user_id=${currentUserId}`);
         if (response.data.length > 0) {
           const moduleIds = response.data[0].CycleProgramUserModules.map((m: any) => m.module_id);
           setEnrolledFormations(moduleIds);
@@ -82,7 +82,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
       setIsVisible(true);
     }, 300);
     return () => clearTimeout(timer);
-  }, [program.id, user?.id]);
+  }, [program.id, currentUserId]);
 
   const handleModuleToggle = (formationId: number) => {
     setSelectedModules((prev) =>
@@ -105,7 +105,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
   };
 
   const handleEnrollProgram = async () => {
-    if (!user?.id) {
+    if (!currentUserId) {
       alert("Vous devez être connecté pour vous inscrire.");
       return;
     }
@@ -116,7 +116,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
 
     try {
       const response = await axios.post(`${API_BASE_URL}/api/cycles-programs/${program.id}/register`, {
-        user_id: user.id,
+        user_id: currentUserId,
         module_ids: JSON.stringify(selectedModules),
       });
       setEnrolledFormations((prev) => [...prev, ...selectedModules]);
@@ -193,15 +193,15 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                     checked={selectAll}
                     onChange={handleSelectAll}
                     className="mr-2 h-5 w-5"
-                    disabled={!user?.id}
+                    disabled={!currentUserId}
                   />
                   Tout sélectionner
                 </label>
                 <button
                   onClick={handleEnrollProgram}
-                  disabled={selectedModules.length === 0 || !user?.id}
+                  disabled={selectedModules.length === 0 || !currentUserId}
                   className={`py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${
-                    selectedModules.length === 0 || !user?.id
+                    selectedModules.length === 0 || !currentUserId
                       ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                       : `bg-gradient-to-r ${program.color} text-white hover:shadow-lg transform hover:-translate-y-1`
                   }`}
@@ -245,7 +245,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                       checked={selectedModules.includes(formation.id)}
                       onChange={() => handleModuleToggle(formation.id)}
                       className="h-5 w-5"
-                      disabled={!user?.id}
+                      disabled={!currentUserId}
                     />
                   ) : (
                     <span className="px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">
@@ -283,6 +283,5 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
     </div>
   );
 };
-
 
 export default ProgramDetails;
