@@ -54,14 +54,15 @@ router.get('/registrations', async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur' });
     }
 });
-router.post('/:id/register', registerUserToCycleProgram);
+router.get('/user/:user_id/modules', getUserEnrolledModules);
 router.get('/:id/registrations/download', downloadRegistrations);
+router.post('/:id/register', registerUserToCycleProgram);
+
 router.put('/:id', upload, updateCycleProgram);
 router.put('/:id/archive', archiveCycleProgram);
 router.put('/:id/unarchive', unarchiveCycleProgram);
 router.delete('/:id', deleteCycleProgram);
 router.get('/', getAllCyclePrograms);
 router.get('/:id', getCycleProgramById);
-router.get('/user/:user_id/modules', getUserEnrolledModules);
 
 module.exports = router;
