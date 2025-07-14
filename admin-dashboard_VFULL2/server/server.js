@@ -14,6 +14,7 @@ const setupSocket = require('./utils/socketManager');
 
 // Express app
 const app = express();
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 const { io, broadcastMessage } = setupSocket(server);
 
