@@ -28,7 +28,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
         setError("");
 
         try {
-            const response = await fetch(`/api/employees/check-email?email=${encodeURIComponent(email)}`);
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/employees/check-email?email=${encodeURIComponent(email)}`);
             if (!response.ok) {
                 throw new Error("Erreur lors de la vérification de l'email");
             }
@@ -53,7 +53,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
     setError("");
 
     try {
-        const response = await fetch("/api/employees/login", {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/employees/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, password }),
@@ -83,7 +83,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
         setError("");
 
         try {
-            const response = await fetch("/api/employees/save-password", {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/employees/save-password`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password, confirmPassword }),
