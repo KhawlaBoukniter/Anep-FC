@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import Header from "./header.tsx";
 import Footer from "./footer.tsx";
+import { useAuth } from "../contexts/AuthContext"; // Hypothetical auth hook
 
 interface Formation {
   id: number;
@@ -51,6 +52,7 @@ interface ProgramDetailsProps {
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:3000";
 
 const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enrolledPrograms }) => {
+  const { user } = useAuth(); // Get the authenticated user
   const [isVisible, setIsVisible] = useState(false);
   const [selectedModules, setSelectedModules] = useState<number[]>([]);
   const [enrolledFormations, setEnrolledFormations] = useState<number[]>([]);
@@ -59,9 +61,12 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
 
   useEffect(() => {
     const fetchEnrolledModules = async () => {
+      if (!user?.id) {
+        console.error("Utilisateur non connecté.");
+        return;
+      }
       try {
-        const userId = 1; // Remplacer par l'ID utilisateur réel depuis l'authentification
-        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/${program.id}/registrations?user_id=${userId}`);
+        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/${program.id}/registrations?user_id=${user.id}`);
         if (response.data.length > 0) {
           const moduleIds = response.data[0].CycleProgramUserModules.map((m: any) => m.module_id);
           setEnrolledFormations(moduleIds);
@@ -77,7 +82,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
       setIsVisible(true);
     }, 300);
     return () => clearTimeout(timer);
-  }, [program.id]);
+  }, [program.id, user?.id]);
 
   const handleModuleToggle = (formationId: number) => {
     setSelectedModules((prev) =>
@@ -100,15 +105,18 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
   };
 
   const handleEnrollProgram = async () => {
+    if (!user?.id) {
+      alert("Vous devez être connecté pour vous inscrire.");
+      return;
+    }
     if (selectedModules.length === 0) {
       alert("Veuillez sélectionner au moins un module pour vous inscrire.");
       return;
     }
 
     try {
-      const userId = 1; // Remplacer par l'ID utilisateur réel depuis l'authentification
       const response = await axios.post(`${API_BASE_URL}/api/cycles-programs/${program.id}/register`, {
-        user_id: userId,
+        user_id: user.id,
         module_ids: JSON.stringify(selectedModules),
       });
       setEnrolledFormations((prev) => [...prev, ...selectedModules]);
@@ -185,14 +193,15 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                     checked={selectAll}
                     onChange={handleSelectAll}
                     className="mr-2 h-5 w-5"
+                    disabled={!user?.id}
                   />
                   Tout sélectionner
                 </label>
                 <button
                   onClick={handleEnrollProgram}
-                  disabled={selectedModules.length === 0}
+                  disabled={selectedModules.length === 0 || !user?.id}
                   className={`py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${
-                    selectedModules.length === 0
+                    selectedModules.length === 0 || !user?.id
                       ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                       : `bg-gradient-to-r ${program.color} text-white hover:shadow-lg transform hover:-translate-y-1`
                   }`}
@@ -236,6 +245,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                       checked={selectedModules.includes(formation.id)}
                       onChange={() => handleModuleToggle(formation.id)}
                       className="h-5 w-5"
+                      disabled={!user?.id}
                     />
                   ) : (
                     <span className="px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">

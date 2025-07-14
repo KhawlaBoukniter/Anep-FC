@@ -3,6 +3,7 @@ import type React from "react";
 import { useState, useEffect } from "react";
 import Header from "./header.tsx";
 import Footer from "./footer.tsx";
+import { useAuth } from "../contexts/AuthContext"; // Hypothetical auth hook
 
 interface Formation {
   id: number;
@@ -49,6 +50,7 @@ interface CycleDetailsProps {
 }
 
 const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, enrolledPrograms }) => {
+  const { user } = useAuth(); // Get the authenticated user
   const [isVisible, setIsVisible] = useState(false);
   const [animatedCards, setAnimatedCards] = useState<boolean[]>([]);
   const [selectedFormation, setSelectedFormation] = useState<Formation | null>(null);
@@ -113,7 +115,12 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
             {!isEnrolled && (
               <button
                 onClick={() => onEnroll(cycle.id)}
-                className={`py-3 px-6 rounded-lg font-semibold transition-all duration-300 bg-gradient-to-r ${cycle.color} text-white hover:shadow-lg transform hover:-translate-y-1`}
+                disabled={!user?.id}
+                className={`py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${
+                  !user?.id
+                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                    : `bg-gradient-to-r ${cycle.color} text-white hover:shadow-lg transform hover:-translate-y-1`
+                }`}
               >
                 S'inscrire au cycle
               </button>
