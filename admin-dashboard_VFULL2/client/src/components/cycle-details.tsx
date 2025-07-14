@@ -80,7 +80,7 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
       <Header />
       <section className={`relative py-20 bg-gradient-to-br ${cycle.color} text-white overflow-hidden`}>
         <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-        <div className="container mx-auto px-4 relative z-0">
+        <div className="mx-auto px-4 relative z-0">
           <div className="flex items-center mb-6">
             <button
               onClick={onBack}
@@ -122,7 +122,7 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
       </section>
 
       <section className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
+        <div className="mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-[#06668C] mb-4">Formations incluses dans ce cycle</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">

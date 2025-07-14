@@ -240,7 +240,7 @@ const FormationPage: React.FC = () => {
           <div className="absolute bottom-20 right-20 w-24 h-24 bg-white rounded-full"></div>
           <div className="absolute top-1/2 left-1/2 w-16 h-16 bg-white rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
         </div>
-        <div className="container mx-auto px-4 relative z-10">
+        <div className="mx-auto px-4 relative z-10">
           <div
             className={`text-center transition-all duration-1000 ${
               isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
@@ -256,7 +256,7 @@ const FormationPage: React.FC = () => {
       </section>
 
       <section className="py-8 bg-gray-50 border-b">
-        <div className="container mx-auto px-4">
+        <div className="mx-auto px-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <h3 className="text-lg font-semibold text-gray-700">Filtrer par :</h3>
@@ -302,7 +302,7 @@ const FormationPage: React.FC = () => {
       </section>
 
       <section className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
+        <div className="mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-[#06668C] mb-4">
               {activeFilter === "cycle"
@@ -429,7 +429,7 @@ const FormationPage: React.FC = () => {
       </section>
 
       <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
+        <div className="mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-2  gap-8 text-center">
             <div>
               <div className="text-4xl font-bold text-purple-600 mb-2">{cyclesCount}</div>
