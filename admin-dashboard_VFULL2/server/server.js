@@ -115,7 +115,7 @@ const startServer = async () => {
 
     const port = process.env.PORT || 5000;
     server.listen(port, () => {
-      console.log(`🚀 Serveur démarré sur le port ${process.env.PORT}`);
+      console.log(`🚀 Serveur démarré sur le port ${port}`);
     });
 
     broadcastMessage('🛰 Notification test envoyée');
