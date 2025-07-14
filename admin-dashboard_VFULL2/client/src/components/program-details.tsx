@@ -52,15 +52,15 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:3000";
 
 const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enrolledPrograms }) => {
   const [isVisible, setIsVisible] = useState(false);
-  const [animatedCards, setAnimatedCards] = useState<boolean[]>(new Array(program.formations.length).fill(false));
   const [selectedModules, setSelectedModules] = useState<number[]>([]);
   const [enrolledFormations, setEnrolledFormations] = useState<number[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
   const [selectedFormation, setSelectedFormation] = useState<Formation | null>(null);
 
   useEffect(() => {
     const fetchEnrolledModules = async () => {
       try {
-        const userId = 1; // Replace with actual user ID from authentication
+        const userId = 1; // Remplacer par l'ID utilisateur réel depuis l'authentification
         const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/${program.id}/registrations?user_id=${userId}`);
         if (response.data.length > 0) {
           const moduleIds = response.data[0].CycleProgramUserModules.map((m: any) => m.module_id);
@@ -72,23 +72,12 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
     };
 
     fetchEnrolledModules();
-  }, [program.id]);
 
-  useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(true);
-      program.formations.forEach((_, index) => {
-        setTimeout(() => {
-          setAnimatedCards((prev) => {
-            const newState = [...prev];
-            newState[index] = true;
-            return newState;
-          });
-        }, index * 150);
-      });
     }, 300);
     return () => clearTimeout(timer);
-  }, [program.formations]);
+  }, [program.id]);
 
   const handleModuleToggle = (formationId: number) => {
     setSelectedModules((prev) =>
@@ -98,6 +87,18 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
     );
   };
 
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedModules([]);
+    } else {
+      const availableModules = program.formations
+        .filter((formation) => !enrolledFormations.includes(formation.id))
+        .map((formation) => formation.id);
+      setSelectedModules(availableModules);
+    }
+    setSelectAll(!selectAll);
+  };
+
   const handleEnrollProgram = async () => {
     if (selectedModules.length === 0) {
       alert("Veuillez sélectionner au moins un module pour vous inscrire.");
@@ -105,13 +106,14 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
     }
 
     try {
-      const userId = 1; // Replace with actual user ID from authentication
+      const userId = 1; // Remplacer par l'ID utilisateur réel depuis l'authentification
       const response = await axios.post(`${API_BASE_URL}/api/cycles-programs/${program.id}/register`, {
         user_id: userId,
         module_ids: JSON.stringify(selectedModules),
       });
       setEnrolledFormations((prev) => [...prev, ...selectedModules]);
       setSelectedModules([]);
+      setSelectAll(false);
       alert("Inscription réussie ! Vous recevrez un email de confirmation.");
     } catch (err: any) {
       console.error("Erreur lors de l'inscription:", err);
@@ -171,101 +173,76 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-[#06668C] mb-4">Formations de ce programme spécialisé</h2>
+            <h2 className="text-4xl font-bold text-[#06668C] mb-4">Modules de ce programme spécialisé</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Choisissez les formations qui vous intéressent dans ce programme. Vous pouvez vous inscrire à une ou
-              plusieurs formations selon vos besoins.
+              Choisissez les modules qui vous intéressent dans ce programme. Vous pouvez vous inscrire à un ou plusieurs modules selon vos besoins.
             </p>
             {!isEnrolled && (
-              <button
-                onClick={handleEnrollProgram}
-                disabled={selectedModules.length === 0}
-                className={`py-3 px-6 m-6 rounded-lg font-semibold transition-all duration-300 ${
-                  selectedModules.length === 0
-                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                    : `bg-gradient-to-r ${program.color} text-white hover:shadow-lg transform hover:-translate-y-1`
-                }`}
-              >
-                S'inscrire au programme ({selectedModules.length} module{selectedModules.length > 1 ? "s" : ""} sélectionné
-                {selectedModules.length > 1 ? "s" : ""})
-              </button>
+              <div className="flex justify-center items-center gap-4 mt-6">
+                <label className="flex items-center text-gray-700 font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={selectAll}
+                    onChange={handleSelectAll}
+                    className="mr-2 h-5 w-5"
+                  />
+                  Tout sélectionner
+                </label>
+                <button
+                  onClick={handleEnrollProgram}
+                  disabled={selectedModules.length === 0}
+                  className={`py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${
+                    selectedModules.length === 0
+                      ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                      : `bg-gradient-to-r ${program.color} text-white hover:shadow-lg transform hover:-translate-y-1`
+                  }`}
+                >
+                  S'inscrire ({selectedModules.length} module{selectedModules.length > 1 ? "s" : ""} sélectionné
+                  {selectedModules.length > 1 ? "s" : ""})
+                </button>
+              </div>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {program.formations.map((formation, index) => (
+          <div className="flex flex-col gap-4">
+            {program.formations.map((formation) => (
               <div
                 key={formation.id}
-                className={`group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 transform ${
-                  animatedCards[index] ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-10 scale-95"
-                } hover:-translate-y-2`}
+                className="flex items-center justify-between bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
               >
-                <div className="relative overflow-hidden rounded-t-2xl">
-                  <img
-                    src={formation.image || "/placeholder.svg"}
-                    alt={formation.title}
-                    className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute top-4 right-4">
-                    <span className="px-3 py-1 bg-green-600 text-white text-xs font-semibold rounded-full">
-                      Formation {index + 1}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800">{formation.title}</h3>
+                  <p className="text-sm text-gray-600">{formation.description || "Aucune description disponible"}</p>
+                  <p className="text-sm text-gray-500">Mode: {formation.mode || "Non spécifié"}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => openPopup(formation)}
+                    className="flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg transition-colors duration-300"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    Détails
+                  </button>
+                  {!enrolledFormations.includes(formation.id) ? (
+                    <input
+                      type="checkbox"
+                      checked={selectedModules.includes(formation.id)}
+                      onChange={() => handleModuleToggle(formation.id)}
+                      className="h-5 w-5"
+                    />
+                  ) : (
+                    <span className="px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">
+                      ✓ Inscrit
                     </span>
-                  </div>
-                  {enrolledFormations.includes(formation.id) && (
-                    <div className="absolute bottom-4 left-4">
-                      <span className="px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">
-                        ✓ Inscrit
-                      </span>
-                    </div>
                   )}
                 </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-800 group-hover:text-[#06668C] transition-colors duration-300">
-                    {formation.title}
-                  </h3>
-                  <div className="text-sm text-gray-500 mb-4">
-                    <p><strong>Mode:</strong> {formation.mode || "Non spécifié"}</p>
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => openPopup(formation)}
-                      className="flex-1 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg transition-colors duration-300"
-                    >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      Plus d'infos
-                    </button>
-                    {!enrolledFormations.includes(formation.id) && (
-                      <button
-                        onClick={() => handleModuleToggle(formation.id)}
-                        className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-all duration-300 ${
-                          selectedModules.includes(formation.id)
-                            ? "bg-blue-500 text-white"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                      >
-                        {selectedModules.includes(formation.id) ? "Sélectionné" : "Sélectionner"}
-                      </button>
-                    )}
-                    {enrolledFormations.includes(formation.id) && (
-                      <button
-                        className="flex-1 py-2 px-4 rounded-lg font-semibold bg-green-500 text-white cursor-not-allowed"
-                        disabled
-                      >
-                        Inscrit ✓
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div
-                  className={`h-1 bg-gradient-to-r ${program.color} w-0 group-hover:w-full transition-all duration-500 rounded-b-2xl`}
-                />
               </div>
             ))}
           </div>
