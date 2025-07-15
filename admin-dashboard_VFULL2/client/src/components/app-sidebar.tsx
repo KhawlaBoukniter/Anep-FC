@@ -1,6 +1,6 @@
 "use client"
 
-import { Users, Briefcase, Building, BarChart3, BookOpen, BookMarked, ListOrdered, ListIcon, ChevronUp } from "lucide-react"
+import { Users, Briefcase, Building, BarChart3, BookOpen, BookMarked, ListOrdered, ListIcon, ChevronUp, BadgeCheck, ClipboardCheck } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -60,6 +60,12 @@ export function AppSidebar({ activeSection, setActiveSection }: AppSidebarProps)
       id: "cycles-programs",
       group: "formation",
     },
+    {
+      title: "Validation des Inscriptions",
+      icon: ClipboardCheck,
+      id: "registrations-validation",
+      group: "formation",
+    },
   ]
 
   return (
@@ -87,11 +93,11 @@ export function AppSidebar({ activeSection, setActiveSection }: AppSidebarProps)
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel className="flex items-center justify-between px-3 py-2 cursor-pointer mt-4" onClick={() => setRecOpen(!recOpen)}>
+            <SidebarGroupLabel className="flex items-center justify-between px-3 py-2 cursor-pointer" onClick={() => setRecOpen(!recOpen)}>
               <span className="font-extrabold text-[1rem] uppercase font-[Oswald,sans-serif] text-shadow-[0_0_80px_rgba(255,255,255,0.5)] animated-text-fill py-2">Gestion Rec</span>
               <ChevronUp className={`h-5 w-5 text-[#06668C] transition-transform ${recOpen ? "rotate-180" : "rotate-90"}`} />
             </SidebarGroupLabel>
-            <SidebarGroupContent className={`${recOpen ? "block" : "hidden"} mb-4`}>
+            <SidebarGroupContent className={`${recOpen ? "block" : "hidden"} mb-2`}>
               <SidebarMenu>
                 {menuItems
                   .filter((item) => item.group === "rec")
@@ -106,6 +112,7 @@ export function AppSidebar({ activeSection, setActiveSection }: AppSidebarProps)
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+
           <SidebarGroup>
             <SidebarGroupLabel className="flex items-center justify-between px-3 py-2 cursor-pointer" onClick={() => setFormationOpen(!formationOpen)}>
               <span className="font-extrabold text-[1rem] uppercase font-[Oswald,sans-serif] text-shadow-[0_0_80px_rgba(255,255,255,0.5)] animated-text-fill py-2">Gestion Formation</span>
