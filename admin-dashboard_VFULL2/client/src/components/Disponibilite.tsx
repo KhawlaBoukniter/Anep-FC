@@ -4,6 +4,8 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { format, parseISO } from "date-fns"
 import { fr } from "date-fns/locale"
+import Header from "./header.tsx"
+import Footer from "./footer.tsx"
 
 interface Indisponibilite {
   id_indisponibilite: number
@@ -161,6 +163,7 @@ const Disponibilite: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Header />
       {/* Hero Section */}
       <section className="relative py-16 bg-gradient-to-br from-[#06668C] via-blue-700 to-green-600 text-white overflow-hidden">
         <div className="absolute inset-0 bg-black bg-opacity-20"></div>
@@ -426,6 +429,8 @@ const Disponibilite: React.FC = () => {
           )}
         </div>
       </section>
+
+      <Footer />
     </div>
   )
 }

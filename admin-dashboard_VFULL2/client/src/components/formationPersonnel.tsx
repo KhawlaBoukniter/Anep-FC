@@ -3,6 +3,8 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import axios from "axios"
+import Header from "./header.tsx";
+import Footer from "./footer.tsx";
 
 interface EnrolledFormation {
   id: number
@@ -10,7 +12,7 @@ interface EnrolledFormation {
   description: string
   duration: string
   instructor: string
-  image: string
+  // image: string
   category: string
   color: string
   enrollmentDate: string
@@ -45,7 +47,7 @@ const FormationPersonnel: React.FC = () => {
             description: module.description || "Aucune description disponible",
             duration: module.duration || "Durée inconnue",
             instructor: program.cycleProgram.facilitator || "Instructeur inconnu",
-            image: module.image || "/placeholder.svg?height=200&width=300",
+            // image: module.image || "/placeholder.svg?height=200&width=300",
             category: program.cycleProgram.type || "Non catégorisé",
             color: "from-[#06668C] to-blue-700", // Default color
             enrollmentDate: program.cycleProgram.created_at || new Date().toISOString(),
@@ -117,7 +119,9 @@ const FormationPersonnel: React.FC = () => {
   const averageProgress = formations.length > 0 ? formations.reduce((acc, f) => acc + f.progress, 0) / formations.length : 0
 
   return (
+    <> <Header />
     <div className="min-h-screen bg-gray-50">
+      
       {/* Hero Section */}
       <section className="relative py-16 bg-gradient-to-br from-[#06668C] via-blue-700 to-green-600 text-white overflow-hidden">
         <div className="absolute inset-0 bg-black bg-opacity-20"></div>
@@ -233,11 +237,11 @@ const FormationPersonnel: React.FC = () => {
                 >
                   {/* Header avec image */}
                   <div className="relative">
-                    <img
+                    {/* <img
                       src={formation.image || "/placeholder.svg"}
                       alt={formation.title}
                       className="w-full h-48 object-cover"
-                    />
+                    /> */}
                     <div className="absolute top-4 left-4">{getStatusBadge(formation.status)}</div>
                     <div className="absolute top-4 right-4">
                       <span className="px-3 py-1 bg-black bg-opacity-70 text-white text-xs font-semibold rounded-full">
@@ -334,6 +338,8 @@ const FormationPersonnel: React.FC = () => {
         </div>
       </section>
     </div>
+    <Footer />
+    </>
   )
 }
 

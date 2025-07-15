@@ -2,8 +2,8 @@
 import type React from "react";
 import { useState, useEffect } from "react";
 import axios from "axios";
-import Header from "../components/header.tsx";
-import Footer from "../components/footer.tsx";
+import Header from "./header.tsx";
+import Footer from "./footer.tsx";
 import ProgramDetails from "../components/program-details.tsx";
 import CycleDetails from "../components/cycle-details.tsx";
 

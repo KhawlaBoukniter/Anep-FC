@@ -218,7 +218,7 @@ async function login(req, res) {
         const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, SECRET_KEY, { expiresIn: "1h" });
         console.log("Login successful, token generated for:", email);
 
-        const redirectUrl = user.role === 'admin' ? '/dashboard' : `/profile/${user.id}`;
+        const redirectUrl = user.role === 'admin' ? '/dashboard' : '/formation';
         console.log(redirectUrl);
 
         res.json({
