@@ -55,8 +55,6 @@ const getImageUrl = (imagePath: string | null | undefined, type?: "cycle" | "pro
 };
 
 const FormationPage: React.FC = () => {
-  // Replace with your actual method to get the current user's ID (e.g., from context, session, or auth library)
-  const currentUserId = /* Your method to get user ID, e.g., useAuth().user?.id or session.user.id */ null;
   const [isVisible, setIsVisible] = useState(false);
   const [animatedCards, setAnimatedCards] = useState<boolean[]>([]);
   const [programs, setPrograms] = useState<Program[]>([]);
@@ -72,22 +70,18 @@ const FormationPage: React.FC = () => {
   // Fetch enrolled programs for the user
   useEffect(() => {
     const fetchEnrolledPrograms = async () => {
-      if (!currentUserId) {
-        setError("Vous devez être connecté pour voir vos inscriptions.");
-        return;
-      }
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/registrations?user_id=${currentUserId}`);
+        const userId = 1; // Replace with actual user ID from authentication
+        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/registrations?user_id=${userId}`);
         const enrolledIds = response.data.map((reg: any) => reg.cycle_program_id);
         setEnrolledPrograms(enrolledIds);
       } catch (err) {
         console.error("Erreur lors de la récupération des inscriptions:", err);
-        setError("Erreur lors de la récupération des inscriptions.");
       }
     };
 
     fetchEnrolledPrograms();
-  }, [currentUserId]);
+  }, []);
 
   useEffect(() => {
     const fetchPrograms = async () => {
@@ -188,13 +182,10 @@ const FormationPage: React.FC = () => {
   };
 
   const handleEnroll = async (programId: number) => {
-    if (!currentUserId) {
-      alert("Vous devez être connecté pour vous inscrire.");
-      return;
-    }
     try {
+      const userId = 1; // Replace with actual user ID from authentication
       const response = await axios.post(`${API_BASE_URL}/api/cycles-programs/${programId}/register`, {
-        user_id: currentUserId,
+        user_id: userId,
         module_ids: [], // Empty for cycles
       });
       setEnrolledPrograms((prev) => [...prev, programId]);
@@ -408,10 +399,10 @@ const FormationPage: React.FC = () => {
                     {program.type === "cycle" && (
                       <button
                         onClick={() => handleEnroll(program.id)}
-                        disabled={enrolledPrograms.includes(program.id) || !currentUserId}
+                        disabled={enrolledPrograms.includes(program.id)}
                         className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-all duration-300 ${
-                          enrolledPrograms.includes(program.id) || !currentUserId
-                            ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                          enrolledPrograms.includes(program.id)
+                            ? "bg-green-500 text-white cursor-not-allowed"
                             : `bg-gradient-to-r ${program.color} text-white hover:shadow-lg transform hover:-translate-y-1`
                         }`}
                       >
@@ -431,7 +422,7 @@ const FormationPage: React.FC = () => {
 
       <section className="py-20 bg-white">
         <div className="mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-2 gap-8 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-2  gap-8 text-center">
             <div>
               <div className="text-4xl font-bold text-purple-600 mb-2">{cyclesCount}</div>
               <div className="text-gray-600">Cycles disponibles</div>

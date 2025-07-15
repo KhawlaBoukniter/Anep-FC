@@ -49,8 +49,6 @@ interface CycleDetailsProps {
 }
 
 const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, enrolledPrograms }) => {
-  // Replace with your actual method to get the current user's ID
-  const currentUserId = /* Your method to get user ID, e.g., useAuth().user?.id or session.user.id */ null;
   const [isVisible, setIsVisible] = useState(false);
   const [animatedCards, setAnimatedCards] = useState<boolean[]>([]);
   const [selectedFormation, setSelectedFormation] = useState<Formation | null>(null);
@@ -115,12 +113,7 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
             {!isEnrolled && (
               <button
                 onClick={() => onEnroll(cycle.id)}
-                disabled={!currentUserId}
-                className={`py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${
-                  !currentUserId
-                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                    : `bg-gradient-to-r ${cycle.color} text-white hover:shadow-lg transform hover:-translate-y-1`
-                }`}
+                className={`py-3 px-6 rounded-lg font-semibold transition-all duration-300 bg-gradient-to-r ${cycle.color} text-white hover:shadow-lg transform hover:-translate-y-1`}
               >
                 S'inscrire au cycle
               </button>

@@ -51,8 +51,6 @@ interface ProgramDetailsProps {
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:3000";
 
 const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enrolledPrograms }) => {
-  // Replace with your actual method to get the current user's ID
-  const currentUserId = /* Your method to get user ID, e.g., useAuth().user?.id or session.user.id */ null;
   const [isVisible, setIsVisible] = useState(false);
   const [selectedModules, setSelectedModules] = useState<number[]>([]);
   const [enrolledFormations, setEnrolledFormations] = useState<number[]>([]);
@@ -61,12 +59,9 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
 
   useEffect(() => {
     const fetchEnrolledModules = async () => {
-      if (!currentUserId) {
-        console.error("Utilisateur non connecté.");
-        return;
-      }
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/${program.id}/registrations?user_id=${currentUserId}`);
+        const userId = 1; // Remplacer par l'ID utilisateur réel depuis l'authentification
+        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/${program.id}/registrations?user_id=${userId}`);
         if (response.data.length > 0) {
           const moduleIds = response.data[0].CycleProgramUserModules.map((m: any) => m.module_id);
           setEnrolledFormations(moduleIds);
@@ -82,7 +77,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
       setIsVisible(true);
     }, 300);
     return () => clearTimeout(timer);
-  }, [program.id, currentUserId]);
+  }, [program.id]);
 
   const handleModuleToggle = (formationId: number) => {
     setSelectedModules((prev) =>
@@ -105,18 +100,15 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
   };
 
   const handleEnrollProgram = async () => {
-    if (!currentUserId) {
-      alert("Vous devez être connecté pour vous inscrire.");
-      return;
-    }
     if (selectedModules.length === 0) {
       alert("Veuillez sélectionner au moins un module pour vous inscrire.");
       return;
     }
 
     try {
+      const userId = 1; // Remplacer par l'ID utilisateur réel depuis l'authentification
       const response = await axios.post(`${API_BASE_URL}/api/cycles-programs/${program.id}/register`, {
-        user_id: currentUserId,
+        user_id: userId,
         module_ids: JSON.stringify(selectedModules),
       });
       setEnrolledFormations((prev) => [...prev, ...selectedModules]);
@@ -193,15 +185,14 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                     checked={selectAll}
                     onChange={handleSelectAll}
                     className="mr-2 h-5 w-5"
-                    disabled={!currentUserId}
                   />
                   Tout sélectionner
                 </label>
                 <button
                   onClick={handleEnrollProgram}
-                  disabled={selectedModules.length === 0 || !currentUserId}
+                  disabled={selectedModules.length === 0}
                   className={`py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${
-                    selectedModules.length === 0 || !currentUserId
+                    selectedModules.length === 0
                       ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                       : `bg-gradient-to-r ${program.color} text-white hover:shadow-lg transform hover:-translate-y-1`
                   }`}
@@ -245,7 +236,6 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                       checked={selectedModules.includes(formation.id)}
                       onChange={() => handleModuleToggle(formation.id)}
                       className="h-5 w-5"
-                      disabled={!currentUserId}
                     />
                   ) : (
                     <span className="px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">
