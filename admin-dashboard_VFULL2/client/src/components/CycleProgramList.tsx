@@ -201,7 +201,12 @@ export const CycleProgramList = () => {
             return true;
         });
 
-        return matchesFilters;
+        const matchesSearch = debouncedSearchTerm
+            ? cp.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+            cp.description.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+            : true;
+
+        return matchesFilters && matchesSearch;
     });
 
     const totalPages = Math.ceil(filteredCyclePrograms.length / cycleProgramPerPage);
