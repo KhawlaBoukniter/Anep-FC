@@ -48,6 +48,7 @@ api.interceptors.response.use(
 
 // Services pour les employés
 export const employeeService = {
+  getAllProfiles: (params = {}) => api.get("/api/employee-profiles", { params }),
   getAll: (params = {}) => api.get("/api/employees", { params }),
   getById: (id) => api.get(`/api/employees/${id}`),
   create: (data) => api.post("/api/employees", data),

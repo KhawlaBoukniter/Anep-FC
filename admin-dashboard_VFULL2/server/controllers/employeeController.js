@@ -274,6 +274,39 @@ async function savePassword(req, res) {
     }
 }
 
+async function getEmployeeProfiles(req, res) {
+    try {
+        const employees = await getAllEmployees({ search: req.query.search, role: req.query.role, archived: false });
+        // Transform to match the expected Profile interface
+        const profiles = employees.map(employee => ({
+            id_profile: employee.profile?.id_profile,
+            name: employee.profile?.["NOM PRENOM"],
+            "NOM PRENOM": employee.profile?.["NOM PRENOM"],
+            ADRESSE: employee.profile?.ADRESSE,
+            DATE_NAISS: employee.profile?.DATE_NAISS,
+            DAT_REC: employee.profile?.DAT_REC,
+            CIN: employee.profile?.CIN,
+            DETACHE: employee.profile?.DETACHE,
+            SEXE: employee.profile?.SEXE,
+            SIT_F_AG: employee.profile?.SIT_F_AG,
+            STATUT: employee.profile?.STATUT,
+            DAT_POS: employee.profile?.DAT_POS,
+            LIBELLE_GRADE: employee.profile?.["LIBELLE GRADE"],
+            GRADE_ASSIMILE: employee.profile?.["GRADE ASSIMILE"],
+            LIBELLE_FONCTION: employee.profile?.["LIBELLE FONCTION"],
+            DAT_FCT: employee.profile?.DAT_FCT,
+            LIBELLE_LOC: employee.profile?.["LIBELLE LOC"],
+            LIBELLE_REGION: employee.profile?.["LIBELLE REGION"],
+            created_at: employee.created_at,
+            updated_at: employee.updated_at,
+        })).filter(profile => profile.id_profile);
+        res.json(profiles);
+    } catch (error) {
+        console.error("Controller error in getEmployeeProfiles:", error.stack);
+        res.status(500).json({ message: "Erreur serveur.", details: error.message });
+    }
+}
+
 module.exports = {
     getEmployees,
     getEmployee,
@@ -286,4 +319,5 @@ module.exports = {
     login,
     verifySession,
     savePassword,
+    getEmployeeProfiles,
 };

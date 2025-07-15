@@ -3,6 +3,7 @@ const router = express.Router();
 const employeeController = require("../controllers/employeeController");
 
 router.get("/", employeeController.getEmployees);
+router.get("/employee-profiles", employeeController.getEmployeeProfiles);
 router.get("/check-email", employeeController.checkEmail);
 router.post("/login", employeeController.login);
 router.get("/verify-session", employeeController.verifySession);

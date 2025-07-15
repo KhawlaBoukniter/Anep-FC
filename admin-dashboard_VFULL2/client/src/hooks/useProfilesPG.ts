@@ -4,7 +4,7 @@ import { Profile } from "../types/employee";
 
 export const useProfilesPG = () => {
   return useQuery("pg-profiles", async () => {
-    const response = await api.get("/employee-profiles");
+    const response = await api.get("/api/employee-profiles");
     return response.data.map((profile: Profile) => ({
       ...profile,
       _id: profile.id_profile?.toString(),
