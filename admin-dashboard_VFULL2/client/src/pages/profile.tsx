@@ -2,12 +2,14 @@
 
 import { useParams, useNavigate } from "react-router-dom";
 import { useEmployee } from "../hooks/useEmployees.js";
+import { useJobs } from "../hooks/useJobs.js"; 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card.tsx";
 import { Badge } from "../components/ui/badge.tsx";
 import { Button } from "../components/ui/button.tsx";
-import { ArrowLeft, User, Shield, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, User, Shield, ChevronDown, ChevronUp, File } from "lucide-react";
 import { useEffect, useState } from "react";
 import clsx from "clsx";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../components/ui/tooltip.tsx";
 import Header from "../components/header.tsx";
 import Footer from "../components/footer.tsx";
 
@@ -92,6 +94,7 @@ export default function ProfilePage() {
     const { employeeId } = useParams<{ employeeId: string }>();
     const navigate = useNavigate();
     const { data: employee, isLoading, isError, error } = useEmployee(employeeId);
+    const { data: jobs = [] } = useJobs({});
     const [showCompetences, setShowCompetences] = useState(false);
     const [currentUser, setCurrentUser] = useState<{ id: string; role: string } | null>(null);
 
@@ -105,7 +108,7 @@ export default function ProfilePage() {
                         headers: { Authorization: `Bearer ${token}` },
                         credentials: "include",
                     });
-                   const text = await response.text();
+                    const text = await response.text();
                     console.log("Verify session response:", response.status, text);
                     if (response.ok) {
                         const data = JSON.parse(text);
@@ -127,6 +130,10 @@ export default function ProfilePage() {
         };
         checkAuth();
     }, [navigate]);
+
+    const handleViewFile = (filePath: string) => {
+        window.open(filePath, "_blank");
+    };
 
     if (isLoading) {
         return (
@@ -158,171 +165,194 @@ export default function ProfilePage() {
             : "bg-gray-100 text-gray-800 hover:bg-gray-200";
     };
 
-    // Use the competences directly from the employee data, assuming niveau_requis (niveaur) is included from the backend
     const competencesWithRequiredLevel = employee.competences || [];
 
     const isUser = employee.role === "user";
-
     const isOwnProfile = currentUser?.id === employeeId;
     const isAdmin = currentUser?.role === "admin";
 
+    const commonFile = jobs.find((job) => job.common_file)?.common_file;
+
     return (
-        <div className="flex flex-col min-h-screen">
-            <Header />
-            <main className="flex-grow px-4 py-8 md:px-8 md:py-12 bg-gray-100">
-                <header className="flex items-center justify-between mb-8">
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                if (isAdmin && isOwnProfile) {
-                                navigate("/dashboard");
-                                } else {
-                                navigate(-1);
-                                }
-                            }}
-                            className="border-indigo-300 text-white hover:bg-indigo-50 transition-colors duration-200"
-                            style={{ backgroundColor: "#0066cc" }}
-                            >
-                            <ArrowLeft className="mr-2 h-4 w-4" />{" "}
-                            {isAdmin && isOwnProfile ? "Retour au tableau de bord" : "Retour à la liste"}
-                        </Button>
-                    <Badge
-                        variant={employee.archived ? "destructive" : "secondary"}
-                        className={`text-sm font-bold px-3 py-1 transition-colors duration-200 ${employee.archived ? "bg-red-100 text-red-800 hover:bg-red-200 shadow-lg shadow-red-900 " : "bg-blue-100 text-blue-800 hover:bg-blue-200 shadow-lg shadow-blue-900 "}`}
-                    >
-                        {employee.archived ? "Archivé" : "Actif"}
-                    </Badge>
-                </header>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-1 space-y-6">
-                        <Card className="shadow-lg h-full shadow-blue-900 hover:shadow-xl hover:shadow-blue-900 transition-shadow duration-300 rounded-xl border bg-blue-50" style={{ borderColor: '#0066cc' }}>
-                            <CardHeader className="text-center">
-                                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-900 to-blue-100 mx-auto flex items-center justify-center mb-4">
-                                    <User className="h-12 w-12 text-white" />
-                                </div>
-                                <CardTitle className="text-2xl font-bold text-gray-800">{employee.nom_complet}</CardTitle>
-                                <CardDescription className="text-gray-600">{employee.email}</CardDescription>
-                                <Badge
-                                    className={`${getRoleColor(employee.role)} mt-2 px-3 py-1 text-sm font-medium bg-blue-200 hover:bg-blue-100 transition-colors duration-200`}
-                                    variant="secondary"
-                                >
-                                    {employee.role === "admin" ? <Shield className="h-3 w-3 mr-1" /> : <User className="h-3 w-3 mr-1" style={{ color: '#0066cc' }} />}
-                                    {employee.role === "admin" ? "Admin" : "Utilisateur"}
-                                </Badge>
-                            </CardHeader>
-                            <CardContent className="text-sm space-y-3">
-                                <div><strong style={{ color: '#0066cc' }}>CIN:</strong> <p className="text-gray-600">{employee.cin || "-"}</p></div>
-                                <div><strong style={{ color: '#0066cc' }}>Téléphone 1:</strong> <p className="text-gray-600">{employee.telephone1 || "-"}</p></div>
-                                <div><strong style={{ color: '#0066cc' }}>Téléphone 2:</strong> <p className="text-gray-600">{employee.telephone2 || "-"}</p></div>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    <div className="lg:col-span-2 space-y-6">
-                        <Card className="shadow-lg bg-blue-50 shadow-blue-900 hover:shadow-blue-800 hover:shadow-xl transition-shadow duration-300 rounded-xl border border-gray-200">
-                            <CardHeader>
-                                <CardTitle className="text-xl font-bold glow-light" style={{ color: '#0066cc' }}>Détails Professionnels</CardTitle>
-                            </CardHeader>
-                            <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                                <div>
-                                    <strong className="text-green-600">Emplois:</strong>
-                                    <p className="text-gray-600">
-                                        {[...new Set((employee.emplois || []).map((e) => e.nom_emploi))].join(", ") || "-"}
-                                    </p>
-                                </div>
-                                <div>
-                                    <strong className="text-green-600">Direction:</strong>
-                                    <p className="text-gray-600">
-                                        {[...new Set((employee.emplois || []).map((e) => e.entite))].join(", ") || "-"}
-                                    </p>
-                                </div>
-                                <div>
-                                    <strong className="text-green-600">Statut:</strong>
-                                    <p className="text-gray-600">{employee.profile?.STATUT || "-"}</p>
-                                </div>
-                                <div>
-                                    <strong className="text-green-600">Catégorie:</strong>
-                                    <p className="text-gray-600">{employee.categorie || "-"}</p>
-                                </div>
-                                <div>
-                                    <strong className="text-green-600">Spécialité:</strong>
-                                    <p className="text-gray-600">{employee.specialite || "-"}</p>
-                                </div>
-                                <div>
-                                    <strong className="text-green-600">Expérience:</strong>
-                                    <p className="text-gray-600">{employee.experience_employe || "-"} ans</p>
-                                </div>
-                                <div>
-                                    <strong className="text-green-600">Date Recrutement:</strong>
-                                    <p className="text-gray-600">{formatDate(employee.profile?.DAT_REC)}</p>
-                                </div>
-                                <div>
-                                    <strong className="text-green-600">Grade:</strong>
-                                    <p className="text-gray-600">{employee.profile?.LIBELLE_GRADE || "-"}</p>
-                                </div>
-                                <div>
-                                    <strong className="text-green-600">Fonction:</strong>
-                                    <p className="text-gray-600">{employee.profile?.LIBELLE_FONCTION || "-"}</p>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="shadow-lg bg-blue-50 shadow-blue-900 hover:shadow-blue-800 hover:shadow-xl transition-shadow duration-300 rounded-xl border border-gray-200">
-                            <CardHeader>
-                                <CardTitle className="text-xl font-bold glow-light" style={{ color: '#0066cc' }}>Informations Personnelles</CardTitle>
-                            </CardHeader>
-                            <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                                <div><strong className="text-green-600">Ville:</strong><p className="text-gray-600">{employee.profile?.LIBELLE_LOC || "-"}</p></div>
-                                <div><strong className="text-green-600">Région:</strong><p className="text-gray-600">{employee.profile?.LIBELLE_REGION || "-"}</p></div>
-                                <div><strong className="text-green-600">Adresse:</strong><p className="text-gray-600">{employee.profile?.ADRESSE || "-"}</p></div>
-                                <div><strong className="text-green-600">Date de Naissance:</strong><p className="text-gray-600">{formatDate(employee.profile?.DATE_NAISS)}</p></div>
-                                <div><strong className="text-green-600">Sexe:</strong><p className="text-gray-600">{employee.profile?.SEXE || "-"}</p></div>
-                                <div><strong className="text-green-600">Situation Familiale:</strong><p className="text-gray-600">{employee.profile?.SIT_F_AG || "-"}</p></div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-
-                <Card className="mt-8 shadow-lg bg-blue-50 shadow-blue-900 hover:shadow-blue-800 hover:shadow-xl transition-shadow duration-300 rounded-xl border border-gray-200">
-                    <CardHeader>
-                        <div className="flex justify-between items-center">
-                            <CardTitle className="text-xl font-bold glow-light" style={{ color: '#0066cc' }}>Compétences</CardTitle>
+        <TooltipProvider>
+            <div className="flex flex-col min-h-screen">
+                <Header />
+                <main className="flex-grow px-4 py-8 md:px-8 md:py-12 bg-gray-100">
+                    <header className="flex items-center justify-between mb-8">
+                        
                             <Button
-                                onClick={() => setShowCompetences(!showCompetences)}
-                                variant="ghost"
-                                className="flex items-center gap-2"
-                            >
-                                {showCompetences ? (
-                                    <>
-                                        <span>Masquer les compétences</span>
-                                        <ChevronUp className="h-4 w-4" />
-                                    </>
-                                ) : (
-                                    <>
-                                        <span>Afficher les compétences</span>
-                                        <ChevronDown className="h-4 w-4" />
-                                    </>
-                                )}
+                                variant="outline"
+                                onClick={() => {
+                                    if (isAdmin && isOwnProfile) {
+                                    navigate("/dashboard");
+                                    } else {
+                                    navigate(-1);
+                                    }
+                                }}
+                                className="border-indigo-300 text-white hover:bg-indigo-50 transition-colors duration-200"
+                                style={{ backgroundColor: "#0066cc" }}
+                                >
+                                <ArrowLeft className="mr-2 h-4 w-4" />{" "}
+                                {isAdmin && isOwnProfile ? "Retour au tableau de bord" : "Retour à la liste"}
                             </Button>
+                        <div className="flex items-center gap-2">    
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className="flex items-center gap-2 bg-white rounded-lg border-green-600 hover:bg-gray-100 transition-all"
+                                        onClick={() => {
+                                            if (commonFile) handleViewFile(commonFile);
+                                        }}
+                                        disabled={!commonFile}
+                                    >
+                                        <File className="h-4 w-4" /> Voir Fichier
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Voir le fichier commun</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        
+                        <Badge
+                            variant={employee.archived ? "destructive" : "secondary"}
+                            className={`text-sm font-bold px-3 py-1 transition-colors duration-200 ${employee.archived ? "bg-red-100 text-red-800 hover:bg-red-200 shadow-lg shadow-red-900 " : "bg-blue-100 text-blue-800 hover:bg-blue-200 shadow-lg shadow-blue-900 "}`}
+                        >
+                            {employee.archived ? "Archivé" : "Actif"}
+                        </Badge>
                         </div>
-                    </CardHeader>
-                    <CardContent>
-                        {employee.competences && employee.competences.length > 0 ? (
-                            showCompetences ? (
-                                <CompetencesTable
-                                    competences={competencesWithRequiredLevel}
-                                />
+                    </header>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-1 space-y-6">
+                            <Card className="shadow-lg h-full shadow-blue-900 hover:shadow-xl hover:shadow-blue-900 transition-shadow duration-300 rounded-xl border bg-blue-50" style={{ borderColor: '#0066cc' }}>
+                                <CardHeader className="text-center">
+                                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-900 to-blue-100 mx-auto flex items-center justify-center mb-4">
+                                        <User className="h-12 w-12 text-white" />
+                                    </div>
+                                    <CardTitle className="text-2xl font-bold text-gray-800">{employee.nom_complet}</CardTitle>
+                                    <CardDescription className="text-gray-600">{employee.email}</CardDescription>
+                                    <Badge
+                                        className={`${getRoleColor(employee.role)} mt-2 px-3 py-1 text-sm font-medium bg-blue-200 hover:bg-blue-100 transition-colors duration-200`}
+                                        variant="secondary"
+                                    >
+                                        {employee.role === "admin" ? <Shield className="h-3 w-3 mr-1" /> : <User className="h-3 w-3 mr-1" style={{ color: '#0066cc' }} />}
+                                        {employee.role === "admin" ? "Admin" : "Utilisateur"}
+                                    </Badge>
+                                </CardHeader>
+                                <CardContent className="text-sm space-y-3">
+                                    <div><strong style={{ color: '#0066cc' }}>CIN:</strong> <p className="text-gray-600">{employee.cin || "-"}</p></div>
+                                    <div><strong style={{ color: '#0066cc' }}>Téléphone 1:</strong> <p className="text-gray-600">{employee.telephone1 || "-"}</p></div>
+                                    <div><strong style={{ color: '#0066cc' }}>Téléphone 2:</strong> <p className="text-gray-600">{employee.telephone2 || "-"}</p></div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        <div className="lg:col-span-2 space-y-6">
+                            <Card className="shadow-lg bg-blue-50 shadow-blue-900 hover:shadow-blue-800 hover:shadow-xl transition-shadow duration-300 rounded-xl border border-gray-200">
+                                <CardHeader>
+                                    <CardTitle className="text-xl font-bold glow-light" style={{ color: '#0066cc' }}>Détails Professionnels</CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                                    <div>
+                                        <strong className="text-green-600">Emplois:</strong>
+                                        <p className="text-gray-600">
+                                            {[...new Set((employee.emplois || []).map((e) => e.nom_emploi))].join(", ") || "-"}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <strong className="text-green-600">Direction:</strong>
+                                        <p className="text-gray-600">
+                                            {[...new Set((employee.emplois || []).map((e) => e.entite))].join(", ") || "-"}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <strong className="text-green-600">Statut:</strong>
+                                        <p className="text-gray-600">{employee.profile?.STATUT || "-"}</p>
+                                    </div>
+                                    <div>
+                                        <strong className="text-green-600">Catégorie:</strong>
+                                        <p className="text-gray-600">{employee.categorie || "-"}</p>
+                                    </div>
+                                    <div>
+                                        <strong className="text-green-600">Spécialité:</strong>
+                                        <p className="text-gray-600">{employee.specialite || "-"}</p>
+                                    </div>
+                                    <div>
+                                        <strong className="text-green-600">Expérience:</strong>
+                                        <p className="text-gray-600">{employee.experience_employe || "-"} ans</p>
+                                    </div>
+                                    <div>
+                                        <strong className="text-green-600">Date Recrutement:</strong>
+                                        <p className="text-gray-600">{formatDate(employee.profile?.DAT_REC)}</p>
+                                    </div>
+                                    <div>
+                                        <strong className="text-green-600">Grade:</strong>
+                                        <p className="text-gray-600">{employee.profile?.LIBELLE_GRADE || "-"}</p>
+                                    </div>
+                                    <div>
+                                        <strong className="text-green-600">Fonction:</strong>
+                                        <p className="text-gray-600">{employee.profile?.LIBELLE_FONCTION || "-"}</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="shadow-lg bg-blue-50 shadow-blue-900 hover:shadow-blue-800 hover:shadow-xl transition-shadow duration-300 rounded-xl border border-gray-200">
+                                <CardHeader>
+                                    <CardTitle className="text-xl font-bold glow-light" style={{ color: '#0066cc' }}>Informations Personnelles</CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                                    <div><strong className="text-green-600">Ville:</strong><p className="text-gray-600">{employee.profile?.LIBELLE_LOC || "-"}</p></div>
+                                    <div><strong className="text-green-600">Région:</strong><p className="text-gray-600">{employee.profile?.LIBELLE_REGION || "-"}</p></div>
+                                    <div><strong className="text-green-600">Adresse:</strong><p className="text-gray-600">{employee.profile?.ADRESSE || "-"}</p></div>
+                                    <div><strong className="text-green-600">Date de Naissance:</strong><p className="text-gray-600">{formatDate(employee.profile?.DATE_NAISS)}</p></div>
+                                    <div><strong className="text-green-600">Sexe:</strong><p className="text-gray-600">{employee.profile?.SEXE || "-"}</p></div>
+                                    <div><strong className="text-green-600">Situation Familiale:</strong><p className="text-gray-600">{employee.profile?.SIT_F_AG || "-"}</p></div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+
+                    <Card className="mt-8 shadow-lg bg-blue-50 shadow-blue-900 hover:shadow-blue-800 hover:shadow-xl transition-shadow duration-300 rounded-xl border border-gray-200">
+                        <CardHeader>
+                            <div className="flex justify-between items-center">
+                                <CardTitle className="text-xl font-bold glow-light" style={{ color: '#0066cc' }}>Compétences</CardTitle>
+                                <Button
+                                    onClick={() => setShowCompetences(!showCompetences)}
+                                    variant="ghost"
+                                    className="flex items-center gap-2"
+                                >
+                                    {showCompetences ? (
+                                        <>
+                                            <span>Masquer les compétences</span>
+                                            <ChevronUp className="h-4 w-4" />
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>Afficher les compétences</span>
+                                            <ChevronDown className="h-4 w-4" />
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            {employee.competences && employee.competences.length > 0 ? (
+                                showCompetences ? (
+                                    <CompetencesTable
+                                        competences={competencesWithRequiredLevel}
+                                    />
+                                ) : (
+                                    <p className="text-gray-600 italic">Cliquez sur "Afficher les compétences" pour voir la liste</p>
+                                )
                             ) : (
-                                <p className="text-gray-600 italic">Cliquez sur "Afficher les compétences" pour voir la liste</p>
-                            )
-                        ) : (
-                            <p className="text-gray-600 italic">Aucune compétence enregistrée.</p>
-                        )}
-                    </CardContent>
-                </Card>
-            </main>
-            {isUser && <Footer />}
-        </div>
+                                <p className="text-gray-600 italic">Aucune compétence enregistrée.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+                </main>
+                {isUser && <Footer />}
+            </div>
+        </TooltipProvider>
     );
 }
