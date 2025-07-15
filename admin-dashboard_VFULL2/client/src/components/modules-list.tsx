@@ -93,7 +93,7 @@ interface Filter {
 interface FilterOption {
   value: string;
   label: string;
-  options: string[];
+  options: string[] | [];
 }
 
 interface ChangeDetail {
@@ -443,6 +443,8 @@ export function ModulesList() {
         return filter.values.length === 0 || filter.values.some((val) => (val === "Caché" && course.hidden === "hidden") || (val === "Visible" && course.hidden === "visible"));
       if (filter.type === "Archivé")
         return filter.values.length === 0 || filter.values.some((val) => (val === "Oui" && course.archived) || (val === "Non" && !course.archived));
+      if (filter.type === "Cycle")
+        return filter.values.length === 0 || filter.values.includes(course.cycleProgramTitle || "");
       return true;
     });
 
@@ -506,6 +508,8 @@ export function ModulesList() {
         return "bg-green-50 text-green-700 border-green-200";
       case "Archivé":
         return "bg-gray-50 text-gray-700 border-gray-200";
+      case "Cycle":
+        return "bg-purple-50 text-purple-700 border-purple-200";
       default:
         return "bg-gray-50 text-gray-700 border-gray-200";
     }
@@ -519,6 +523,11 @@ export function ModulesList() {
     },
     { label: "Statut", value: "Statut", options: ["Visible", "Caché"] },
     { label: "Archivé", value: "Archivé", options: ["Oui", "Non"] },
+    {
+      label: "Cycle",
+      value: "Cycle",
+      options: [...new Set(courses.map((course: Course) => course.cycleProgramTitle).filter(Boolean))],
+    },
   ];
 
   const availableOptions = filterOptions.find((opt) => opt.value === newFilterType)?.options || [];
@@ -527,14 +536,14 @@ export function ModulesList() {
     total: courses.length,
     online: courses.filter((c) => c.offline === CourseMode.Online).length,
     offline: courses.filter((c) => c.offline === CourseMode.Offline).length,
-    hidden: courses.filter((c) => c.hidden === "hidden").length,
+    hybriq: courses.filter((c) => c.offline === CourseMode.Hybrid).length,
   };
 
   return (
     <TooltipProvider>
       <div className="space-y-6">
         {/* Header with stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="border-l-4 border-blue-800 shadow-lg shadow-blue-800">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -557,6 +566,32 @@ export function ModulesList() {
                 <div>
                   <p className="text-sm text-green-700">Modules en ligne</p>
                   <p className="text-2xl font-bold">{stats.online}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-l-4 border-pink-700 shadow-lg shadow-pink-700">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-pink-100 rounded-lg">
+                  <FileText className="h-5 w-5 text-pink-700" />
+                </div>
+                <div>
+                  <p className="text-sm text-pink-700">Modules en présentiel</p>
+                  <p className="text-2xl font-bold">{stats.offline}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-l-4 border-purple-700 shadow-lg shadow-purple-700">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <FileText className="h-5 w-5 text-purple-700" />
+                </div>
+                <div>
+                  <p className="text-sm text-purple-700">Modules hybrides</p>
+                  <p className="text-2xl font-bold">{stats.offline}</p>
                 </div>
               </div>
             </CardContent>
