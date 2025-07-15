@@ -454,6 +454,26 @@ export function JobsList() {
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="flex items-center gap-2 bg-white rounded-lg border-green-600 hover:bg-gray-100 transition-all"
+                      onClick={() => {
+                        if (jobs.some((job) => job.common_file)) {
+                          const firstFile = jobs.find((job) => job.common_file)?.common_file;
+                          if (firstFile) handleViewFile(firstFile);
+                        }
+                      }}
+                      disabled={!jobs.some((job) => job.common_file)}
+                    >
+                      <File className="h-4 w-4" /> Voir Fichier
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Voir le fichier commun</p>
+                  </TooltipContent>
+                </Tooltip>
                 <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
                   <DialogTrigger asChild>
                     <Button
@@ -557,7 +577,6 @@ export function JobsList() {
                         <TableHead className="w-1/6 text-center text-green-800">Formation</TableHead>
                         <TableHead className="w-1/6 text-center text-green-800">Expérience</TableHead>
                         <TableHead className="w-1/4 text-center text-green-800">Poids emploi</TableHead>
-                        <TableHead className="w-1/6 text-center text-green-800">Fichier</TableHead>
                         <TableHead className="text-center text-green-800">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -591,27 +610,6 @@ export function JobsList() {
                           <TableCell className="text-gray-600">{job.formation}</TableCell>
                           <TableCell className="text-gray-600">{job.experience || "-"}</TableCell>
                           <TableCell className="text-gray-600">{job.poidsemploi || "-"}</TableCell>
-                          <TableCell className="text-gray-600">
-                            {job.common_file ? (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-green-600"
-                                    onClick={() => handleViewFile(job.common_file)}
-                                  >
-                                    <File className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Voir le fichier</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            ) : (
-                              "-"
-                            )}
-                          </TableCell>
                           <TableCell className="text-right">
                             <div className="flex gap-1 justify-end">
                               <Tooltip>
@@ -657,22 +655,6 @@ export function JobsList() {
                                             <div>
                                               <span className="font-medium text-gray-700">Poids emploi:</span>
                                               <p className="text-gray-600">{job.poidsemploi || "-"}</p>
-                                            </div>
-                                            <div>
-                                              <span className="font-medium text-gray-700">Fichier:</span>
-                                              <p className="text-gray-600">
-                                                {job.common_file ? (
-                                                  <Button
-                                                    variant="link"
-                                                    className="text-green-600"
-                                                    onClick={() => handleViewFile(job.common_file)}
-                                                  >
-                                                    Voir le fichier
-                                                  </Button>
-                                                ) : (
-                                                  "-"
-                                                )}
-                                              </p>
                                             </div>
                                             <div>
                                               <span className="font-medium text-gray-700">Statut:</span>
