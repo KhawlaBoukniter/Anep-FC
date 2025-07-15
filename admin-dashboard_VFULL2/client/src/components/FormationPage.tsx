@@ -8,7 +8,7 @@ import ProgramDetails from "../components/program-details.tsx";
 import CycleDetails from "../components/cycle-details.tsx";
 
 interface Formation {
-  id: number;
+  id: string;
   title: string;
   description: string;
   price: string;
@@ -41,7 +41,7 @@ interface Program {
   formations: Formation[];
 }
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:3000";
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const stripHtmlTags = (html: string): string => {
   return html.replace(/<[^>]+>/g, "").trim();
@@ -66,22 +66,77 @@ const FormationPage: React.FC = () => {
   const [selectedProgramForDetails, setSelectedProgramForDetails] = useState<Program | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  // Fetch enrolled programs for the user
   useEffect(() => {
-    const fetchEnrolledPrograms = async () => {
+    const verifySession = async () => {
       try {
-        const userId = 1; // Replace with actual user ID from authentication
-        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/registrations?user_id=${userId}`);
-        const enrolledIds = response.data.map((reg: any) => reg.cycle_program_id);
-        setEnrolledPrograms(enrolledIds);
-      } catch (err) {
-        console.error("Erreur lors de la récupération des inscriptions:", err);
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setError("Veuillez vous connecter pour accéder à vos formations.");
+          setLoading(false);
+          return;
+        }
+
+        const response = await axios.get(`${API_BASE_URL}/api/employees/verify-session`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        setUserId(response.data.id.toString());
+        setLoading(false);
+      } catch (err: any) {
+        console.error("Erreur lors de la vérification de la session:", err);
+        setError("Session invalide. Veuillez vous reconnecter.");
+        setLoading(false);
       }
     };
 
-    fetchEnrolledPrograms();
+    verifySession();
   }, []);
+
+  useEffect(() => {
+    if (!loading && !userId && !error) {
+      window.location.href = "/";
+    }
+  }, [loading, userId, error]);
+
+  useEffect(() => {
+    const fetchEnrolledPrograms = async (retries = 3, delay = 1000) => {
+      if (!userId) {
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setError("Session invalide. Veuillez vous reconnecter.");
+          return;
+        }
+
+        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/registrations?user_id=${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const enrolledIds = response.data.map((reg: any) => reg.cycle_program_id);
+        setEnrolledPrograms(enrolledIds);
+      } catch (err: any) {
+        console.error("Erreur lors de la récupération des inscriptions:", err);
+        if (retries > 0 && (err.response?.status === 500 || err.response?.status === 429)) {
+          console.log(`Retrying fetchEnrolledPrograms, ${retries} attempts left...`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          return fetchEnrolledPrograms(retries - 1, delay * 2);
+        }
+        setError(err.response?.data?.message || "Impossible de charger les inscriptions. Veuillez réessayer plus tard.");
+      }
+    };
+
+    if (userId) {
+      fetchEnrolledPrograms();
+    }
+  }, [userId]);
 
   useEffect(() => {
     const fetchPrograms = async () => {
@@ -109,7 +164,7 @@ const FormationPage: React.FC = () => {
             title: m.title,
             description: stripHtmlTags(m.description || "Description non disponible"),
             instructor: cp.facilitator || "Équipe pédagogique",
-            image: getImageUrl(m.imageUrl, cp.type),
+            // image: getImageUrl(m.imageUrl, cp.type),
             objectives: m.objectives || ["Objectif 1", "Objectif 2"],
             prerequisites: m.prerequisites || ["Aucun"],
             mode: m.offline || "Non spécifié",
@@ -120,7 +175,7 @@ const FormationPage: React.FC = () => {
         setPrograms(transformedPrograms);
         setAnimatedCards(new Array(transformedPrograms.length).fill(false));
         setLoading(false);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Erreur lors de la récupération des cycles/programmes:", err);
         setError("Impossible de charger les formations. Veuillez réessayer plus tard.");
         setLoading(false);
@@ -182,12 +237,30 @@ const FormationPage: React.FC = () => {
   };
 
   const handleEnroll = async (programId: number) => {
+    if (!userId) {
+      alert("Veuillez vous connecter pour vous inscrire.");
+      return;
+    }
+
     try {
-      const userId = 1; // Replace with actual user ID from authentication
-      const response = await axios.post(`${API_BASE_URL}/api/cycles-programs/${programId}/register`, {
-        user_id: userId,
-        module_ids: [], // Empty for cycles
-      });
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Session invalide. Veuillez vous reconnecter.");
+        return;
+      }
+
+      const response = await axios.post(
+        `${API_BASE_URL}/api/cycles-programs/${programId}/register`,
+        {
+          user_id: userId,
+          module_ids: [], // Empty for cycles
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       setEnrolledPrograms((prev) => [...prev, programId]);
       setIsModalOpen(false);
       alert("Inscription réussie ! Vous recevrez un email de confirmation.");
@@ -217,6 +290,7 @@ const FormationPage: React.FC = () => {
           onBack={handleBackToList}
           onEnroll={handleEnroll}
           enrolledPrograms={enrolledPrograms}
+          userId={userId}
         />
       );
     } else {
@@ -225,6 +299,7 @@ const FormationPage: React.FC = () => {
           program={selectedProgramForDetails}
           onBack={handleBackToList}
           enrolledPrograms={enrolledPrograms}
+          userId={userId}
         />
       );
     }
@@ -399,9 +474,9 @@ const FormationPage: React.FC = () => {
                     {program.type === "cycle" && (
                       <button
                         onClick={() => handleEnroll(program.id)}
-                        disabled={enrolledPrograms.includes(program.id)}
+                        disabled={enrolledPrograms.includes(program.id) || !userId}
                         className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-all duration-300 ${
-                          enrolledPrograms.includes(program.id)
+                          enrolledPrograms.includes(program.id) || !userId
                             ? "bg-green-500 text-white cursor-not-allowed"
                             : `bg-gradient-to-r ${program.color} text-white hover:shadow-lg transform hover:-translate-y-1`
                         }`}
@@ -422,7 +497,7 @@ const FormationPage: React.FC = () => {
 
       <section className="py-20 bg-white">
         <div className="mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-2  gap-8 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-8 text-center">
             <div>
               <div className="text-4xl font-bold text-purple-600 mb-2">{cyclesCount}</div>
               <div className="text-gray-600">Cycles disponibles</div>

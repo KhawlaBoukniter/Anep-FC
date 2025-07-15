@@ -1,9 +1,11 @@
-const { CycleProgram, CycleProgramModule, CycleProgramRegistration, CycleProgramUserModule } = require('../models/index');
+const { CycleProgram, CycleProgramModule, CycleProgramRegistration, CycleProgramUserModule } = require('../models');
 const Course = require('../models/Course');
 const XLSX = require('xlsx');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
+const { Sequelize } = require('sequelize');
+const db = require('../models');
 
 const createCycleProgram = async (req, res) => {
     const {
@@ -25,7 +27,7 @@ const createCycleProgram = async (req, res) => {
 
     const files = req.files || {};
     const uploadDir = path.join(__dirname, '../Uploads');
-    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
 
     if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
@@ -92,7 +94,7 @@ const updateCycleProgram = async (req, res) => {
 
     const files = req.files || {};
     const uploadDir = path.join(__dirname, '../Uploads');
-    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
 
     try {
         const cycleProgram = await CycleProgram.findByPk(id);
@@ -130,7 +132,7 @@ const updateCycleProgram = async (req, res) => {
                 return res.status(400).json({ message: 'Invalid module_ids format' });
             }
 
-            const validModules = await Course.find({ _id: { $in: parsedModuleIds.map(id => new mongoose.Types.ObjectId(id)) } });
+            const validModules = await Course.find({ _id: { $in: parsedModuleIds } });
             if (validModules.length !== parsedModuleIds.length) {
                 return res.status(400).json({ message: 'One or more module IDs are invalid' });
             }
@@ -161,19 +163,15 @@ const getAllCyclePrograms = async (req, res) => {
 
         const cyclePrograms = await CycleProgram.findAll({
             where: query,
-            include: [{ model: CycleProgramModule, as: 'CycleProgramModules' }],
+            include: [
+                { model: CycleProgramModule, as: 'CycleProgramModules' },
+                { model: CycleProgramRegistration, as: 'CycleProgramRegistrations' },
+            ],
         });
 
         const result = await Promise.all(cyclePrograms.map(async (cp) => {
             const validModuleIds = cp.CycleProgramModules
-                .map(m => {
-                    try {
-                        return new mongoose.Types.ObjectId(m.module_id);
-                    } catch (err) {
-                        console.warn(`Invalid ObjectId: ${m.module_id}`);
-                        return null;
-                    }
-                })
+                .map(m => m.module_id)
                 .filter(id => id !== null);
 
             const modules = validModuleIds.length > 0
@@ -212,7 +210,7 @@ const getCycleProgramById = async (req, res) => {
         cycleProgram.start_date = cycleProgram.start_date || new Date().toISOString();
 
         const modules = await Course.find({
-            _id: { $in: cycleProgram.CycleProgramModules.map(m => new mongoose.Types.ObjectId(m.module_id)) },
+            _id: { $in: cycleProgram.CycleProgramModules.map(m => m.module_id) },
         });
 
         res.status(200).json({
@@ -303,110 +301,51 @@ const registerUserToCycleProgram = async (req, res) => {
     const { id } = req.params;
     const { user_id, module_ids } = req.body;
 
-    try {
-        const cycleProgram = await CycleProgram.findByPk(id, {
-            include: [{ model: CycleProgramModule, as: 'CycleProgramModules' }],
-        });
+    console.log(`Registering user ${user_id} to cycle_program ${id} with modules:`, module_ids);
 
+    try {
+        const parsedProgramId = parseInt(id, 10);
+        const parsedUserId = parseInt(user_id, 10);
+        if (isNaN(parsedProgramId) || isNaN(parsedUserId)) {
+            return res.status(400).json({ message: 'id et user_id doivent être des nombres valides' });
+        }
+
+        const cycleProgram = await CycleProgram.findByPk(parsedProgramId);
         if (!cycleProgram) {
             return res.status(404).json({ message: 'Cycle/Programme non trouvé' });
         }
 
-        // Parse module_ids if provided (for programs)
-        let validModuleIds = [];
-        if (cycleProgram.type === 'program' && module_ids && module_ids.length > 0) {
-            let parsedModuleIds;
-            try {
-                parsedModuleIds = JSON.parse(module_ids);
-                if (!Array.isArray(parsedModuleIds)) {
-                    throw new Error('module_ids doit être un tableau');
+        const transaction = await db.sequelize.transaction();
+        try {
+            const registration = await CycleProgramRegistration.create({
+                cycle_program_id: parsedProgramId,
+                user_id: parsedUserId,
+            }, { transaction });
+
+            if (module_ids && typeof module_ids === 'string') {
+                const moduleIdsArray = JSON.parse(module_ids);
+                if (Array.isArray(moduleIdsArray)) {
+                    const userModules = moduleIdsArray.map((moduleId) => ({
+                        registration_id: registration.id,
+                        module_id: moduleId,
+                    }));
+                    await CycleProgramUserModule.bulkCreate(userModules, { transaction });
+                } else {
+                    await transaction.rollback();
+                    return res.status(400).json({ message: 'module_ids doit être un tableau valide' });
                 }
-            } catch (err) {
-                return res.status(400).json({ message: 'Format de module_ids invalide' });
             }
 
-            const existingModuleIds = cycleProgram.CycleProgramModules.map(m => m.module_id);
-            const existingUserModules = await CycleProgramUserModule.findAll({
-                where: {
-                    module_id: parsedModuleIds,
-                },
-                include: [{
-                    model: CycleProgramRegistration,
-                    as: 'CycleProgramRegistration',
-                    where: { user_id, cycle_program_id: id },
-                }],
-            });
-
-            const alreadyEnrolledModuleIds = existingUserModules.map(m => m.module_id);
-            validModuleIds = parsedModuleIds.filter(id => existingModuleIds.includes(id) && !alreadyEnrolledModuleIds.includes(id));
-
-            if (validModuleIds.length === 0) {
-                return res.status(400).json({ message: 'Aucun module valide sélectionné ou vous êtes déjà inscrit à ces modules.' });
-            }
-        } else if (cycleProgram.type === 'program' && (!module_ids || JSON.parse(module_ids).length === 0)) {
-            return res.status(400).json({ message: 'Aucun module sélectionné pour le programme.' });
+            await transaction.commit();
+            console.log(`Registration created with id: ${registration.id}`);
+            res.status(200).json({ message: 'Inscription réussie', registrationId: registration.id });
+        } catch (innerError) {
+            await transaction.rollback();
+            throw innerError;
         }
-
-        // Check if user is already registered
-        let registration = await CycleProgramRegistration.findOne({
-            where: {
-                cycle_program_id: id,
-                user_id,
-            },
-        });
-
-        if (registration) {
-            // User is already enrolled, add new modules
-            if (cycleProgram.type === 'program' && validModuleIds.length > 0) {
-                const moduleEntries = validModuleIds.map(module_id => ({
-                    registration_id: registration.id,
-                    module_id,
-                }));
-                await CycleProgramUserModule.bulkCreate(moduleEntries);
-                return res.status(200).json({
-                    message: 'Nouveaux modules ajoutés avec succès.',
-                    registration,
-                    enrolledModules: validModuleIds,
-                });
-            } else {
-                return res.status(400).json({ message: 'Aucun nouveau module valide à ajouter.' });
-            }
-        }
-
-        // Create new registration for the program
-        registration = await CycleProgramRegistration.create({
-            cycle_program_id: id,
-            user_id,
-        });
-
-        // Handle module enrollment
-        let moduleEntries = [];
-        if (cycleProgram.type === 'cycle') {
-            // For cycles, enroll in all modules automatically
-            moduleEntries = cycleProgram.CycleProgramModules.map(module => ({
-                registration_id: registration.id,
-                module_id: module.module_id,
-            }));
-        } else if (cycleProgram.type === 'program') {
-            // For programs, enroll only in selected valid modules
-            moduleEntries = validModuleIds.map(module_id => ({
-                registration_id: registration.id,
-                module_id,
-            }));
-        }
-
-        if (moduleEntries.length > 0) {
-            await CycleProgramUserModule.bulkCreate(moduleEntries);
-        }
-
-        res.status(201).json({
-            message: 'Inscription au programme réussie.',
-            registration,
-            enrolledModules: moduleEntries.map(entry => entry.module_id),
-        });
     } catch (error) {
         console.error('Erreur lors de l\'inscription:', error);
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: 'Erreur serveur', details: error.message });
     }
 };
 
@@ -489,6 +428,59 @@ const getUserEnrolledModules = async (req, res) => {
     }
 };
 
+const getRegistrationsByProgramId = async (req, res) => {
+    const { id } = req.params;
+    const { user_id } = req.query;
+
+    console.log(`Fetching registrations for cycle_program_id: ${id}, user_id: ${user_id}`);
+
+    if (!user_id) {
+        return res.status(400).json({ message: 'user_id est requis' });
+    }
+    if (!req.user || user_id !== req.user.id.toString()) {
+        console.log('Access denied: user_id:', user_id, 'req.user:', req.user);
+        return res.status(403).json({ message: 'Accès non autorisé' });
+    }
+
+    try {
+        const parsedProgramId = parseInt(id, 10);
+        const parsedUserId = parseInt(user_id, 10);
+        if (isNaN(parsedProgramId) || isNaN(parsedUserId)) {
+            return res.status(400).json({ message: 'id et user_id doivent être des nombres valides' });
+        }
+
+        const cycleProgram = await CycleProgram.findByPk(parsedProgramId);
+        if (!cycleProgram) {
+            return res.status(404).json({ message: 'Cycle/Programme non trouvé' });
+        }
+
+        const registrations = await CycleProgramRegistration.findAll({
+            where: {
+                cycle_program_id: parsedProgramId,
+                user_id: parsedUserId,
+            },
+            include: [
+                {
+                    model: CycleProgram,
+                    as: 'CycleProgram',
+                    attributes: ['id', 'title', 'type'],
+                },
+                {
+                    model: CycleProgramUserModule,
+                    as: 'CycleProgramUserModules',
+                    attributes: ['module_id'],
+                },
+            ],
+        });
+
+        console.log(`Registrations fetched for program ${id}:`, registrations.length);
+        res.status(200).json(registrations);
+    } catch (error) {
+        console.error('Erreur lors de la récupération des inscriptions:', error);
+        res.status(500).json({ message: 'Erreur serveur', details: error.message });
+    }
+};
+
 module.exports = {
     createCycleProgram,
     updateCycleProgram,
@@ -500,4 +492,5 @@ module.exports = {
     registerUserToCycleProgram,
     downloadRegistrations,
     getUserEnrolledModules,
+    getRegistrationsByProgramId
 };

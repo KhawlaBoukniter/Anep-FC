@@ -9,7 +9,7 @@ const basename = path.basename(__filename);
 const db = {};
 
 // Explicitly list Sequelize model files
-const sequelizeModelFiles = ['CycleProgram.js']; // Add other Sequelize model files here, e.g., ['cycleprogram.js', 'user.js']
+const sequelizeModelFiles = ['CycleProgram.js', 'employeeModel.js']; // Add other Sequelize model files here, e.g., ['cycleprogram.js', 'user.js']
 
 sequelizeModelFiles.forEach(file => {
   try {
@@ -17,17 +17,14 @@ sequelizeModelFiles.forEach(file => {
     const exported = require(filePath);
     if (typeof exported === 'function') {
       const models = exported(sequelize, Sequelize.DataTypes);
-      // Handle single model or object of models
-      if (models && typeof models === 'object' && models.name) {
-        // Single model
-        db[models.name] = models;
-      } else if (models && typeof models === 'object') {
-        // Multiple models (e.g., from cycleprogram.js)
+      // Handle object of models
+      if (models && typeof models === 'object') {
         Object.keys(models).forEach(modelName => {
           db[modelName] = models[modelName];
+          console.log(`Loaded model: ${modelName}`);
         });
       } else {
-        console.warn(`Skipping file ${file}: does not return a valid Sequelize model or object of models`);
+        console.warn(`Skipping file ${file}: does not return an object of models`);
       }
     } else {
       console.warn(`Skipping file ${file}: does not export a function`);

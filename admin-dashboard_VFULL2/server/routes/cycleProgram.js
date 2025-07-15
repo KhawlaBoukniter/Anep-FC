@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const jwt = require("jsonwebtoken");
 const {
     createCycleProgram,
     updateCycleProgram,
@@ -13,7 +14,26 @@ const {
     downloadRegistrations,
     deleteCycleProgram,
     getUserEnrolledModules,
+    getRegistrationsByProgramId
 } = require('../controllers/cycleProgramController');
+const { CycleProgram, CycleProgramRegistration, CycleProgramUserModule } = require('../models');
+
+const authenticateToken = (req, res, next) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+        console.log('No token provided');
+        return res.status(401).json({ message: 'Token requis' });
+    }
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        console.log('Decoded token:', decoded);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        console.error('Erreur lors de la vérification du token:', error);
+        return res.status(401).json({ message: 'Token invalide ou expiré', details: error.message });
+    }
+};
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -36,27 +56,59 @@ const upload = multer({
     { name: 'attendance_list', maxCount: 1 },
 ]);
 
+if (!CycleProgram || !CycleProgramRegistration || !CycleProgramUserModule) {
+    console.error('One or more models are undefined:', {
+        CycleProgram: !!CycleProgram,
+        CycleProgramRegistration: !!CycleProgramRegistration,
+        CycleProgramUserModule: !!CycleProgramUserModule,
+    });
+    throw new Error('Required Sequelize models are not loaded');
+}
+
 router.post('/', upload, createCycleProgram);
 
-// router.get('/registrations', async (req, res) => {
-//     const { user_id } = req.query;
-//     if (!user_id) {
-//         return res.status(400).json({ message: 'user_id est requis' });
-//     }
+router.get('/registrations', authenticateToken, async (req, res) => {
+    const { user_id } = req.query;
+    if (!user_id) {
+        return res.status(400).json({ message: 'user_id est requis' });
+    }
+    if (!req.user || user_id !== req.user.id.toString()) {
+        console.log('Access denied: user_id:', user_id, 'req.user:', req.user);
+        return res.status(403).json({ message: 'Accès non autorisé' });
+    }
 
-//     try {
-//         const registrations = await CycleProgramRegistration.findAll({
-//             where: { user_id },
-//         });
-//         res.status(200).json(registrations);
-//     } catch (error) {
-//         console.error("Erreur lors de la récupération des inscriptions:", error);
-//         res.status(500).json({ message: 'Erreur serveur' });
-//     }
-// });
+    try {
+        const parsedUserId = parseInt(user_id, 10);
+        if (isNaN(parsedUserId)) {
+            return res.status(400).json({ message: 'user_id doit être un nombre valide' });
+        }
+
+        const registrations = await CycleProgramRegistration.findAll({
+            where: { user_id: parsedUserId },
+            include: [
+                {
+                    model: CycleProgram,
+                    as: 'CycleProgram',
+                    attributes: ['id', 'title', 'type'],
+                },
+                {
+                    model: CycleProgramUserModule,
+                    as: 'CycleProgramUserModules',
+                    attributes: ['module_id'],
+                },
+            ],
+        });
+
+        res.status(200).json(registrations);
+    } catch (error) {
+        console.error('Erreur lors de la récupération des inscriptions:', error);
+        res.status(500).json({ message: 'Erreur serveur', details: error.message });
+    }
+});
+router.get('/:id/registrations', authenticateToken, getRegistrationsByProgramId);
 router.get('/user/:user_id/modules', getUserEnrolledModules);
 router.get('/:id/registrations/download', downloadRegistrations);
-router.post('/:id/register', registerUserToCycleProgram);
+router.post('/:id/register', authenticateToken, registerUserToCycleProgram);
 
 router.put('/:id', upload, updateCycleProgram);
 router.put('/:id/archive', archiveCycleProgram);

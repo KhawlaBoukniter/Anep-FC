@@ -101,7 +101,7 @@ const courseSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
     // updatedAt: { type: Date },
     // deletedAt: { type: Date },
-}, { timestamps: false });
+}, { timestamps: false, suppressReservedKeysWarning: true });
 
 const Course = mongoose.model('Course', courseSchema);
 

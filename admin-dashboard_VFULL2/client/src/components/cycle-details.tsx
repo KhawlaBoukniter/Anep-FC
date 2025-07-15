@@ -5,14 +5,14 @@ import Header from "./header.tsx";
 import Footer from "./footer.tsx";
 
 interface Formation {
-  id: number;
+  id: string;
   title: string;
   description: string;
   duration: string;
   level: string;
   price: string;
   instructor: string;
-  image: string;
+  // image: string;
   objectives: string[];
   prerequisites: string[];
   mode: string;
@@ -46,9 +46,10 @@ interface CycleDetailsProps {
   onBack: () => void;
   onEnroll: (cycleId: number) => void;
   enrolledPrograms: number[];
+  userId: string | null;
 }
 
-const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, enrolledPrograms }) => {
+const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, enrolledPrograms, userId }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [animatedCards, setAnimatedCards] = useState<boolean[]>([]);
   const [selectedFormation, setSelectedFormation] = useState<Formation | null>(null);
@@ -56,7 +57,7 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
   useEffect(() => {
     const formationsLength = cycle.formations?.length || 0;
     setAnimatedCards(new Array(formationsLength).fill(false));
-    
+
     const timer = setTimeout(() => {
       setIsVisible(true);
       cycle.formations?.forEach((_, index) => {
@@ -113,7 +114,12 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
             {!isEnrolled && (
               <button
                 onClick={() => onEnroll(cycle.id)}
-                className={`py-3 px-6 rounded-lg font-semibold transition-all duration-300 bg-gradient-to-r ${cycle.color} text-white hover:shadow-lg transform hover:-translate-y-1`}
+                disabled={!userId}
+                className={`py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${
+                  !userId
+                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                    : `bg-gradient-to-r ${cycle.color} text-white hover:shadow-lg transform hover:-translate-y-1`
+                }`}
               >
                 S'inscrire au cycle
               </button>
@@ -148,11 +154,11 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
                 } hover:-translate-y-2`}
               >
                 <div className="relative overflow-hidden rounded-t-2xl">
-                  <img
+                  {/* <img
                     src={formation.image || "/placeholder.svg"}
                     alt={formation.title}
                     className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
+                  /> */}
                   <div className="absolute top-4 left-4">
                     <span className="px-3 py-1 bg-black bg-opacity-70 text-white text-xs font-semibold rounded-full">
                       {formation.level}

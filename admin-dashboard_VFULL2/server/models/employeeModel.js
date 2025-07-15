@@ -1,5 +1,6 @@
 const { pool } = require("../config/database");
 const bcrypt = require("bcrypt");
+
 async function getAllEmployees({ search, role, archived }) {
     const params = [archived !== undefined ? archived : false];
     let query = `
