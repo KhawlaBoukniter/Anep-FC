@@ -779,7 +779,7 @@ export function ModulesList() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-blue-900 text-center">Titre du module</TableHead>
-                      <TableCell className="text-blue-900 text-center">Cycle</TableCell>
+                      <TableHead className="text-blue-900 text-center">Cycle</TableHead>
                       <TableHead className="text-blue-900 text-center">Mode</TableHead>
                       <TableHead className="text-blue-900 text-center">Description</TableHead>
                       <TableHead className="text-blue-900 text-center">Statut</TableHead>
