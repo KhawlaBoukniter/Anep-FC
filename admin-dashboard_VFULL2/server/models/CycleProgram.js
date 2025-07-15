@@ -127,6 +127,11 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.INTEGER,
                 allowNull: false,
             },
+            status: {
+                type: DataTypes.ENUM('accepted', 'rejected', 'pending'),
+                allowNull: false,
+                defaultValue: 'pending',
+            },
         },
         {
             tableName: 'cycle_program_registrations',
@@ -156,6 +161,12 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.STRING(255),
                 allowNull: false,
             },
+            status: {
+                type: DataTypes.ENUM('accepted', 'rejected', 'pending'),
+                allowNull: false,
+                defaultValue: 'pending',
+            },
+
         },
         {
             tableName: 'cycle_program_user_modules',

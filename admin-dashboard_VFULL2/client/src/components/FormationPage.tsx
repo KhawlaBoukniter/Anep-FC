@@ -263,7 +263,7 @@ const FormationPage: React.FC = () => {
       );
       setEnrolledPrograms((prev) => [...prev, programId]);
       setIsModalOpen(false);
-      alert("Inscription réussie ! Vous recevrez un email de confirmation.");
+      alert("Inscription soumise. En attente de validation par l'administrateur.");
     } catch (err: any) {
       console.error("Erreur lors de l'inscription:", err);
       const errorMessage = err.response?.data?.message || "Erreur lors de l'inscription. Veuillez réessayer.";

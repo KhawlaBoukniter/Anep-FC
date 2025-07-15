@@ -14,7 +14,9 @@ const {
     downloadRegistrations,
     deleteCycleProgram,
     getUserEnrolledModules,
-    getRegistrationsByProgramId
+    getRegistrationsByProgramId,
+    getPendingRegistrations,
+    updateRegistrationStatus
 } = require('../controllers/cycleProgramController');
 const { CycleProgram, CycleProgramRegistration, CycleProgramUserModule } = require('../models');
 
@@ -105,6 +107,8 @@ router.get('/registrations', authenticateToken, async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur', details: error.message });
     }
 });
+router.get('/pending-registrations', authenticateToken, getPendingRegistrations);
+router.put('/registrations/:id/status', authenticateToken, updateRegistrationStatus);
 router.get('/:id/registrations', authenticateToken, getRegistrationsByProgramId);
 router.get('/user/:user_id/modules', getUserEnrolledModules);
 router.get('/:id/registrations/download', downloadRegistrations);

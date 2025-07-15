@@ -297,6 +297,7 @@ const deleteCycleProgram = async (req, res) => {
     }
 };
 
+
 const registerUserToCycleProgram = async (req, res) => {
     const { id } = req.params;
     const { user_id, module_ids } = req.body;
@@ -310,7 +311,9 @@ const registerUserToCycleProgram = async (req, res) => {
             return res.status(400).json({ message: 'id et user_id doivent être des nombres valides' });
         }
 
-        const cycleProgram = await CycleProgram.findByPk(parsedProgramId);
+        const cycleProgram = await CycleProgram.findByPk(parsedProgramId, {
+            include: [{ model: CycleProgramModule, as: 'CycleProgramModules' }],
+        });
         if (!cycleProgram) {
             return res.status(404).json({ message: 'Cycle/Programme non trouvé' });
         }
@@ -320,25 +323,46 @@ const registerUserToCycleProgram = async (req, res) => {
             const registration = await CycleProgramRegistration.create({
                 cycle_program_id: parsedProgramId,
                 user_id: parsedUserId,
-            }, { transaction });
+                status: 'pending',
+            },
+                { transaction }
+            );
 
-            if (module_ids && typeof module_ids === 'string') {
+            let userModules = [];
+            if (cycleProgram.type === 'cycle') {
+                // For cycles, automatically include all modules with pending status
+                const moduleIds = cycleProgram.CycleProgramModules.map((m) => m.module_id);
+                userModules = moduleIds.map((moduleId) => ({
+                    registration_id: registration.id,
+                    module_id: moduleId,
+                    status: 'pending',
+                }));
+            } else if (module_ids && typeof module_ids === 'string') {
                 const moduleIdsArray = JSON.parse(module_ids);
-                if (Array.isArray(moduleIdsArray)) {
-                    const userModules = moduleIdsArray.map((moduleId) => ({
-                        registration_id: registration.id,
-                        module_id: moduleId,
-                    }));
-                    await CycleProgramUserModule.bulkCreate(userModules, { transaction });
-                } else {
+                if (!Array.isArray(moduleIdsArray)) {
                     await transaction.rollback();
                     return res.status(400).json({ message: 'module_ids doit être un tableau valide' });
                 }
+                // Validate module IDs
+                const validModules = await Course.find({ _id: { $in: moduleIdsArray } });
+                if (validModules.length !== moduleIdsArray.length) {
+                    await transaction.rollback();
+                    return res.status(400).json({ message: 'Un ou plusieurs IDs de modules sont invalides' });
+                }
+                userModules = moduleIdsArray.map((moduleId) => ({
+                    registration_id: registration.id,
+                    module_id: moduleId,
+                    status: 'pending',
+                }));
+            }
+
+            if (userModules.length > 0) {
+                await CycleProgramUserModule.bulkCreate(userModules, { transaction });
             }
 
             await transaction.commit();
             console.log(`Registration created with id: ${registration.id}`);
-            res.status(200).json({ message: 'Inscription réussie', registrationId: registration.id });
+            res.status(200).json({ message: 'Inscription en attente de validation', registrationId: registration.id });
         } catch (innerError) {
             await transaction.rollback();
             throw innerError;
@@ -481,6 +505,99 @@ const getRegistrationsByProgramId = async (req, res) => {
     }
 };
 
+const getPendingRegistrations = async (req, res) => {
+    try {
+        const registrations = await CycleProgramRegistration.findAll({
+            where: { status: 'pending' },
+            include: [
+                { model: CycleProgram, as: 'CycleProgram', attributes: ['id', 'title', 'type'] },
+                { model: CycleProgramUserModule, as: 'CycleProgramUserModules', attributes: ['module_id', 'status'] },
+            ],
+        });
+
+        // Fetch user details and module details
+        const enrichedRegistrations = await Promise.all(
+            registrations.map(async (reg) => {
+                // Fetch user details from the employe table
+                const [user] = await db.sequelize.query(
+                    `SELECT id_employe AS id, nom_complet AS name, email FROM employe WHERE id_employe = :userId`,
+                    {
+                        replacements: { userId: reg.user_id },
+                        type: db.sequelize.QueryTypes.SELECT,
+                    }
+                );
+
+                const modules = reg.CycleProgramUserModules.length
+                    ? await Course.find({ _id: { $in: reg.CycleProgramUserModules.map((m) => m.module_id) } })
+                    : [];
+
+                return {
+                    ...reg.toJSON(),
+                    user: user || { id: reg.user_id, name: 'Unknown', email: 'Unknown' }, // Fallback if user not found
+                    modules: modules.map((m) => ({
+                        id: m._id.toString(),
+                        title: m.title,
+                        status: reg.CycleProgramUserModules.find((um) => um.module_id === m._id.toString())?.status || 'pending',
+                    })),
+                };
+            })
+        );
+
+        res.status(200).json(enrichedRegistrations);
+    } catch (error) {
+        console.error('Error fetching pending registrations:', error);
+        res.status(500).json({ message: 'Erreur serveur', details: error.message });
+    }
+};
+
+const updateRegistrationStatus = async (req, res) => {
+    const { id } = req.params;
+    const { status, moduleStatuses } = req.body; // moduleStatuses: { module_id: string, status: 'accepted' | 'rejected' | 'pending' }[]
+
+    try {
+        const registration = await CycleProgramRegistration.findByPk(id, {
+            include: [
+                { model: CycleProgram, as: 'CycleProgram' },
+                { model: CycleProgramUserModule, as: 'CycleProgramUserModules' },
+            ],
+        });
+        if (!registration) {
+            return res.status(404).json({ message: 'Inscription non trouvée' });
+        }
+
+        const transaction = await db.sequelize.transaction();
+        try {
+            // Update registration status
+            await registration.update({ status }, { transaction });
+
+            // For cycles, module statuses follow the cycle status
+            if (registration.CycleProgram.type === 'cycle') {
+                await CycleProgramUserModule.update(
+                    { status },
+                    { where: { registration_id: id }, transaction }
+                );
+            } else if (moduleStatuses && Array.isArray(moduleStatuses)) {
+                // For programs, update individual module statuses
+                for (const { module_id, status: moduleStatus } of moduleStatuses) {
+                    await CycleProgramUserModule.update(
+                        { status: moduleStatus },
+                        { where: { registration_id: id, module_id }, transaction }
+                    );
+                }
+            }
+
+            await transaction.commit();
+            res.status(200).json({ message: 'Statut de l\'inscription mis à jour' });
+        } catch (innerError) {
+            await transaction.rollback();
+            throw innerError;
+        }
+    } catch (error) {
+        console.error('Error updating registration status:', error);
+        res.status(500).json({ message: 'Erreur serveur', details: error.message });
+    }
+};
+
 module.exports = {
     createCycleProgram,
     updateCycleProgram,
@@ -492,5 +609,7 @@ module.exports = {
     registerUserToCycleProgram,
     downloadRegistrations,
     getUserEnrolledModules,
-    getRegistrationsByProgramId
+    getRegistrationsByProgramId,
+    getPendingRegistrations,
+    updateRegistrationStatus,
 };

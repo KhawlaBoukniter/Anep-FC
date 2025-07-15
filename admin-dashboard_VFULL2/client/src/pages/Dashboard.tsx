@@ -14,6 +14,7 @@ import { ModulesList } from "../components/modules-list.tsx"
 import { CycleProgramList } from "../components/CycleProgramList.tsx";
 import { Button } from "../components/ui/button.tsx";
 import { User } from "lucide-react";
+import { RegistrationsValidation } from "../components/registrations-validation.tsx";
 
 
 export default function AdminDashboard() {
@@ -89,6 +90,8 @@ export default function AdminDashboard() {
         return <ModulesList/>
       case "cycles-programs":
         return <CycleProgramList/>
+      case "registrations-validation":
+        return <RegistrationsValidation />;
       default:
         return <EmployeesList />;
     }

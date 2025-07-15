@@ -228,6 +228,13 @@ CREATE TABLE indisponibilite (
 
 CREATE INDEX idx_indisponibilite_employe ON indisponibilite(id_employe);
 CREATE INDEX idx_indisponibilite_date_debut ON indisponibilite(date_debut);
+
+
+/**************** New ************/
+CREATE TYPE registration_status AS ENUM ('accepted', 'rejected', 'pending');
+ALTER TABLE cycle_program_registrations ADD COLUMN status registration_status NOT NULL DEFAULT 'pending';
+ALTER TABLE cycle_program_user_modules ADD COLUMN status registration_status NOT NULL DEFAULT 'pending';
+/********************************/
 	
 
 \copy emploi(entite, formation, experience, codeemploi, poidsemploi, nom_emploi) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_emploi.csv' DELIMITER ';' CSV HEADER;
