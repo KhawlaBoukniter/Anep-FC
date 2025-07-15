@@ -59,6 +59,11 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
   const [selectedFormation, setSelectedFormation] = useState<Formation | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const isFullyEnrolled =
+    program.type === "program"
+      ? program.formations.every((formation) => enrolledFormations.includes(formation.id))
+      : enrolledPrograms.includes(program.id);
+
   useEffect(() => {
     const fetchEnrolledModules = async (retries = 3, delay = 1000) => {
       if (!userId) {
@@ -142,10 +147,10 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
         return;
       }
 
-      console.log('Sending enrollment request:', {
-        user_id: userId,
-        module_ids: JSON.stringify(selectedModules),
-      });
+      // console.log('Sending enrollment request:', {
+      //   user_id: userId,
+      //   module_ids: JSON.stringify(selectedModules),
+      // });
 
       const response = await axios.post(
         `${API_BASE_URL}/api/cycles-programs/${program.id}/register`,
@@ -169,8 +174,6 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
       alert(errorMessage);
     }
   };
-
-  const isEnrolled = enrolledPrograms.includes(program.id);
 
   const openPopup = (formation: Formation) => {
     setSelectedFormation(formation);
@@ -215,7 +218,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
             <h1 className="text-4xl md:text-6xl font-bold mb-6">{program.title}</h1>
             <p className="text-xl md:text-2xl mb-8 max-w-4xl opacity-90">{program.description}</p>
 
-            {isEnrolled && (
+            {isFullyEnrolled && (
               <div className="mt-6 p-4 bg-green-100 border border-green-300 rounded-lg inline-block">
                 <span className="text-green-800 font-semibold">
                   ✅ Vous êtes inscrit à ce programme !
@@ -233,7 +236,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Choisissez les modules qui vous intéressent dans ce programme. Vous pouvez vous inscrire à un ou plusieurs modules selon vos besoins.
             </p>
-            {!isEnrolled && (
+            {program.type === "program" && !isFullyEnrolled && (
               <div className="flex justify-center items-center gap-4 mt-6">
                 <label className="flex items-center text-gray-700 font-semibold">
                   <input
@@ -293,7 +296,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                       checked={selectedModules.includes(formation.id)}
                       onChange={() => handleModuleToggle(formation.id)}
                       className="h-5 w-5"
-                      disabled={!userId}
+                      disabled={!userId || (program.type === "cycle" && enrolledPrograms.includes(program.id))}
                     />
                   ) : (
                     <span className="px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">
