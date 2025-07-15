@@ -24,19 +24,56 @@ interface EnrolledFormation {
   lastAccessed: string
 }
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000"
+
 const FormationPersonnel: React.FC = () => {
   const [formations, setFormations] = useState<EnrolledFormation[]>([])
   const [isVisible, setIsVisible] = useState(false)
   const [selectedTab, setSelectedTab] = useState<"toutes" | "en_cours" | "terminees">("toutes")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
+
+  // Verify session to get user ID
+  useEffect(() => {
+    const verifySession = async () => {
+      try {
+        const token = localStorage.getItem("token")
+        if (!token) {
+          setError("Veuillez vous connecter pour accéder à vos formations.")
+          setLoading(false)
+          return
+        }
+
+        const response = await axios.get(`${API_BASE_URL}/api/employees/verify-session`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        setUserId(response.data.id.toString())
+      } catch (err: any) {
+        console.error("Erreur lors de la vérification de la session:", err)
+        setError("Session invalide. Veuillez vous reconnecter.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    verifySession()
+  }, [])
 
   useEffect(() => {
+    if (!userId) return
+
     const fetchEnrolledModules = async () => {
       try {
         setLoading(true)
-        // Replace '1' with the actual user_id from your auth context
-        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/cycles-programs/user/1/modules`)
+        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/user/${userId}/modules`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        })
         const enrolledData = response.data
 
         // Map backend response to EnrolledFormation interface
@@ -61,7 +98,7 @@ const FormationPersonnel: React.FC = () => {
         )
 
         setFormations(formattedFormations)
-      } catch (err) {
+      } catch (err: any) {
         setError("Erreur lors de la récupération des modules")
         console.error(err)
       } finally {
@@ -70,7 +107,17 @@ const FormationPersonnel: React.FC = () => {
     }
 
     fetchEnrolledModules()
+  }, [userId])
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !userId && error) {
+      window.location.href = "/"
+    }
+  }, [loading, userId, error])
+
+  // Animation effect
+  useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(true)
     }, 300)
@@ -230,7 +277,7 @@ const FormationPersonnel: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {getFilteredFormations().map((formation, index) => (
+              {getFilteredFormations().map((formation) => (
                 <div
                   key={formation.id}
                   className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden"
