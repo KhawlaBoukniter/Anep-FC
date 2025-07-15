@@ -1,4 +1,5 @@
 // courseController.js
+const { CycleProgram, CycleProgramModule } = require('../models/index');
 const Course = require('../models/Course');
 const User = require('../models/User');
 const XLSX = require('xlsx');
@@ -34,7 +35,31 @@ const getAllCourses = async (req, res) => {
         }
 
         const courses = await Course.find(query);
-        res.status(200).json(courses);
+
+        const cycleProgramModules = await CycleProgramModule.findAll({
+            include: [
+                {
+                    model: CycleProgram,
+                    as: 'CycleProgram',
+                    attributes: ['id', 'title'],
+                }
+            ]
+        })
+
+        const coursesWithCycleProgram = courses.map((course) => {
+            const moduleAssociation = cycleProgramModules.find(
+                (cpm) => cpm.module_id === course._id.toString()
+            );
+            const cycleProgramTitle = moduleAssociation
+                ? moduleAssociation.CycleProgram.title
+                : null;
+            return {
+                ...course.toObject(),
+                cycleProgramTitle,
+            };
+        });
+
+        res.status(200).json(coursesWithCycleProgram);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

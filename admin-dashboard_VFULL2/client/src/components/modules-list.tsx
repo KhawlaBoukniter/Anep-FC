@@ -52,6 +52,7 @@ interface Course {
   assignedUsers: Profile[] | string[];
   interestedUsers: Profile[] | string[];
   archived: boolean;
+  cycleProgramTitle?: string
 }
 
 interface Profile {
@@ -196,8 +197,8 @@ export function ModulesList() {
     ["courses", { search: searchTerm, archived: filters.some((f) => f.type === "Archivé" && f.values.length === 1 && f.values.includes("Oui")) }],
     () => useApiAxios.get("/courses", { params: { archived: filters.some((f) => f.type === "Archivé" && f.values.length === 1 && f.values.includes("Oui")) ? true : false } }).then((res) => res.data),
     {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      cacheTime: 10 * 60 * 1000, // 10 minutes
+      staleTime: 5 * 60 * 1000,
+      cacheTime: 10 * 60 * 1000,
       onSuccess: (data) => console.log("Successfully fetched courses:", data),
       onError: (error) => console.error("Error fetching courses:", error),
     }
@@ -778,6 +779,7 @@ export function ModulesList() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-blue-900 text-center">Titre du module</TableHead>
+                      <TableCell className="text-blue-900 text-center">Cycle</TableCell>
                       <TableHead className="text-blue-900 text-center">Mode</TableHead>
                       <TableHead className="text-blue-900 text-center">Description</TableHead>
                       <TableHead className="text-blue-900 text-center">Statut</TableHead>
@@ -790,6 +792,7 @@ export function ModulesList() {
                     {currentCourses.map((course) => (
                       <TableRow key={course._id} className="hover:bg-gray-50">
                         <TableCell className="font-medium text-sm text-center">{course.title}</TableCell>
+                        <TableCell className="font-medium text-sm text-center">{course.cycleProgramTitle}</TableCell>
                         <TableCell className="text-center">
                           {course.offline === CourseMode.Online
                             ? "En ligne"
