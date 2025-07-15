@@ -147,6 +147,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
   }, [toast]);
 
   useEffect(() => {
+    console.log("Profiles data:", profiles);
     if (profiles.length) {
       setUsers(profiles);
       setInternalInstructors(
@@ -450,13 +451,13 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     profiles.forEach((profile: Profile) => {
       const rawValue =
         field === "fonction"
-          ? profile["LIBELLE_FONCTION"]
+          ? profile["LIBELLE FONCTION"]
           : field === "localite"
-          ? profile["LIBELLE_LOC"]
+          ? profile["LIBELLE LOC"]
           : field === "gradeAssimile"
-          ? profile["GRADE_ASSIMILE"]
+          ? profile["GRADE ASSIMILE"]
           : field === "region"
-          ? profile["LIBELLE_REGION"]
+          ? profile["LIBELLE REGION"]
           : null;
 
       if (rawValue && !uniqueSet.has(rawValue)) {
@@ -470,10 +471,10 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
 
   const filteredUsers = users.filter(
     (user) =>
-      (!filter.fonction || filter.fonction.label === "All" || user["LIBELLE_FONCTION"] === filter.fonction?.label) &&
-      (!filter.localite || filter.localite.label === "All" || user["LIBELLE_LOC"] === filter.localite?.label) &&
-      (!filter.gradeAssimile || filter.gradeAssimile.label === "All" || user["GRADE_ASSIMILE"] === filter.gradeAssimile?.label) &&
-      (!filter.region || filter.region.label === "All" || user["LIBELLE_REGION"] === filter.region?.label) &&
+      (!filter.fonction || filter.fonction.label === "All" || user["LIBELLE FONCTION"] === filter.fonction?.label) &&
+      (!filter.localite || filter.localite.label === "All" || user["LIBELLE LOC"] === filter.localite?.label) &&
+      (!filter.gradeAssimile || filter.gradeAssimile.label === "All" || user["GRADE ASSIMILE"] === filter.gradeAssimile?.label) &&
+      (!filter.region || filter.region.label === "All" || user["LIBELLE REGION"] === filter.region?.label) &&
       !assignedUsers.some((assignedUser) => assignedUser.id_profile === user.id_profile)
   );
 
