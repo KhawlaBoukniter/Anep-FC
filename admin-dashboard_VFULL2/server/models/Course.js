@@ -57,7 +57,7 @@ const dailyPresenceSchema = new mongoose.Schema({
 const courseSchema = new mongoose.Schema({
     title: { type: String, required: false },
     location: { type: String, required: false },
-    imageUrl: { type: String, required: false },
+    // imageUrl: { type: String, required: false },
     photos: [{ type: String, required: false }],
     link: { type: String, required: false },
     support: {

@@ -16,7 +16,7 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage }).fields([
-    { name: 'image', maxCount: 1 },
+    // { name: 'image', maxCount: 1 },
     { name: 'photos', maxCount: 10 },
     { name: 'cvs', maxCount: 10 },
     { name: 'support', maxCount: 1 },

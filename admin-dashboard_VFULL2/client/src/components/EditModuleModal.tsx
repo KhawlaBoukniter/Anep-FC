@@ -28,7 +28,7 @@ interface Course {
   hidden: "visible" | "hidden";
   budget: number;
   location: string;
-  imageUrl: string;
+  // imageUrl: string;
   photos: string[];
   link: string;
   notification: any[];
@@ -43,7 +43,7 @@ interface Course {
       cv: File | null | string;
     };
   }[];
-  image: File | null;
+  // image: File | null;
   support: {
     type: "link",
     value: ""
@@ -95,7 +95,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     _id: module._id,
     title: module.title,
     location: module.location,
-    imageUrl: module.imageUrl,
+    // imageUrl: module.imageUrl,
     photos: module.photos || [],
     link: module.link || "",
     offline: module.offline,
@@ -107,7 +107,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
       ...time,
       dateRanges: time.dateRanges || [{ startTime: time.startTime || "", endTime: time.endTime || "" }],
     })),
-    image: null,
+    // image: null,
     support: module.support || { type: "link", value: "" },
     photosFiles: [],
     assignedUsers: module.assignedUsers,
@@ -227,37 +227,37 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     }
   }, [profiles, module, toast]);
 
-  const onDropImage = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "L'image ne doit pas dépasser 5 Mo.",
-        });
-        return;
-      }
-      if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "Seuls les formats JPEG, PNG et GIF sont acceptés.",
-        });
-        return;
-      }
-      setCourse((prev) => ({
-        ...prev,
-        image: Object.assign(file, { preview: URL.createObjectURL(file) }),
-      }));
-    }
-  }, [toast]);
+  // const onDropImage = useCallback((acceptedFiles: File[]) => {
+  //   const file = acceptedFiles[0];
+  //   if (file) {
+  //     if (file.size > 5 * 1024 * 1024) {
+  //       toast({
+  //         variant: "destructive",
+  //         title: "Erreur",
+  //         description: "L'image ne doit pas dépasser 5 Mo.",
+  //       });
+  //       return;
+  //     }
+  //     if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
+  //       toast({
+  //         variant: "destructive",
+  //         title: "Erreur",
+  //         description: "Seuls les formats JPEG, PNG et GIF sont acceptés.",
+  //       });
+  //       return;
+  //     }
+  //     setCourse((prev) => ({
+  //       ...prev,
+  //       image: Object.assign(file, { preview: URL.createObjectURL(file) }),
+  //     }));
+  //   }
+  // }, [toast]);
 
-  const { getRootProps: getImageRootProps, getInputProps: getImageInputProps, isDragActive: isImageDragActive } = useDropzone({
-    onDrop: onDropImage,
-    multiple: false,
-    accept: { 'image/jpeg': [], 'image/png': [], 'image/gif': [] },
-  });
+  // const { getRootProps: getImageRootProps, getInputProps: getImageInputProps, isDragActive: isImageDragActive } = useDropzone({
+  //   onDrop: onDropImage,
+  //   multiple: false,
+  //   accept: { 'image/jpeg': [], 'image/png': [], 'image/gif': [] },
+  // });
 
   const onDropPhotos = useCallback((acceptedFiles: File[]) => {
     const validFiles = acceptedFiles.filter((file) => {
@@ -447,7 +447,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     const uniqueSet = new Set();
     const options = [{ label: "All" }];
 
-    profiles.forEach((profile) => {
+    profiles.forEach((profile: Profile) => {
       const rawValue =
         field === "fonction"
           ? profile["LIBELLE_FONCTION"]
@@ -610,7 +610,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     const courseData = {
       ...course,
       assignedUsers: assignedUsers.map((user) => user.id_profile.toString()),
-      imageUrl: course.imageUrl,
+      // imageUrl: course.imageUrl,
       photos: course.photos,
       link: course.link,
       support: course.support
@@ -645,17 +645,17 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
       const courseData = {
         ...course,
         assignedUsers: profileIds,
-        imageUrl: course.imageUrl,
+        // imageUrl: course.imageUrl,
         photos: course.photos,
         link: course.link,
         support: course.support,
       };
 
-      if (course.image || course.photosFiles?.length || course.times.some((session) => session.externalInstructorDetails?.cv instanceof File)) {
+      if (course.photosFiles?.length || course.times.some((session) => session.externalInstructorDetails?.cv instanceof File)) {
         const formData = new FormData();
-        if (course.image) {
-          formData.append("image", course.image);
-        }
+        // if (course.image) {
+        //   formData.append("image", course.image);
+        // }
 
         if (course.photosFiles?.length) {
           course.photosFiles.forEach((photo) => {
@@ -677,10 +677,10 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
           headers: { "Content-Type": "multipart/form-data" },
         });
 
-        if (imageUploadResponse.status === 200) {
-          if (imageUploadResponse.data.imageUrl) {
-            courseData.imageUrl = imageUploadResponse.data.imageUrl;
-          }
+        // if (imageUploadResponse.status === 200) {
+        //   if (imageUploadResponse.data.imageUrl) {
+        //     courseData.imageUrl = imageUploadResponse.data.imageUrl;
+        //   }
           courseData.photos = [...(course.photos || []), ...(imageUploadResponse.data.photoUrls || [])];
           courseData.times = course.times.map((session, index) => ({
             ...session,
@@ -695,11 +695,11 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
           toast({
             variant: "destructive",
             title: "Erreur",
-            description: `Échec du téléchargement de l'image: ${imageUploadResponse.status}`,
+            description: 'Erreur lors de la cr&ation du cours',
           });
           return;
         }
-      }
+      // }
 
       for (const user of assignedUsers) {
         const conflictCourse = checkConflicts(user.id_profile.toString());
@@ -736,13 +736,13 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     setCourse({
       title: "",
       location: "",
-      imageUrl: "",
+      // imageUrl: "",
       photos: [],
       link: "",
-      offline: "",
+      offline: "offline",
       description: "",
-      hidden: "",
-      budget: "",
+      hidden: "hidden",
+      budget: 0,
       notification: [],
       times: [
         {
@@ -753,7 +753,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
           externalInstructorDetails: { phone: "", position: "", cv: null },
         },
       ],
-      image: null,
+      // image: null,
       support: {
         type: "link",
         value: ""
@@ -869,7 +869,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                   required
                 />
               </div>
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label>Image (illustration du module)</Label>
                 <div
                   {...getImageRootProps()}
@@ -917,7 +917,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                     </Button>
                   </div>
                 ) : null}
-              </div>
+              </div> */}
               <div className="space-y-2">
                 <Label>Photos (Photos prises du module)</Label>
                 <div
@@ -976,7 +976,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="link">Lien</Label>
+                <Label htmlFor="link">Lien de photos (optionel)</Label>
                 <Input
                   id="link"
                   placeholder="Entrez un lien (optionnel)"
@@ -1281,7 +1281,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
           {currentStep === 3 && (
             <div className="space-y-6">
               {isLoading && <p>Chargement des profils...</p>}
-              {error && (
+              {error as Error && (
                 <p className="text-red-500">
                   Erreur lors du chargement des profils : {(error as Error).message}
                 </p>

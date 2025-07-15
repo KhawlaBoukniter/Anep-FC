@@ -16,7 +16,7 @@ import useApiAxios from "../config/axios";
 import { useToast } from "../hooks/use-toast.ts";
 import { Checkbox } from "./ui/checkbox.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTrigger, DialogTitle } from "./ui/dialog.tsx";
-import { cleanIndexes } from "../../../server/models/Course.js";
+// import { cleanIndexes } from "../../../server/models/Course.js";
 
 export function AddModuleModal({ onCourseCreated }) {
   const navigate = useNavigate();
@@ -49,7 +49,7 @@ export function AddModuleModal({ onCourseCreated }) {
         },
       },
     ],
-    image: null,
+    // image: null,
     support: {
         type: "link",
         value: ""
@@ -103,37 +103,37 @@ export function AddModuleModal({ onCourseCreated }) {
     fetchCategories();
   }, [toast]);
 
-  const onDrop = useCallback((acceptedFiles) => {
-    const file = acceptedFiles[0];
-    if (file) {
-      // Validate file size (e.g., max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "L'image ne doit pas dépasser 5 Mo.",
-        });
-        return;
-      }
-      // Validate file type
-      if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "Seuls les formats JPEG, PNG et GIF sont acceptés.",
-        });
-        return;
-      }
-      setCourse((prev) => ({
-        ...prev,
-        image: Object.assign(file, {
-          preview: URL.createObjectURL(file),
-        }),
-      }));
-    }
-  }, [toast]);
+  // const onDrop = useCallback((acceptedFiles) => {
+  //   const file = acceptedFiles[0];
+  //   if (file) {
+  //     // Validate file size (e.g., max 5MB)
+  //     if (file.size > 5 * 1024 * 1024) {
+  //       toast({
+  //         variant: "destructive",
+  //         title: "Erreur",
+  //         description: "L'image ne doit pas dépasser 5 Mo.",
+  //       });
+  //       return;
+  //     }
+  //     // Validate file type
+  //     if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
+  //       toast({
+  //         variant: "destructive",
+  //         title: "Erreur",
+  //         description: "Seuls les formats JPEG, PNG et GIF sont acceptés.",
+  //       });
+  //       return;
+  //     }
+  //     setCourse((prev) => ({
+  //       ...prev,
+  //       image: Object.assign(file, {
+  //         preview: URL.createObjectURL(file),
+  //       }),
+  //     }));
+  //   }
+  // }, [toast]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+  // const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
   const onDropSupport = useCallback((acceptedFiles) => {
     const file = acceptedFiles[0];
@@ -317,11 +317,11 @@ export function AddModuleModal({ onCourseCreated }) {
     setIsSubmitting(true);
 
     // Validation
-    if (!course.image) {
-      toast({ variant: "destructive", title: "Erreur", description: "Veuillez télécharger une image." });
-      setIsSubmitting(false);
-      return;
-    }
+    // if (!course.image) {
+    //   toast({ variant: "destructive", title: "Erreur", description: "Veuillez télécharger une image." });
+    //   setIsSubmitting(false);
+    //   return;
+    // }
     if (
       !course.title ||
       !course.offline ||
@@ -394,7 +394,7 @@ export function AddModuleModal({ onCourseCreated }) {
     try {
       // Prepare FormData for image and CV uploads
       const formData = new FormData();
-      formData.append("image", course.image);
+      // formData.append("image", course.image);
       course.times.forEach((session) => {
         if (session.externalInstructorDetails?.cv) {
           formData.append("cvs", session.externalInstructorDetails.cv);
@@ -411,18 +411,18 @@ export function AddModuleModal({ onCourseCreated }) {
         console.log(`${key}: ${value.name || value}`);
       }
 
-      console.log("Uploading image, CVs & support...");
-      const imageUploadResponse = await useApiAxios.post("/courses/uploadImage", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      console.log("Uploading CVs & support...");
+      // const imageUploadResponse = await useApiAxios.post("/courses/uploadImage", formData, {
+      //   headers: { "Content-Type": "multipart/form-data" },
+      // });
 
-      if (imageUploadResponse.status === 200) {
-        const { imageUrl, cvUrls, supportUrl } = imageUploadResponse.data;
-        console.log("Image uploaded successfully, imageUrl:", imageUrl, "cvUrls:", cvUrls, "supportUrl:", supportUrl);
+      // if (imageUploadResponse.status === 200) {
+      //   const { imageUrl, cvUrls, supportUrl } = imageUploadResponse.data;
+      //   console.log("Image uploaded successfully, imageUrl:", imageUrl, "cvUrls:", cvUrls, "supportUrl:", supportUrl);
 
         const finalCourseData = {
           ...course,
-          imageUrl,
+          // imageUrl,
           category: course.category ? course.category.id : null,
           support: {
             type: course.support.type,
@@ -433,7 +433,7 @@ export function AddModuleModal({ onCourseCreated }) {
             instructor: session.instructor || undefined,
             externalInstructorDetails: {
               ...session.externalInstructorDetails,
-              cv: cvUrls && cvUrls[index] ? cvUrls[index] : undefined,
+              cv: session.externalInstructorDetails.cv ? session.externalInstructorDetails.cv : undefined,
             },
           })),
           assignedUsers: [],
@@ -463,7 +463,7 @@ export function AddModuleModal({ onCourseCreated }) {
                 externalInstructorDetails: { phone: "", position: "", cv: null },
               },
             ],
-            image: null,
+            // image: null,
             support: {
                         type: "link",
                         value: ""
@@ -474,14 +474,6 @@ export function AddModuleModal({ onCourseCreated }) {
         } else {
           throw new Error(`Course creation failed with status: ${response.status}`);
         }
-      } else {
-        throw new Error(`Image upload failed with status: ${imageUploadResponse.status}`);
-      }
-
-      // if (onCourseCreated) {
-      //   onCourseCreated();
-      // }
-
     } catch (error) {
       console.error("Erreur lors de la création du cours:", error);
       toast({
@@ -528,7 +520,7 @@ export function AddModuleModal({ onCourseCreated }) {
           externalInstructorDetails: { phone: "", position: "", cv: null },
         },
       ],
-      image: null,
+      // image: null,
       support: {
         type: "link",
         value: ""
@@ -664,7 +656,7 @@ export function AddModuleModal({ onCourseCreated }) {
                     </PopoverContent>
                   </Popover>
                 </div>
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label>Image (illustration du module)</Label>
                   <div
                     {...getRootProps()}
@@ -696,7 +688,7 @@ export function AddModuleModal({ onCourseCreated }) {
                                         </Button>
                     </div>                    
                   )}
-                </div>
+                </div> */}
                 <div className="space-y-2">
                   <Label htmlFor="offline">En ligne/Présentiel</Label>
                   <Select
@@ -1002,7 +994,7 @@ export function AddModuleModal({ onCourseCreated }) {
                 <Button
                   variant="outline"
                   onClick={handleNextStep}
-                  disabled={!course.title || !course.location || !course.category || !course.offline || !course.hidden || !course.budget || !course.image}
+                  // disabled={!course.title || !course.location || !course.category || !course.offline || !course.hidden || !course.budget || !course.image}
                 >
                   Suivant
                   <ChevronRight className="h-4 w-4 ml-2" />

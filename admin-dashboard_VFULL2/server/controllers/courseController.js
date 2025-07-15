@@ -173,7 +173,7 @@ const createCourse = async (req, res) => {
 
 // Update an existing course
 const updateCourse = async (req, res) => {
-    const { assignedUsers, times, imageUrl, photos, link, support, ...updateData } = req.body;
+    const { assignedUsers, times, photos, link, support, ...updateData } = req.body;
     try {
         const courseToUpdate = await Course.findById(req.params.id);
         if (!courseToUpdate) {
@@ -248,9 +248,9 @@ const updateCourse = async (req, res) => {
             updateData.assignedUsers = assignedUsers.map(Number);
         }
 
-        if (imageUrl) {
-            updateData.imageUrl = imageUrl;
-        }
+        // if (imageUrl) {
+        //     updateData.imageUrl = imageUrl;
+        // }
         if (photos) {
             updateData.photos = photos;
         }
@@ -310,23 +310,23 @@ const uploadImage = (req, res) => {
         console.log('Received files:', req.files); // Debug: Log received files
 
         // Check if files were uploaded
-        if (!req.files || (!req.files.image && !req.files.photos && !req.files.cvs && !req.files.support)) {
+        if (!req.files || (!req.files.photos && !req.files.cvs && !req.files.support)) {
             return res.status(400).json({ error: 'No files uploaded' });
         }
 
         const fileUrls = {
-            imageUrl: null,
+            // imageUrl: null,
             photoUrls: [],
             cvUrls: [],
             supportUrl: null
         };
 
         // Handle course image
-        if (req.files.image) {
-            const imageFile = req.files.image[0];
-            const imageUrl = `/uploads/${imageFile.filename}`;
-            fileUrls.imageUrl = imageUrl;
-        }
+        // if (req.files.image) {
+        //     const imageFile = req.files.image[0];
+        //     const imageUrl = `/uploads/${imageFile.filename}`;
+        //     fileUrls.imageUrl = imageUrl;
+        // }
 
         if (req.files.photos) {
             req.files.photos.forEach((photoFile) => {
