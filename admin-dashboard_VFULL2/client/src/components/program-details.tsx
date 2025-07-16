@@ -283,11 +283,59 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
             </p>
 
             {enrolledFormations.length > 0 && (
-              <div className="mt-6 p-4 bg-green-100 border-2 border-green-300 rounded-xl inline-block">
-                <span className="text-green-800 font-semibold" aria-label="Statut de l'inscription">
-                  ✅ Vous êtes inscrit à {modulesLength} module(s) sur {program.formations.length} dans {program.title}.
-                </span>
-              </div>
+              // <div className="mt-6 p-4 bg-green-100 border-2 border-green-300 rounded-xl inline-block">
+              //   <span className="text-green-800 font-semibold" aria-label="Statut de l'inscription">
+                <>
+                  {(() => {
+                    const acceptedCount = formationsWithStatus.filter(f => f.registrationStatus === "accepted").length;
+                    const pendingCount = formationsWithStatus.filter(f => f.registrationStatus === "pending").length;
+                    const rejectedCount = formationsWithStatus.filter(f => f.registrationStatus === "rejected").length;
+                    const totalEnrolled = acceptedCount + pendingCount + rejectedCount;
+
+                    const messages: React.ReactNode[] = [];
+
+                    if (acceptedCount > 0) {
+                      messages.push(
+                        <div className="mt-6 p-4 bg-green-100 border-2 border-green-300 rounded-xl inline-block">
+                          <span className="text-green-800 font-semibold" aria-label="Statut de l'inscription">
+                            ✅ Vous êtes inscrit à {acceptedCount} module(s) sur {program.formations.length} dans {program.title}.
+                          </span>
+                        </div>
+                      );
+                    } 
+                    if (pendingCount > 0) {
+                      messages.push(
+                        <div className="mt-6 p-4 bg-yellow-100 border-2 border-yellow-300 rounded-xl inline-block">
+                          <span className="text-yellow-800 font-semibold" aria-label="Statut de l'inscription">
+                            ⏳ Vous avez {pendingCount} module(s) en attente sur {program.formations.length} dans {program.title}.
+                          </span>
+                        </div>
+                      );
+                    } 
+                    if (rejectedCount > 0) {
+                      messages.push(
+                        <div className="mt-6 p-4 bg-red-100 border-2 border-red-300 rounded-xl inline-block">
+                          <span className="text-red-800 font-semibold" aria-label="Statut de l'inscription">
+                            ❌ Vous avez {rejectedCount} module(s) rejeté(s) sur {program.formations.length} dans {program.title}.
+                          </span>
+                        </div>
+                      );
+                    }
+                    if (messages.length === 0) {
+                      messages.push(
+                        <div className="mt-6 p-4 bg-green-100 border-2 border-green-300 rounded-xl inline-block">
+                          <span className="text-green-800 font-semibold" aria-label="Statut de l'inscription">
+                            ✅ Vous êtes inscrit à {totalEnrolled} module(s) sur {program.formations.length} dans {program.title}.
+                          </span>
+                        </div>
+                      );
+                    }
+
+                    return messages;
+                  })()}
+                </>
+              //   </span>
+              // </div>
             )}
             {enrolledFormations.length === 0 && (
               <p className="text-lg text-gray-200 p-4 rounded-xl border-2" aria-label="Aucune inscription">
