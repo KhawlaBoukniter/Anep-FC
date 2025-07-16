@@ -1,7 +1,8 @@
 "use client";
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
+import { toast } from "../hooks/use-toast.ts";
 import Header from "./header.tsx";
 import Footer from "./footer.tsx";
 
@@ -19,6 +20,7 @@ interface Formation {
   mode: string;
   start_date: string;
   end_date: string;
+  registrationStatus?: "accepted" | "rejected" | "pending" | null;
 }
 
 interface Program {
@@ -55,19 +57,24 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
   const [isVisible, setIsVisible] = useState(false);
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [enrolledFormations, setEnrolledFormations] = useState<string[]>([]);
+  const [moduleStatuses, setModuleStatuses] = useState<Record<string, string>>({});
+  const [formationsWithStatus, setFormationsWithStatus] = useState<Formation[]>(program.formations);
   const [selectAll, setSelectAll] = useState(false);
   const [selectedFormation, setSelectedFormation] = useState<Formation | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const isFullyEnrolled =
-    program.type === "program"
-      ? program.formations.every((formation) => enrolledFormations.includes(formation.id))
+  const isFullyEnrolled = useMemo(() => {
+    return program.type === "program"
+      ? formationsWithStatus.every((formation) => formation.registrationStatus === "accepted")
       : enrolledPrograms.includes(program.id);
+  }, [formationsWithStatus, program.type, enrolledPrograms, program.id]);
 
   useEffect(() => {
     const fetchEnrolledModules = async (retries = 3, delay = 1000) => {
       if (!userId) {
         setError("Veuillez vous connecter pour voir vos modules inscrits.");
+        setIsLoading(false);
         return;
       }
 
@@ -75,6 +82,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
         const token = localStorage.getItem("token");
         if (!token) {
           setError("Session invalide. Veuillez vous reconnecter.");
+          setIsLoading(false);
           return;
         }
 
@@ -86,18 +94,40 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
             },
           }
         );
+
         if (response.data.length > 0) {
           const moduleIds = response.data[0].CycleProgramUserModules.map((m: any) => m.module_id);
+          const statuses = response.data[0].CycleProgramUserModules.reduce(
+            (acc: Record<string, string>, m: any) => ({
+              ...acc,
+              [m.module_id]: m.status,
+            }),
+            {}
+          );
+
           setEnrolledFormations(moduleIds);
+          setModuleStatuses(statuses);
+          setFormationsWithStatus(
+            program.formations.map((formation) => ({
+              ...formation,
+              registrationStatus: statuses[formation.id] || null,
+            }))
+          );
+        } else {
+          setEnrolledFormations([]);
+          setModuleStatuses({});
+          setFormationsWithStatus(program.formations.map((formation) => ({ ...formation, registrationStatus: null })));
         }
       } catch (err: any) {
         console.error("Erreur lors de la récupération des modules inscrits:", err);
         if (retries > 0 && (err.response?.status === 500 || err.response?.status === 429)) {
-          console.log(`Retrying fetchEnrolledModules, ${retries} attempts left...`);
+          // console.log(`Retrying fetchEnrolledModules, ${retries} attempts left...`);
           await new Promise((resolve) => setTimeout(resolve, delay));
           return fetchEnrolledModules(retries - 1, delay * 2);
         }
         setError(err.response?.data?.message || "Impossible de charger les modules inscrits.");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -107,7 +137,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
       setIsVisible(true);
     }, 300);
     return () => clearTimeout(timer);
-  }, [program.id, userId]);
+  }, [program.id, userId, program.formations]);
 
   const handleModuleToggle = (formationId: string) => {
     setSelectedModules((prev) =>
@@ -121,8 +151,8 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
     if (selectAll) {
       setSelectedModules([]);
     } else {
-      const availableModules = program.formations
-        .filter((formation) => !enrolledFormations.includes(formation.id))
+      const availableModules = formationsWithStatus
+        .filter((formation) => !enrolledFormations.includes(formation.id) || formation.registrationStatus === "rejected")
         .map((formation) => formation.id);
       setSelectedModules(availableModules);
     }
@@ -131,19 +161,31 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
 
   const handleEnrollProgram = async () => {
     if (!userId) {
-      alert("Veuillez vous connecter pour vous inscrire.");
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Veuillez vous connecter pour vous inscrire.",
+      });
       return;
     }
 
     if (selectedModules.length === 0) {
-      alert("Veuillez sélectionner au moins un module pour vous inscrire.");
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Veuillez sélectionner au moins un module pour vous inscrire.",
+      });
       return;
     }
 
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("Session invalide. Veuillez vous reconnecter.");
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Session invalide. Veuillez vous reconnecter.",
+        });
         return;
       }
 
@@ -164,14 +206,31 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
           },
         }
       );
+
       setEnrolledFormations((prev) => [...prev, ...selectedModules]);
+      setModuleStatuses((prev) => {
+        const newStatuses = { ...prev };
+        selectedModules.forEach((id) => {
+          newStatuses[id] = "pending";
+        });
+        return newStatuses;
+      });
+      setFormationsWithStatus((prev) =>
+        prev.map((formation) =>
+          selectedModules.includes(formation.id) ? { ...formation, registrationStatus: "pending" } : formation
+        )
+      );
       setSelectedModules([]);
       setSelectAll(false);
-      alert("Inscription réussie ! Vous recevrez un email de confirmation.");
+      toast({ title: "Succès", description: "Inscription soumise. En attente de validation par l'administrateur." });
     } catch (err: any) {
       console.error("Erreur lors de l'inscription:", err);
       const errorMessage = err.response?.data?.message || "Erreur lors de l'inscription. Veuillez réessayer.";
-      alert(errorMessage);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: errorMessage,
+      });
     }
   };
 
@@ -182,6 +241,10 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
   const closePopup = () => {
     setSelectedFormation(null);
   };
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Chargement...</div>;
+  }
 
   if (error) {
     return (
@@ -201,13 +264,17 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
             <button
               onClick={onBack}
               className="flex items-center text-white hover:text-gray-200 transition-colors duration-200 mr-6"
+              aria-label="Retour à la liste des formations"
             >
               <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
               Retour
             </button>
-            <span className="px-4 py-2 bg-green-600 bg-opacity-80 rounded-full text-sm font-semibold">
+            <span
+              className="px-4 py-2 bg-green-600 bg-opacity-80 rounded-full text-sm font-semibold"
+              aria-label="Programme spécialisé"
+            >
               📚 Programme Spécialisé
             </span>
           </div>
@@ -215,15 +282,22 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
           <div
             className={`transition-all duration-1000 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
           >
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">{program.title}</h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-4xl opacity-90">{program.description}</p>
+            <h1 className="text-4xl md:text-6xl font-bold mb-6">{program.title || "Programme sans titre"}</h1>
+            <p className="text-xl md:text-2xl mb-8 max-w-4xl opacity-90">
+              {program.description || "Aucune description disponible"}
+            </p>
 
-            {isFullyEnrolled && (
+            {enrolledFormations.length > 0 && (
               <div className="mt-6 p-4 bg-green-100 border border-green-300 rounded-lg inline-block">
-                <span className="text-green-800 font-semibold">
-                  ✅ Vous êtes inscrit à ce programme !
+                <span className="text-green-800 font-semibold" aria-label="Statut de l'inscription">
+                  ✅ Vous êtes inscrit à {enrolledFormations.length} module(s) sur {program.formations.length} dans {program.title}.
                 </span>
               </div>
+            )}
+            {enrolledFormations.length === 0 && (
+              <p className="text-lg text-gray-200" aria-label="Aucune inscription">
+                Vous n'êtes inscrit à aucun module du programme {program.title}.
+              </p>
             )}
           </div>
         </div>
@@ -245,6 +319,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                     onChange={handleSelectAll}
                     className="mr-2 h-5 w-5"
                     disabled={!userId}
+                    aria-label="Tout sélectionner"
                   />
                   Tout sélectionner
                 </label>
@@ -256,6 +331,8 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                       ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                       : `bg-gradient-to-r ${program.color} text-white hover:shadow-lg transform hover:-translate-y-1`
                   }`}
+                  aria-label={`S'inscrire à ${selectedModules.length} module(s)`}
+                  aria-disabled={selectedModules.length === 0 || !userId ? "true" : "false"}
                 >
                   S'inscrire ({selectedModules.length} module{selectedModules.length > 1 ? "s" : ""} sélectionné
                   {selectedModules.length > 1 ? "s" : ""})
@@ -265,7 +342,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
           </div>
 
           <div className="flex flex-col gap-4">
-            {program.formations.map((formation) => (
+            {formationsWithStatus.map((formation) => (
               <div
                 key={formation.id}
                 className="flex items-center justify-between bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
@@ -279,6 +356,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                   <button
                     onClick={() => openPopup(formation)}
                     className="flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg transition-colors duration-300"
+                    aria-label={`Voir les détails de ${formation.title}`}
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
@@ -290,18 +368,32 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                     </svg>
                     Détails
                   </button>
-                  {!enrolledFormations.includes(formation.id) ? (
+                  {formation.registrationStatus ? (
+                    <span
+                      className={`px-3 py-1 text-white text-xs font-semibold rounded-full ${
+                        formation.registrationStatus === "accepted"
+                          ? "bg-green-500"
+                          : formation.registrationStatus === "pending"
+                          ? "bg-yellow-500"
+                          : "bg-red-500"
+                      }`}
+                      aria-label={`Statut du module : ${formation.registrationStatus}`}
+                    >
+                      {formation.registrationStatus === "accepted"
+                        ? "✓ Accepté"
+                        : formation.registrationStatus === "pending"
+                        ? "⏳ En attente"
+                        : "❌ Rejeté"}
+                    </span>
+                  ) : (
                     <input
                       type="checkbox"
                       checked={selectedModules.includes(formation.id)}
                       onChange={() => handleModuleToggle(formation.id)}
                       className="h-5 w-5"
                       disabled={!userId || (program.type === "cycle" && enrolledPrograms.includes(program.id))}
+                      aria-label={`Sélectionner le module ${formation.title}`}
                     />
-                  ) : (
-                    <span className="px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">
-                      ✓ Inscrit
-                    </span>
                   )}
                 </div>
               </div>
@@ -321,6 +413,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                 <button
                   onClick={closePopup}
                   className="mt-4 bg-green-600 text-white font-medium py-2 px-12 rounded-lg hover:bg-green-700 transition-colors duration-200"
+                  aria-label="Fermer la fenêtre des détails"
                 >
                   Fermer
                 </button>
