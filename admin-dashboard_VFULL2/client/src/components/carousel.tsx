@@ -28,20 +28,13 @@ const carouselItems: CarouselItem[] = [
     },
     {
         id: 3,
-        title: "Support 24/7",
-        description: "Notre équipe est disponible 24h/24 et 7j/7 pour vous accompagner",
-        image: "/images/img3.jpeg",
-        color: "#000000", // Equivalent to bg-black
-    },
-    {
-        id: 4,
         title: "Expertise Reconnue",
         description: "Plus de 10 ans d'expérience dans notre domaine d'activité",
         image: "/images/img2.jpeg",
         color: "#06668C",
     },
     {
-        id: 5,
+        id: 4,
         title: "Expertise Reconnue",
         description: "Plus de 10 ans d'expérience dans notre domaine d'activité",
         image: "/images/img1.jpeg",
