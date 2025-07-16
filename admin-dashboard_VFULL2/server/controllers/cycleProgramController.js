@@ -492,13 +492,24 @@ const getRegistrationsByProgramId = async (req, res) => {
                 {
                     model: CycleProgramUserModule,
                     as: 'CycleProgramUserModules',
-                    attributes: ['module_id'],
+                    attributes: ['module_id', 'status'],
                 },
             ],
         });
 
+        // Transformer les données pour inclure un mapping module_id -> status
+        const moduleStatuses = registrations.reduce((acc, reg) => {
+            reg.CycleProgramUserModules.forEach((module) => {
+                acc[module.module_id] = module.status;
+            });
+            return acc;
+        }, {});
+
         console.log(`Registrations fetched for program ${id}:`, registrations.length);
-        res.status(200).json(registrations);
+        res.status(200).json({
+            registrations,
+            moduleStatuses,
+        });
     } catch (error) {
         console.error('Erreur lors de la récupération des inscriptions:', error);
         res.status(500).json({ message: 'Erreur serveur', details: error.message });

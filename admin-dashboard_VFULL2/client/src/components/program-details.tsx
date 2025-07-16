@@ -95,16 +95,9 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
           }
         );
 
-        if (response.data.length > 0) {
-          const moduleIds = response.data[0].CycleProgramUserModules.map((m: any) => m.module_id);
-          const statuses = response.data[0].CycleProgramUserModules.reduce(
-            (acc: Record<string, string>, m: any) => ({
-              ...acc,
-              [m.module_id]: m.status,
-            }),
-            {}
-          );
-
+        if (response.data.registrations.length > 0) {
+          const moduleIds = response.data.registrations[0].CycleProgramUserModules.map((m: any) => m.module_id);
+          const statuses = response.data.moduleStatuses || {};
           setEnrolledFormations(moduleIds);
           setModuleStatuses(statuses);
           setFormationsWithStatus(
@@ -121,7 +114,6 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
       } catch (err: any) {
         console.error("Erreur lors de la récupération des modules inscrits:", err);
         if (retries > 0 && (err.response?.status === 500 || err.response?.status === 429)) {
-          // console.log(`Retrying fetchEnrolledModules, ${retries} attempts left...`);
           await new Promise((resolve) => setTimeout(resolve, delay));
           return fetchEnrolledModules(retries - 1, delay * 2);
         }
