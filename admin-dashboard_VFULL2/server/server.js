@@ -83,7 +83,8 @@ app.get("/api/employee-profiles", async (req, res) => {
   }
 });
 app.use('/api/cycles-programs', require('./routes/cycleProgram'))
-
+// Après les autres app.use()
+app.use('/api/indisponibilites', require('./routes/indisponibilite'));
 // Test Message (Mongo)
 const mongoose = require('mongoose');
 const messageSchema = new mongoose.Schema({ content: String });
