@@ -1,7 +1,8 @@
 "use client";
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
+import { toast } from "../hooks/use-toast.ts";
 import Header from "./header.tsx";
 import Footer from "./footer.tsx";
 import ProgramDetails from "../components/program-details.tsx";
@@ -11,6 +12,8 @@ interface Formation {
   id: string;
   title: string;
   description: string;
+  duration: string;
+  level: string;
   price: string;
   instructor: string;
   image: string;
@@ -37,8 +40,10 @@ interface Program {
   prerequisites: string[];
   objectives: string[];
   color: string;
+  rating: number;
   students: number;
   formations: Formation[];
+  registrationStatus?: "accepted" | "rejected" | "pending" | null;
 }
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
@@ -74,7 +79,6 @@ const FormationPage: React.FC = () => {
         const token = localStorage.getItem("token");
         if (!token) {
           setError("Veuillez vous connecter pour accéder à vos formations.");
-          setLoading(false);
           return;
         }
 
@@ -85,10 +89,10 @@ const FormationPage: React.FC = () => {
         });
 
         setUserId(response.data.id.toString());
-        setLoading(false);
       } catch (err: any) {
         console.error("Erreur lors de la vérification de la session:", err);
         setError("Session invalide. Veuillez vous reconnecter.");
+      } finally {
         setLoading(false);
       }
     };
@@ -103,49 +107,34 @@ const FormationPage: React.FC = () => {
   }, [loading, userId, error]);
 
   useEffect(() => {
-    const fetchEnrolledPrograms = async (retries = 3, delay = 1000) => {
+    const fetchProgramsAndEnrollments = async (retries = 3, delay = 1000) => {
       if (!userId) {
         return;
       }
 
       try {
+        setLoading(true);
         const token = localStorage.getItem("token");
         if (!token) {
           setError("Session invalide. Veuillez vous reconnecter.");
           return;
         }
 
-        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/registrations?user_id=${userId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const [programsResponse, registrationsResponse] = await Promise.all([
+          axios.get(`${API_BASE_URL}/api/cycles-programs`),
+          axios.get(`${API_BASE_URL}/api/cycles-programs/registrations?user_id=${userId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+        const enrollmentMap = new Map<number, string>();
+        registrationsResponse.data.forEach((reg: any) => {
+          enrollmentMap.set(reg.cycle_program_id, reg.status);
         });
-        const enrolledIds = response.data.map((reg: any) => reg.cycle_program_id);
-        setEnrolledPrograms(enrolledIds);
-      } catch (err: any) {
-        console.error("Erreur lors de la récupération des inscriptions:", err);
-        if (retries > 0 && (err.response?.status === 500 || err.response?.status === 429)) {
-          console.log(`Retrying fetchEnrolledPrograms, ${retries} attempts left...`);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          return fetchEnrolledPrograms(retries - 1, delay * 2);
-        }
-        setError(err.response?.data?.message || "Impossible de charger les inscriptions. Veuillez réessayer plus tard.");
-      }
-    };
 
-    if (userId) {
-      fetchEnrolledPrograms();
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    const fetchPrograms = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs`);
-        const transformedPrograms = response.data.map((cp: any) => ({
+        const transformedPrograms = programsResponse.data.map((cp: any) => ({
           id: cp.id,
-          title: cp.title,
+          title: cp.title || "Programme sans titre",
           description: stripHtmlTags(cp.description || "Description non disponible"),
           shortDescription: stripHtmlTags(cp.description?.slice(0, 100) + "..." || "Description non disponible"),
           start_date: cp.start_date || "Non spécifié",
@@ -155,14 +144,18 @@ const FormationPage: React.FC = () => {
           category: cp.type === "cycle" ? "Cycle de formation" : cp.program_type || "Programme spécialisé",
           type: cp.type,
           modules: cp.modules?.map((m: any) => m.title) || [],
-          prerequisites: ["Motivation", "Logique de base"],
-          objectives: ["Objectif 1", "Objectif 2"],
+          prerequisites: cp.prerequisites || ["Motivation", "Logique de base"],
+          objectives: cp.objectives || ["Objectif 1", "Objectif 2"],
           color: cp.type === "cycle" ? "from-purple-600 to-purple-800" : "from-blue-500 to-blue-700",
+          rating: cp.rating || 0,
           students: cp.CycleProgramRegistrations?.length || 0,
           formations: cp.modules?.map((m: any) => ({
             id: m._id,
-            title: m.title,
+            title: m.title || "Module sans titre",
             description: stripHtmlTags(m.description || "Description non disponible"),
+            duration: m.duration || "Non spécifié",
+            level: m.level || "Débutant",
+            price: m.budget ? `${m.budget} MAD` : "Prix non spécifié",
             instructor: cp.facilitator || "Équipe pédagogique",
             // image: getImageUrl(m.imageUrl, cp.type),
             objectives: m.objectives || ["Objectif 1", "Objectif 2"],
@@ -171,24 +164,31 @@ const FormationPage: React.FC = () => {
             start_date: m.times?.[0]?.dateRanges?.[0]?.startTime || "Non spécifié",
             end_date: m.times?.[0]?.dateRanges?.[0]?.endTime || "Non spécifié",
           })) || [],
+          registrationStatus: enrollmentMap.get(cp.id) || null,
         }));
+
         setPrograms(transformedPrograms);
+        setEnrolledPrograms(registrationsResponse.data.map((reg: any) => reg.cycle_program_id));
         setAnimatedCards(new Array(transformedPrograms.length).fill(false));
-        setLoading(false);
       } catch (err: any) {
-        console.error("Erreur lors de la récupération des cycles/programmes:", err);
-        setError("Impossible de charger les formations. Veuillez réessayer plus tard.");
+        console.error("Erreur lors de la récupération des données:", err);
+        setError("Impossible de charger les formations.");
+      } finally {
         setLoading(false);
       }
     };
 
-    fetchPrograms();
-  }, []);
+    if (userId) {
+      fetchProgramsAndEnrollments();
+    }
+  }, [userId]);
 
-  const filteredPrograms = programs.filter((program) => {
-    if (activeFilter === "all") return true;
-    return program.type === activeFilter;
-  });
+  const filteredPrograms = useMemo(() => {
+    return programs.filter((program) => {
+      if (activeFilter === "all") return true;
+      return program.type === activeFilter;
+    });
+  }, [programs, activeFilter]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -238,14 +238,22 @@ const FormationPage: React.FC = () => {
 
   const handleEnroll = async (programId: number) => {
     if (!userId) {
-      alert("Veuillez vous connecter pour vous inscrire.");
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Veuillez vous connecter pour vous inscrire.",
+      });
       return;
     }
 
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("Session invalide. Veuillez vous reconnecter.");
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Session invalide. Veuillez vous reconnecter.",
+        });
         return;
       }
 
@@ -253,21 +261,29 @@ const FormationPage: React.FC = () => {
         `${API_BASE_URL}/api/cycles-programs/${programId}/register`,
         {
           user_id: userId,
-          module_ids: [], // Empty for cycles
+          module_ids: [],
         },
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
+
       setEnrolledPrograms((prev) => [...prev, programId]);
+      setPrograms((prev) =>
+        prev.map((p) =>
+          p.id === programId ? { ...p, registrationStatus: "pending" } : p
+        )
+      );
       setIsModalOpen(false);
-      alert("Inscription soumise. En attente de validation par l'administrateur.");
+      toast({ title: "Succès", description: "Inscription soumise. En attente de validation par l'administrateur." });
     } catch (err: any) {
       console.error("Erreur lors de l'inscription:", err);
       const errorMessage = err.response?.data?.message || "Erreur lors de l'inscription. Veuillez réessayer.";
-      alert(errorMessage);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: errorMessage,
+      });
     }
   };
 
@@ -343,6 +359,7 @@ const FormationPage: React.FC = () => {
                       ? "bg-[#06668C] text-white shadow-lg"
                       : "bg-white text-gray-600 hover:bg-gray-100"
                   }`}
+                  aria-label="Afficher toutes les formations"
                 >
                   Tout ({programs.length})
                 </button>
@@ -353,6 +370,7 @@ const FormationPage: React.FC = () => {
                       ? "bg-purple-600 text-white shadow-lg"
                       : "bg-white text-gray-600 hover:bg-gray-100"
                   }`}
+                  aria-label="Afficher les cycles de formation"
                 >
                   🔄 Cycles ({cyclesCount})
                 </button>
@@ -363,6 +381,7 @@ const FormationPage: React.FC = () => {
                       ? "bg-green-600 text-white shadow-lg"
                       : "bg-white text-gray-600 hover:bg-gray-100"
                   }`}
+                  aria-label="Afficher les programmes spécialisés"
                 >
                   📚 Programmes ({programmesCount})
                 </button>
@@ -379,15 +398,15 @@ const FormationPage: React.FC = () => {
               {activeFilter === "cycle"
                 ? "Nos Cycles de Formation"
                 : activeFilter === "program"
-                  ? "Nos Programmes Spécialisés"
-                  : "Cycles et Programmes"}
+                ? "Nos Programmes Spécialisés"
+                : "Cycles et Programmes"}
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               {activeFilter === "cycle"
                 ? "Des parcours complets pour une montée en compétences progressive"
                 : activeFilter === "program"
-                  ? "Des formations spécialisées pour approfondir vos expertises"
-                  : "Choisissez le format qui correspond le mieux à vos objectifs"}
+                ? "Des formations spécialisées pour approfondir vos expertises"
+                : "Choisissez le format qui correspond le mieux à vos objectifs"}
             </p>
           </div>
 
@@ -410,14 +429,28 @@ const FormationPage: React.FC = () => {
                       className={`px-3 py-1 text-white text-xs font-semibold rounded-full ${
                         program.type === "cycle" ? "bg-purple-600" : "bg-green-600"
                       }`}
+                      aria-label={program.type === "cycle" ? "Cycle de formation" : "Programme spécialisé"}
                     >
                       {program.type === "cycle" ? "🔄 Cycle" : "📚 Programme"}
                     </span>
                   </div>
-                  {enrolledPrograms.includes(program.id) && (
+                  {program.registrationStatus && (
                     <div className="absolute bottom-4 left-4">
-                      <span className="px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">
-                        ✓ Inscrit
+                      <span
+                        className={`px-3 py-1 text-white text-xs font-semibold rounded-full ${
+                          program.registrationStatus === "accepted"
+                            ? "bg-green-500"
+                            : program.registrationStatus === "pending"
+                            ? "bg-yellow-500"
+                            : "bg-red-500"
+                        }`}
+                        aria-label={`Statut de l'inscription : ${program.registrationStatus}`}
+                      >
+                        {program.registrationStatus === "accepted"
+                          ? "✓ Accepté"
+                          : program.registrationStatus === "pending"
+                          ? "⏳ En attente"
+                          : "❌ Rejeté"}
                       </span>
                     </div>
                   )}
@@ -454,6 +487,7 @@ const FormationPage: React.FC = () => {
                     <button
                       onClick={() => handleViewDetails(program)}
                       className="flex-1 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg transition-colors duration-300"
+                      aria-label={`Voir les détails de ${program.title}`}
                     >
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
@@ -474,14 +508,36 @@ const FormationPage: React.FC = () => {
                     {program.type === "cycle" && (
                       <button
                         onClick={() => handleEnroll(program.id)}
-                        disabled={enrolledPrograms.includes(program.id) || !userId}
+                        disabled={!userId || program.registrationStatus === "accepted" || program.registrationStatus === "pending"}
+                        aria-disabled={
+                          !userId || program.registrationStatus === "accepted" || program.registrationStatus === "pending"
+                            ? "true"
+                            : "false"
+                        }
+                        aria-label={
+                          program.registrationStatus === "accepted"
+                            ? "Inscription acceptée"
+                            : program.registrationStatus === "pending"
+                            ? "Inscription en attente"
+                            : program.registrationStatus === "rejected"
+                            ? "Réessayer l'inscription"
+                            : "S'inscrire"
+                        }
                         className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-all duration-300 ${
-                          enrolledPrograms.includes(program.id) || !userId
-                            ? "bg-green-500 text-white cursor-not-allowed"
+                          !userId ||
+                          program.registrationStatus === "accepted" ||
+                          program.registrationStatus === "pending"
+                            ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                             : `bg-gradient-to-r ${program.color} text-white hover:shadow-lg transform hover:-translate-y-1`
                         }`}
                       >
-                        {enrolledPrograms.includes(program.id) ? "Inscrit ✓" : "S'inscrire"}
+                        {program.registrationStatus === "accepted"
+                          ? "Accepté ✓"
+                          : program.registrationStatus === "pending"
+                          ? "En attente ⏳"
+                          : program.registrationStatus === "rejected"
+                          ? "Réessayer l'inscription"
+                          : "S'inscrire"}
                       </button>
                     )}
                   </div>
