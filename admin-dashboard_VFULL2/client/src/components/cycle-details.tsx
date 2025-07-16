@@ -3,6 +3,7 @@ import type React from "react";
 import { useState, useEffect } from "react";
 import Header from "./header.tsx";
 import Footer from "./footer.tsx";
+import { toast } from "../hooks/use-toast.ts";
 
 interface Formation {
   id: string;
@@ -39,6 +40,7 @@ interface Cycle {
   rating: number;
   students: number;
   formations?: Formation[];
+  registrationStatus?: "accepted" | "rejected" | "pending" | null;
 }
 
 interface CycleDetailsProps {
@@ -84,6 +86,18 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
     setSelectedFormation(null);
   };
 
+  const handleEnrollClick = () => {
+    if (!userId) {
+      toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Veuillez vous connecter pour vous inscrire.",
+          });
+      return;
+    }
+    onEnroll(cycle.id);
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
@@ -94,13 +108,17 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
             <button
               onClick={onBack}
               className="flex items-center text-white hover:text-gray-200 transition-colors duration-200 mr-6"
+              aria-label="Retour à la liste des formations"
             >
               <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
               Retour
             </button>
-            <span className="px-4 py-2 bg-purple-600 bg-opacity-80 rounded-full text-sm font-semibold">
+            <span
+              className="px-4 py-2 bg-purple-600 bg-opacity-80 rounded-full text-sm font-semibold"
+              aria-label="Cycle de formation"
+            >
               🔄 Cycle de Formation
             </span>
           </div>
@@ -111,25 +129,57 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
             <h1 className="text-4xl md:text-6xl font-bold mb-6">{cycle.title}</h1>
             <p className="text-xl md:text-2xl mb-8 max-w-4xl opacity-90">{cycle.description}</p>
 
-            {!isEnrolled && (
+            {cycle.registrationStatus && (
+              <div className="mt-6 rounded-lg inline-block">
+                <span
+                  className={`text-lg font-semibold p-4 rounded-xl border-2 ${
+                    cycle.registrationStatus === "accepted"
+                      ? "text-green-800 bg-green-100 border-green-300"
+                      : cycle.registrationStatus === "pending"
+                      ? "text-yellow-800 bg-yellow-100 border-yellow-300"
+                      : "text-red-800 bg-red-100 border-red-300"
+                  }`}
+                  aria-label={`Statut de l'inscription : ${cycle.registrationStatus}`}
+                >
+                  {cycle.registrationStatus === "accepted"
+                    ? "✅ Vous êtes inscrit à ce cycle ! Toutes les formations ci-dessous sont accessibles."
+                    : cycle.registrationStatus === "pending"
+                    ? "⏳ Votre inscription est en attente de validation."
+                    : "❌ Votre inscription a été rejetée. Vous pouvez réessayer."}
+                </span>
+              </div>
+            )}
+
+            {!cycle.registrationStatus && (
               <button
-                onClick={() => onEnroll(cycle.id)}
+                onClick={handleEnrollClick}
                 disabled={!userId}
                 className={`py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${
                   !userId
                     ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                     : `bg-gradient-to-r ${cycle.color} text-white hover:shadow-lg transform hover:-translate-y-1`
                 }`}
+                aria-label="S'inscrire au cycle"
+                aria-disabled={!userId ? "true" : "false"}
               >
                 S'inscrire au cycle
               </button>
             )}
-            {isEnrolled && (
-              <div className="mt-6 p-4 bg-green-100 rounded-lg inline-block">
-                <span className="text-green-800 font-semibold">
-                  ✅ Vous êtes inscrit à ce cycle ! Toutes les formations ci-dessous sont accessibles.
-                </span>
-              </div>
+
+            {cycle.registrationStatus === "rejected" && (
+              <button
+                onClick={handleEnrollClick}
+                disabled={!userId}
+                className={`ml-4 py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${
+                  !userId
+                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                    : `bg-gradient-to-r ${cycle.color} text-white hover:shadow-lg transform hover:-translate-y-1`
+                }`}
+                aria-label="Réessayer l'inscription"
+                aria-disabled={!userId ? "true" : "false"}
+              >
+                Réessayer l'inscription
+              </button>
             )}
           </div>
         </div>
@@ -160,12 +210,18 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
                     className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
                   /> */}
                   <div className="absolute top-4 left-4">
-                    <span className="px-3 py-1 bg-black bg-opacity-70 text-white text-xs font-semibold rounded-full">
+                    <span
+                      className="px-3 py-1 bg-black bg-opacity-70 text-white text-xs font-semibold rounded-full"
+                      aria-label={`Niveau : ${formation.level}`}
+                    >
                       {formation.level}
                     </span>
                   </div>
                   <div className="absolute top-4 right-4">
-                    <span className="px-3 py-1 bg-purple-600 text-white text-xs font-semibold rounded-full">
+                    <span
+                      className="px-3 py-1 bg-purple-600 text-white text-xs font-semibold rounded-full"
+                      aria-label={`Formation numéro ${index + 1}`}
+                    >
                       Formation {index + 1}
                     </span>
                   </div>
@@ -181,6 +237,7 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
                     <button
                       onClick={() => openPopup(formation)}
                       className="flex-1 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg py-2 px-4 transition-colors duration-300"
+                      aria-label={`Voir les détails de ${formation.title}`}
                     >
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
@@ -214,6 +271,7 @@ const CycleDetails: React.FC<CycleDetailsProps> = ({ cycle, onBack, onEnroll, en
                 <button
                   onClick={closePopup}
                   className="mt-4 bg-blue-800 text-white py-2 px-4 rounded-lg hover:bg-blue-900 transition-colors duration-200"
+                  aria-label="Fermer la fenêtre des détails"
                 >
                   Fermer
                 </button>
