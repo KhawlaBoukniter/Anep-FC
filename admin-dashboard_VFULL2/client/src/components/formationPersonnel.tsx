@@ -1,153 +1,194 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect } from "react"
-import axios from "axios"
+import type React from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import Header from "./header.tsx";
 import Footer from "./footer.tsx";
 
 interface EnrolledFormation {
-  id: number
-  title: string
-  description: string
-  duration: string
-  instructor: string
-  category: string
-  color: string
-  enrollmentDate: string
-  progress: number
-  status: "en_cours" | "termine" | "non_commence"
-  completedModules: number
-  totalModules: number
-  certificateAvailable: boolean
-  lastAccessed: string
+  id: string;
+  title: string;
+  description: string;
+  duration: string;
+  instructor: string;
+  category: string;
+  color: string;
+  enrollmentDate: string;
+  progress: number;
+  status: "en_cours" | "termine" | "non_commence";
+  completedModules: number;
+  totalModules: number;
+  certificateAvailable: boolean;
+  lastAccessed: string;
+  startDate?: string;
+  endDate?: string;
+  supportLink?: string;
+  evaluationLink?: string;
+  photosLinks?: string[];
 }
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000"
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const FormationPersonnel: React.FC = () => {
-  const [formations, setFormations] = useState<EnrolledFormation[]>([])
-  const [isVisible, setIsVisible] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [userId, setUserId] = useState<string | null>(null)
-  const [selectedFormation, setSelectedFormation] = useState<EnrolledFormation | null>(null)
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const [formations, setFormations] = useState<EnrolledFormation[]>([]);
+  const [isVisible, setIsVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [selectedFormation, setSelectedFormation] = useState<EnrolledFormation | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   useEffect(() => {
     const verifySession = async () => {
       try {
-        const token = localStorage.getItem("token")
+        const token = localStorage.getItem("token");
         if (!token) {
-          setError("Veuillez vous connecter pour accéder à vos formations.")
-          setLoading(false)
-          return
+          setError("Veuillez vous connecter pour accéder à vos formations.");
+          setLoading(false);
+          return;
         }
 
         const response = await axios.get(`${API_BASE_URL}/api/employees/verify-session`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        })
+        });
 
-        setUserId(response.data.id.toString())
+        setUserId(response.data.id.toString());
       } catch (err: any) {
-        console.error("Erreur lors de la vérification de la session:", err)
-        setError("Session invalide. Veuillez vous reconnecter.")
+        console.error("Erreur lors de la vérification de la session:", err);
+        setError("Session invalide. Veuillez vous reconnecter.");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    verifySession()
-  }, [])
+    verifySession();
+  }, []);
 
   useEffect(() => {
-    if (!userId) return
+    if (!userId) return;
 
     const fetchEnrolledModules = async () => {
       try {
-        setLoading(true)
+        setLoading(true);
         const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/user/${userId}/modules`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-        })
-        const enrolledData = response.data
+        });
+        const enrolledData = response.data;
 
         const formattedFormations: EnrolledFormation[] = enrolledData.flatMap((program: any) =>
-          program.modules.map((module: any, index: number) => ({
-            id: index + 1,
-            title: module.title || "Module sans titre",
-            description: module.description || "Aucune description disponible",
-            duration: module.duration || "Durée inconnue",
-            instructor: program.cycleProgram.facilitator || "Instructeur inconnu",
-            category: program.cycleProgram.type || "Non catégorisé",
-            color: "from-blue-600 to-indigo-700",
-            enrollmentDate: program.cycleProgram.created_at || new Date().toISOString(),
-            progress: module.progress || 0,
-            status: module.status || "non_commence",
-            completedModules: module.completedModules || 0,
-            totalModules: module.totalModules || 1,
-            certificateAvailable: module.certificateAvailable || false,
-            lastAccessed: module.lastAccessed || "Jamais",
-          }))
-        )
+          program.modules.map((module: any) => {
+            let duration = "Durée inconnue";
+            let startDate = "";
+            let endDate = "";
+            if (module.times && module.times.length > 0) {
+              const dateRanges = module.times.flatMap((session: any) => session.dateRanges);
+              if (dateRanges.length > 0) {
+                const validDateRanges = dateRanges.filter(
+                  (range: any) => range.startTime && range.endTime && !isNaN(new Date(range.startTime).getTime()) && !isNaN(new Date(range.endTime).getTime())
+                );
+                if (validDateRanges.length > 0) {
+                  const startTimes = validDateRanges.map((range: any) => new Date(range.startTime));
+                  const endTimes = validDateRanges.map((range: any) => new Date(range.endTime));
+                  const minDate = new Date(Math.min(...startTimes.map((date: Date) => date.getTime())));
+                  const maxDate = new Date(Math.max(...endTimes.map((date: Date) => date.getTime())));
+                  const diffDays = Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24));
+                  duration = `${diffDays} jour${diffDays !== 1 ? "s" : ""}`;
+                  startDate = minDate.toLocaleDateString("fr-FR");
+                  endDate = maxDate.toLocaleDateString("fr-FR");
+                }
+              }
+            }
 
-        setFormations(formattedFormations)
+            const instructor =
+              module.times?.[0]?.instructorName ||
+              module.times?.[0]?.externalInstructorDetails?.position ||
+              "Instructeur inconnu";
+
+            const supportLink = module.support?.type === "link" ? module.support.value : null;
+            const evaluationLink = program.cycleProgram.evaluation_url || null;
+            const photosLinks = module.photos
+              ?.filter((photo: any) => photo.type === "link")
+              ?.map((photo: any) => photo.value) || [];
+
+            return {
+              id: module._id,
+              title: module.title || "Module sans titre",
+              description: module.description || "Aucune description disponible",
+              duration,
+              instructor,
+              category: program.cycleProgram.type || "Non catégorisé",
+              color: "from-blue-600 to-indigo-700",
+              enrollmentDate: program.cycleProgram.created_at || new Date().toISOString(),
+              progress: module.progress || 0,
+              status: module.status || "non_commence",
+              completedModules: module.completedModules || 0,
+              totalModules: module.totalModules || 1,
+              certificateAvailable: module.certificateAvailable || false,
+              lastAccessed: module.lastAccessed || "Jamais",
+              startDate,
+              endDate,
+              supportLink,
+              evaluationLink,
+              photosLinks,
+            };
+          })
+        );
+
+        setFormations(formattedFormations);
       } catch (err: any) {
-        setError("Erreur lors de la récupération des modules")
-        console.error(err)
+        setError("Erreur lors de la récupération des modules");
+        console.error(err);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchEnrolledModules()
-  }, [userId])
+    fetchEnrolledModules();
+  }, [userId]);
 
   useEffect(() => {
     if (!loading && !userId && error) {
-      window.location.href = "/"
+      window.location.href = "/";
     }
-  }, [loading, userId, error])
+  }, [loading, userId, error]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setIsVisible(true)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [])
+      setIsVisible(true);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   const formatDate = (dateString: string) => {
-    if (dateString === "Jamais") return dateString
+    if (dateString === "Jamais") return dateString;
     return new Date(dateString).toLocaleDateString("fr-FR", {
       year: "numeric",
       month: "long",
       day: "numeric",
-    })
-  }
+    });
+  };
 
-  const totalFormations = formations.length
-  const completedFormations = formations.filter((f) => f.status === "termine").length
-  const inProgressFormations = formations.filter((f) => f.status === "en_cours").length
-  const averageProgress = formations.length > 0 ? formations.reduce((acc, f) => acc + f.progress, 0) / formations.length : 0
+  const totalFormations = formations.length;
+  const completedFormations = formations.filter((f) => f.status === "termine").length;
+  const inProgressFormations = formations.filter((f) => f.status === "en_cours").length;
 
-  // Fonction pour ouvrir le popup avec les détails de la formation
   const openFormationDetail = (formation: EnrolledFormation) => {
-    setSelectedFormation(formation)
-    setIsDetailModalOpen(true)
-  }
+    setSelectedFormation(formation);
+    setIsDetailModalOpen(true);
+  };
 
-  // Fonction pour convertir le markdown en HTML simple
   const renderDescriptionAsHtml = (description: string) => {
-    // Pour cet exemple, on suppose que la description est déjà en texte brut ou qu'on veut l'afficher telle quelle
-    // Si vous avez du Markdown, vous devriez utiliser une bibliothèque comme marked ou showdown pour le convertir en HTML
-    return { __html: description }
-  }
+    return { __html: description };
+  };
 
   return (
     <>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
       <Header />
       <div className="min-h-screen bg-gray-100">
         {/* Hero Section */}
@@ -189,7 +230,7 @@ const FormationPersonnel: React.FC = () => {
         </section>
 
         {/* Formations List */}
-        <section className="py-12 bg-gray-100">
+        <section className="section section--formation-list py-12 bg-gray-100">
           <div className="container mx-auto px-6">
             {loading ? (
               <div className="text-center text-gray-600">Chargement des modules...</div>
@@ -220,19 +261,53 @@ const FormationPersonnel: React.FC = () => {
                           {formation.category}
                         </span>
                       </div>
-                      <div className="grid grid-cols-2 gap-4 text-sm mb-4 text-gray-600">
+                      <div className="grid grid-cols-1 gap-4 text-sm mb-4 text-gray-600">
                         <div>
                           <span className="block text-xs text-gray-500">Instructeur</span>
                           <span className="font-medium">{formation.instructor}</span>
                         </div>
-                        <div>
-                          <span className="block text-xs text-gray-500">Durée</span>
-                          <span className="font-medium">{formation.duration}</span>
+                        <div className="flex justify-between">
+                          <div>
+                            <span className="block text-xs text-gray-500">
+                              <i className="fa-regular fa-calendar mr-1"></i> Date de début
+                            </span>
+                            <span className="font-medium">{formation.startDate || "Non défini"}</span>
+                          </div>
+                          <div>
+                            <span className="block text-xs text-gray-500">
+                              <i className="fa-regular fa-calendar mr-1"></i> Date de fin
+                            </span>
+                            <span className="font-medium">{formation.endDate || "Non défini"}</span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="block text-xs text-gray-500">Inscrit le</span>
-                          <span className="font-medium">{formatDate(formation.enrollmentDate)}</span>
-                        </div>
+                        {formation.evaluationLink && (
+                          <div>
+                            <span className="block text-xs text-gray-500">Lien d'évaluation</span>
+                            <a
+                              href={formation.evaluationLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-medium text-blue-600 hover:underline"
+                            >
+                              Accéder
+                            </a>
+                          </div>
+                        )}
+                        {formation.photosLinks && formation.photosLinks.length > 0 && (
+                          formation.photosLinks.map((photoLink, index) => (
+                            <div key={`photo-${index}`}>
+                              <span className="block text-xs text-gray-500">Photo {index + 1}</span>
+                              <a
+                                href={photoLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-medium text-blue-600 hover:underline"
+                              >
+                                Accéder
+                              </a>
+                            </div>
+                          ))
+                        )}
                       </div>
                       {formation.certificateAvailable && (
                         <div className="mb-4">
@@ -255,9 +330,7 @@ const FormationPersonnel: React.FC = () => {
                           </>
                         ) : formation.status === "en_cours" ? (
                           <>
-                            <button
-                              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-2 px-4 rounded-lg font-medium hover:shadow-lg transition-all duration-300"
-                            >
+                            <button className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-2 px-4 rounded-lg font-medium hover:shadow-lg transition-all duration-300">
                               Continuer
                             </button>
                             <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-blue-600 hover:text-blue-600 transition-all duration-300">
@@ -291,23 +364,23 @@ const FormationPersonnel: React.FC = () => {
             <div className="p-6">
               <div className="flex justify-between items-start mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">{selectedFormation.title}</h2>
-                <button 
+                <button
                   onClick={() => setIsDetailModalOpen(false)}
                   className="text-gray-500 hover:text-gray-700 text-2xl"
                 >
                   ×
                 </button>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-700 mb-3">Description</h3>
-                  <div 
-                    className="text-gray-600" 
+                  <div
+                    className="text-gray-600"
                     dangerouslySetInnerHTML={renderDescriptionAsHtml(selectedFormation.description)}
                   />
                 </div>
-                
+
                 <div className="space-y-4">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-700 mb-2">Détails de la formation</h3>
@@ -321,44 +394,71 @@ const FormationPersonnel: React.FC = () => {
                         <span className="font-medium">{selectedFormation.instructor}</span>
                       </div>
                       <div className="flex justify-between border-b pb-2">
-                        <span className="text-gray-600">Durée</span>
-                        <span className="font-medium">{selectedFormation.duration}</span>
+                        <span className="text-gray-600">
+                          <i className="fa-regular fa-calendar mr-1"></i> Date de début
+                        </span>
+                        <span className="font-medium">{selectedFormation.startDate || "Non défini"}</span>
                       </div>
                       <div className="flex justify-between border-b pb-2">
-                        <span className="text-gray-600">Date d'inscription</span>
-                        <span className="font-medium">{formatDate(selectedFormation.enrollmentDate)}</span>
+                        <span className="text-gray-600">
+                          <i className="fa-regular fa-calendar mr-1"></i> Date de fin
+                        </span>
+                        <span className="font-medium">{selectedFormation.endDate || "Non défini"}</span>
                       </div>
-                      <div className="flex justify-between border-b pb-2">
-                        <span className="text-gray-600">Dernier accès</span>
-                        <span className="font-medium">{formatDate(selectedFormation.lastAccessed)}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-700 mb-2">Progression</h3>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
-                      <div 
-                        className="bg-gradient-to-r from-blue-600 to-indigo-700 h-2.5 rounded-full" 
-                        style={{ width: `${selectedFormation.progress}%` }}
-                      ></div>
-                    </div>
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>{selectedFormation.progress}% complété</span>
-                      <span>{selectedFormation.completedModules}/{selectedFormation.totalModules} modules</span>
+                      {selectedFormation.supportLink && (
+                        <div className="flex justify-between border-b pb-2">
+                          <span className="text-gray-600">Lien de support</span>
+                          <a
+                            href={selectedFormation.supportLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium text-blue-600 hover:underline"
+                          >
+                            Accéder
+                          </a>
+                        </div>
+                      )}
+                      {selectedFormation.evaluationLink && (
+                        <div className="flex justify-between border-b pb-2">
+                          <span className="text-gray-600">Lien d'évaluation</span>
+                          <a
+                            href={selectedFormation.evaluationLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium text-blue-600 hover:underline"
+                          >
+                            Accéder
+                          </a>
+                        </div>
+                      )}
+                      {selectedFormation.photosLinks && selectedFormation.photosLinks.length > 0 && (
+                        selectedFormation.photosLinks.map((photoLink, index) => (
+                          <div key={`photo-${index}`} className="flex justify-between border-b pb-2">
+                            <span className="text-gray-600">Photo {index + 1}</span>
+                            <a
+                              href={photoLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-medium text-blue-600 hover:underline"
+                            >
+                              Accéder
+                            </a>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
-              
+
               <div className="mt-6 flex justify-end space-x-3">
-                <button 
+                <button
                   onClick={() => setIsDetailModalOpen(false)}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors duration-300"
                 >
                   Fermer
                 </button>
-                <button 
+                <button
                   className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-300"
                 >
                   Commencer maintenant
@@ -369,7 +469,7 @@ const FormationPersonnel: React.FC = () => {
         </div>
       )}
     </>
-  )
-}
+  );
+};
 
-export default FormationPersonnel
+export default FormationPersonnel;
