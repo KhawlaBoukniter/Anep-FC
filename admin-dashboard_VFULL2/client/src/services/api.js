@@ -112,6 +112,15 @@ export const analysisService = {
   getSkillsAnalysis: () => api.get("/api/analysis/skills-analysis"),
 }
 
+// Services pour les indisponibilités
+export const indisponibiliteService = {
+  getAll: (params = {}) => api.get("/api/indisponibilites", { params }),
+  getById: (id) => api.get(`/api/indisponibilites/${id}`),
+  getByEmployeId: (employeId) => api.get(`/api/indisponibilites/employe/${employeId}`),
+  create: (data) => api.post("/api/indisponibilites", data),
+  update: (id, data) => api.put(`/api/indisponibilites/${id}`, data),
+  delete: (id) => api.delete(`/api/indisponibilites/${id}`),
+};
 // Service de santé de l'API
 export const healthService = {
   check: () => api.get("/api/health"),
