@@ -139,7 +139,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
         toast({
           variant: "destructive",
           title: "Erreur",
-          description: "Impossible de récupérer les cours.",
+          description: "Impossible de récupérer les modules.",
         });
       }
     };
@@ -611,64 +611,23 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     const courseData = {
       ...course,
       assignedUsers: assignedUsers.map((user) => user.id_profile.toString()),
-      // imageUrl: course.imageUrl,
-      photos: course.photos,
-      link: course.link,
-      support: course.support
+      photos: course.photos || [],
+      link: course.link || "",
+      support: course.support || { type: "link", value: "" },
     };
 
     try {
-      // Step 1: Map id_profile to User._id
-      const profileIds = assignedUsers.map((user) => Number(user.id_profile));
-      console.log("Sending profileIds to map:", profileIds);
-      // const userMappingResponse = await useApiAxios.post("/users/map-by-profile-ids", {
-      //   profileIds,
-      // });
-      // console.log("User Mapping Response:", userMappingResponse.data);
-      // const mappedUserIds = userMappingResponse.data.map((item: { userId: string }) => item.userId);
-
-      // if (mappedUserIds.length !== profileIds.length) {
-      //   console.warn("Mismatch detected:", {
-      //     sent: profileIds.length,
-      //     received: mappedUserIds.length,
-      //     missing: profileIds.filter((id) => !mappedUserIds.includes(id.toString())),
-      //   });
-      //   toast({
-      //     variant: "destructive",
-      //     title: "Erreur",
-      //     description: "Certains profils n'ont pas d'utilisateurs correspondants. Veuillez synchroniser les données ou contacter l'administrateur.",
-      //   });
-      //   return;
-      // }
-
-      // courseData.assignedUsers = mappedUserIds;
-
-      const courseData = {
-        ...course,
-        assignedUsers: profileIds,
-        // imageUrl: course.imageUrl,
-        photos: course.photos,
-        link: course.link,
-        support: course.support,
-      };
-
-      if (course.photosFiles?.length || course.times.some((session) => session.externalInstructorDetails?.cv instanceof File)) {
+      if (course.photosFiles?.length || course.times.some((session) => session.externalInstructorDetails?.cv instanceof File) || (course.support?.type === "file" && course.support.value instanceof File)) {
         const formData = new FormData();
-        // if (course.image) {
-        //   formData.append("image", course.image);
-        // }
-
         if (course.photosFiles?.length) {
           course.photosFiles.forEach((photo) => {
-            formData.append("photos", photo)
-          })
+            formData.append("photos", photo);
+          });
         }
-
-        if (course.support?.type === 'file' && course.support.value) {
+        if (course.support?.type === "file" && course.support.value instanceof File) {
           formData.append("support", course.support.value);
         }
-        
-        course.times.forEach((session, index) => {
+        course.times.forEach((session) => {
           if (session.externalInstructorDetails?.cv instanceof File) {
             formData.append("cvs", session.externalInstructorDetails.cv);
           }
@@ -678,11 +637,12 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
           headers: { "Content-Type": "multipart/form-data" },
         });
 
-        // if (imageUploadResponse.status === 200) {
-        //   if (imageUploadResponse.data.imageUrl) {
-        //     courseData.imageUrl = imageUploadResponse.data.imageUrl;
-        //   }
+          // Update courseData with uploaded file URLs
           courseData.photos = [...(course.photos || []), ...(imageUploadResponse.data.photoUrls || [])];
+          courseData.support = {
+            type: course.support?.type || "link",
+            value: imageUploadResponse.data.supportUrl || course.support?.value || "",
+          };
           courseData.times = course.times.map((session, index) => ({
             ...session,
             externalInstructorDetails: {
@@ -692,23 +652,15 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                 : session.externalInstructorDetails.cv,
             },
           }));
-        } else {
-          toast({
-            variant: "destructive",
-            title: "Erreur",
-            description: 'Erreur lors de la cr&ation du cours',
-          });
-          return;
-        }
-      // }
+      }
 
+      // Handle conflicts for assigned users
       for (const user of assignedUsers) {
         const conflictCourse = checkConflicts(user.id_profile.toString());
         if (conflictCourse) {
           await useApiAxios.put(`/courses/${conflictCourse.course._id}`, {
             ...conflictCourse.course,
             assignedUsers: (conflictCourse.course.assignedUsers as any[])
-              // .map((u) => (typeof u === "string" ? u : u.id_profile.toString()))
               .filter((id) => id !== Number(user.id_profile)),
           });
         }
@@ -716,7 +668,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
 
       console.log("Sending courseData to update:", courseData);
       await useApiAxios.put(`/courses/${module._id}`, courseData);
-      toast({ title: "Succès", description: "Cours mis à jour avec succès." });
+      toast({ title: "Succès", description: "Module mis à jour avec succès." });
       setCurrentStep(1);
       setOpen(false);
 
@@ -724,11 +676,11 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
         onCourseUpdated();
       }
     } catch (error) {
-      console.error("Failed to update course", error.response?.data || error);
+      console.error("Failed to update module", error.response?.data || error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: error.response?.data?.message || "Échec de la mise à jour du cours.",
+        description: error.response?.data?.message || "Échec de la mise à jour du module.",
       });
     }
   };
@@ -810,7 +762,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
         <DialogHeader className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Edit className="h-6 w-6 text-blue-600" />
-            <DialogTitle className="text-xl">Modifier le Cours</DialogTitle>
+            <DialogTitle className="text-xl">Modifier le module</DialogTitle>
           </div>
           <div className="flex items-center justify-center gap-4">
             <div className="justify-items-center">
@@ -854,7 +806,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                 <Label htmlFor="title">Titre</Label>
                 <Input
                   id="title"
-                  placeholder="Entrez le titre du cours"
+                  placeholder="Entrez le titre du module"
                   value={course.title || ""}
                   onChange={(e) => handleInputChange("title", e.target.value)}
                   required
@@ -1374,14 +1326,14 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                                 key={user.id_profile}
                                 value={user.name}
                                 onSelect={() => handleUserToggle(user)}
-                                className={`text-sm ${conflict ? (conflict.type === "course" ? "text-red-500" : "text-yellow-500") : ""}`}
+                                className={`text-sm ${conflict ? (conflict.type === "module" ? "text-red-500" : "text-yellow-500") : ""}`}
                               >
                                 <Checkbox
                                   checked={assignedUsers.some((u) => u.id_profile === user.id_profile)}
                                   className="mr-2 h-4 w-4"
                                 />
                                 <span>{user.name}</span>
-                                {conflict && conflict.type === "course" && (
+                                {conflict && conflict.type === "module" && (
                                   <span className="ml-2 text-red-500 text-xs">
                                     (Conflit avec : {conflict.course.title})
                                   </span>
@@ -1456,7 +1408,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                 onClick={handleSubmit}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
-                Sauvegarder le cours
+                Sauvegarder le module
               </Button>
             )}
           </div>

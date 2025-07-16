@@ -173,7 +173,7 @@ const createCourse = async (req, res) => {
 
 // Update an existing course
 const updateCourse = async (req, res) => {
-    const { assignedUsers, times, photos, link, support, ...updateData } = req.body;
+    const { assignedUsers, times, photos = [], link, support, ...updateData } = req.body;
     try {
         const courseToUpdate = await Course.findById(req.params.id);
         if (!courseToUpdate) {
@@ -251,9 +251,9 @@ const updateCourse = async (req, res) => {
         // if (imageUrl) {
         //     updateData.imageUrl = imageUrl;
         // }
-        if (photos) {
-            updateData.photos = photos;
-        }
+        // if (photos) {
+        updateData.photos = photos;
+        // }
         if (link) {
             updateData.link = link;
         }
@@ -309,25 +309,18 @@ const uploadImage = (req, res) => {
     try {
         console.log('Received files:', req.files); // Debug: Log received files
 
-        // Check if files were uploaded
-        if (!req.files || (!req.files.photos && !req.files.cvs && !req.files.support)) {
-            return res.status(400).json({ error: 'No files uploaded' });
-        }
-
         const fileUrls = {
-            // imageUrl: null,
             photoUrls: [],
             cvUrls: [],
             supportUrl: null
         };
 
-        // Handle course image
-        // if (req.files.image) {
-        //     const imageFile = req.files.image[0];
-        //     const imageUrl = `/uploads/${imageFile.filename}`;
-        //     fileUrls.imageUrl = imageUrl;
-        // }
+        // Handle case where no files are uploaded
+        if (!req.files || Object.keys(req.files).length === 0) {
+            return res.status(200).json(fileUrls);
+        }
 
+        // Handle photos
         if (req.files.photos) {
             req.files.photos.forEach((photoFile) => {
                 const photoUrl = `/uploads/${photoFile.filename}`;
@@ -338,14 +331,15 @@ const uploadImage = (req, res) => {
         // Handle CVs
         if (req.files.cvs) {
             req.files.cvs.forEach((cvFile) => {
-                const cvUrl = `/uploads/${cvFile.filename}`;
+                const cvUrl = `/Uploads/${cvFile.filename}`;
                 fileUrls.cvUrls.push(cvUrl);
             });
         }
 
+        // Handle support file
         if (req.files.support) {
             const supportFile = req.files.support[0];
-            const supportUrl = `/uploads/${supportFile.filename}`;
+            const supportUrl = `/Uploads/${supportFile.filename}`;
             fileUrls.supportUrl = supportUrl;
         }
 
