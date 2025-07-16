@@ -57,6 +57,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
   const [isVisible, setIsVisible] = useState(false);
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [enrolledFormations, setEnrolledFormations] = useState<string[]>([]);
+  const [modulesLength, setModulesLength] = useState<string[]>([]);
   const [moduleStatuses, setModuleStatuses] = useState<Record<string, string>>({});
   const [formationsWithStatus, setFormationsWithStatus] = useState<Formation[]>(program.formations);
   const [selectAll, setSelectAll] = useState(false);
@@ -97,8 +98,10 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
 
         if (response.data.registrations.length > 0) {
           const moduleIds = response.data.registrations[0].CycleProgramUserModules.map((m: any) => m.module_id);
+          const modulesLength = response.data.registrations.length
           const statuses = response.data.moduleStatuses || {};
           setEnrolledFormations(moduleIds);
+          setModulesLength(modulesLength);
           setModuleStatuses(statuses);
           setFormationsWithStatus(
             program.formations.map((formation) => ({
@@ -280,14 +283,14 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
             </p>
 
             {enrolledFormations.length > 0 && (
-              <div className="mt-6 p-4 bg-green-100 border border-green-300 rounded-lg inline-block">
+              <div className="mt-6 p-4 bg-green-100 border-2 border-green-300 rounded-xl inline-block">
                 <span className="text-green-800 font-semibold" aria-label="Statut de l'inscription">
-                  ✅ Vous êtes inscrit à {enrolledFormations.length} module(s) sur {program.formations.length} dans {program.title}.
+                  ✅ Vous êtes inscrit à {modulesLength} module(s) sur {program.formations.length} dans {program.title}.
                 </span>
               </div>
             )}
             {enrolledFormations.length === 0 && (
-              <p className="text-lg text-gray-200" aria-label="Aucune inscription">
+              <p className="text-lg text-gray-200 p-4 rounded-xl border-2" aria-label="Aucune inscription">
                 Vous n'êtes inscrit à aucun module du programme {program.title}.
               </p>
             )}
