@@ -377,24 +377,80 @@ const downloadRegistrations = async (req, res) => {
     const { id } = req.params;
 
     try {
+        // Fetch only accepted registrations
         const registrations = await CycleProgramRegistration.findAll({
-            where: { cycle_program_id: id },
-            include: [{ model: CycleProgramUserModule, as: 'CycleProgramUserModules' }],
+            where: {
+                cycle_program_id: id,
+                status: 'accepted' // Only include accepted registrations
+            },
+            include: [
+                { model: CycleProgramUserModule, as: 'CycleProgramUserModules' },
+                { model: CycleProgram, as: 'CycleProgram', attributes: ['title', 'type'] }
+            ],
         });
 
-        const usersData = registrations.map(reg => ({
-            UserID: reg.user_id,
-            Modules: reg.CycleProgramUserModules.map(m => m.module_id).join(', '),
-            RegistrationDate: reg.created_at.toISOString(),
-        }));
+        // Fetch user and module details for accepted registrations
+        const usersData = await Promise.all(
+            registrations.map(async (reg) => {
+                // Fetch user details from the employe table
+                const [user] = await db.sequelize.query(
+                    `SELECT id_employe AS id, nom_complet AS name, email FROM employe WHERE id_employe = :userId`,
+                    {
+                        replacements: { userId: reg.user_id },
+                        type: db.sequelize.QueryTypes.SELECT,
+                    }
+                );
+
+                // Fetch module details
+                const moduleIds = reg.CycleProgramUserModules
+                    .filter(m => m.status === 'accepted') // Only include accepted modules
+                    .map(m => m.module_id);
+
+                const modules = moduleIds.length > 0
+                    ? await Course.find({ _id: { $in: moduleIds } })
+                    : [];
+
+                return {
+                    // UserID: user?.id || reg.user_id,
+                    Name: user?.name || 'Unknown',
+                    Email: user?.email || 'Unknown',
+                    ProgramTitle: reg.CycleProgram.title,
+                    ProgramType: reg.CycleProgram.type,
+                    Modules: modules.map(m => m.title).join(', ') || 'None',
+                    RegistrationDate: reg.created_at.toISOString(),
+                };
+            })
+        );
+
+        // If no accepted registrations, return an empty file with headers
+        if (usersData.length === 0) {
+            usersData.push({
+                Name: '',
+                Email: '',
+                ProgramTitle: '',
+                ProgramType: '',
+                Modules: '',
+                RegistrationDate: ''
+            });
+        }
 
         const worksheet = XLSX.utils.json_to_sheet(usersData);
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Registrations');
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'AcceptedRegistrations');
+
+        // Customize column headers
+        XLSX.utils.sheet_add_aoa(worksheet, [[
+            'Nom Complet',
+            'Email',
+            'Titre du Programme',
+            'Type de Programme',
+            'Modules Acceptés',
+            'Date d\'Inscription'
+        ]], { origin: 'A1' });
 
         const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 
-        res.setHeader('Content-Disposition', 'attachment; filename=registrations.xlsx');
+        res.setHeader('Content-Disposition', `attachment; filename=registrations_${id}.xlsx`);
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.status(200).send(buffer);
     } catch (error) {

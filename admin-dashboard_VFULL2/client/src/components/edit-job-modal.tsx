@@ -198,21 +198,21 @@ export function EditJobModal({ job }: EditJobModalProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50">
           <Edit className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white">
         <DialogHeader className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Briefcase className="h-6 w-6 text-blue-600" />
+            <Briefcase className="h-6 w-6 text-green-600" />
             <DialogTitle className="text-xl">Modifier l'Emploi</DialogTitle>
           </div>
           <div className="flex items-center justify-center gap-4">
             <div className="justify-items-center">
               <div
                 className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  currentStep === 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
+                  currentStep === 1 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"
                 }`}
               >
                 1
@@ -223,7 +223,7 @@ export function EditJobModal({ job }: EditJobModalProps) {
             <div className="justify-items-center">
               <div
                 className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  currentStep === 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
+                  currentStep === 2 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"
                 }`}
               >
                 2
@@ -343,7 +343,7 @@ export function EditJobModal({ job }: EditJobModalProps) {
                       );
                       if (skill) addCompetence(skill.id_competencer);
                     }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="bg-green-600 hover:bg-green-700 text-white"
                     disabled={!newCompetence.trim() || isLoading || isSkillsLoading}
                   >
                     Ajouter
@@ -416,7 +416,7 @@ export function EditJobModal({ job }: EditJobModalProps) {
             {currentStep === 1 ? (
               <Button
                 onClick={() => setCurrentStep(2)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-green-600 hover:bg-green-700 text-white"
                 disabled={isLoading || isSkillsLoading}
               >
                 Suivant
@@ -425,7 +425,7 @@ export function EditJobModal({ job }: EditJobModalProps) {
             ) : (
               <Button
                 onClick={handleSubmit}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-green-600 hover:bg-green-700 text-white"
                 disabled={isLoading || isValidating || isSkillsLoading}
               >
                 {isLoading ? "Enregistrement..." : "Enregistrer"}

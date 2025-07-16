@@ -98,7 +98,7 @@ export const CycleProgramList = () => {
     );
 
     const unarchiveCycleProgram = useMutation(
-        (id: number) => useApiAxios.put(`/cycles-programs/${id}/unarchive`),
+        (id: number) => useApiAxios.put(`/api/cycles-programs/${id}/unarchive`),
         {
             onSuccess: () => {
                 queryClient.invalidateQueries(["cycles-programs"]);
@@ -159,7 +159,7 @@ export const CycleProgramList = () => {
 
     const handleDownloadRegistrations = async (id: number) => {
         try {
-            const response = await useApiAxios.get(`/cycles-programs/${id}/registrations/download`, {
+            const response = await useApiAxios.get(`/api/cycles-programs/${id}/registrations/download`, {
                 responseType: "blob",
             });
             const url = window.URL.createObjectURL(new Blob([response.data]));
