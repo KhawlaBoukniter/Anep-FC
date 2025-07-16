@@ -563,7 +563,7 @@ const getPendingRegistrations = async (req, res) => {
 
 const updateRegistrationStatus = async (req, res) => {
     const { id } = req.params;
-    const { status, moduleStatuses } = req.body; // moduleStatuses: { module_id: string, status: 'accepted' | 'rejected' | 'pending' }[]
+    const { status, moduleStatuses } = req.body;
 
     try {
         const registration = await CycleProgramRegistration.findByPk(id, {
@@ -578,13 +578,23 @@ const updateRegistrationStatus = async (req, res) => {
 
         const transaction = await db.sequelize.transaction();
         try {
+            // Determine if any module is being accepted
+            const hasAcceptedModule = moduleStatuses && Array.isArray(moduleStatuses)
+                ? moduleStatuses.some(mod => mod.status === 'accepted')
+                : false;
+
+            // If any module is accepted and the program is of type 'program', set registration status to 'accepted'
+            const finalStatus = registration.CycleProgram.type === 'program' && hasAcceptedModule
+                ? 'accepted'
+                : status;
+
             // Update registration status
-            await registration.update({ status }, { transaction });
+            await registration.update({ status: finalStatus }, { transaction });
 
             // For cycles, module statuses follow the cycle status
             if (registration.CycleProgram.type === 'cycle') {
                 await CycleProgramUserModule.update(
-                    { status },
+                    { status: finalStatus },
                     { where: { registration_id: id }, transaction }
                 );
             } else if (moduleStatuses && Array.isArray(moduleStatuses)) {
