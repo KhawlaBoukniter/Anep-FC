@@ -12,7 +12,6 @@ interface EnrolledFormation {
   description: string
   duration: string
   instructor: string
-  // image: string
   category: string
   color: string
   enrollmentDate: string
@@ -29,12 +28,12 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000"
 const FormationPersonnel: React.FC = () => {
   const [formations, setFormations] = useState<EnrolledFormation[]>([])
   const [isVisible, setIsVisible] = useState(false)
-  const [selectedTab, setSelectedTab] = useState<"toutes" | "en_cours" | "terminees">("toutes")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
+  const [selectedFormation, setSelectedFormation] = useState<EnrolledFormation | null>(null)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
 
-  // Verify session to get user ID
   useEffect(() => {
     const verifySession = async () => {
       try {
@@ -76,17 +75,15 @@ const FormationPersonnel: React.FC = () => {
         })
         const enrolledData = response.data
 
-        // Map backend response to EnrolledFormation interface
         const formattedFormations: EnrolledFormation[] = enrolledData.flatMap((program: any) =>
           program.modules.map((module: any, index: number) => ({
-            id: index + 1, // Temporary ID for frontend display
+            id: index + 1,
             title: module.title || "Module sans titre",
             description: module.description || "Aucune description disponible",
             duration: module.duration || "Durée inconnue",
             instructor: program.cycleProgram.facilitator || "Instructeur inconnu",
-            // image: module.image || "/placeholder.svg?height=200&width=300",
             category: program.cycleProgram.type || "Non catégorisé",
-            color: "from-[#06668C] to-blue-700", // Default color
+            color: "from-blue-600 to-indigo-700",
             enrollmentDate: program.cycleProgram.created_at || new Date().toISOString(),
             progress: module.progress || 0,
             status: module.status || "non_commence",
@@ -109,47 +106,18 @@ const FormationPersonnel: React.FC = () => {
     fetchEnrolledModules()
   }, [userId])
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!loading && !userId && error) {
       window.location.href = "/"
     }
   }, [loading, userId, error])
 
-  // Animation effect
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(true)
     }, 300)
-
     return () => clearTimeout(timer)
   }, [])
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "en_cours":
-        return <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">En cours</span>
-      case "termine":
-        return <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Terminé</span>
-      case "non_commence":
-        return (
-          <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded-full">Non commencé</span>
-        )
-      default:
-        return null
-    }
-  }
-
-  const getFilteredFormations = () => {
-    switch (selectedTab) {
-      case "en_cours":
-        return formations.filter((f) => f.status === "en_cours")
-      case "terminees":
-        return formations.filter((f) => f.status === "termine")
-      default:
-        return formations
-    }
-  }
 
   const formatDate = (dateString: string) => {
     if (dateString === "Jamais") return dateString
@@ -165,227 +133,241 @@ const FormationPersonnel: React.FC = () => {
   const inProgressFormations = formations.filter((f) => f.status === "en_cours").length
   const averageProgress = formations.length > 0 ? formations.reduce((acc, f) => acc + f.progress, 0) / formations.length : 0
 
+  // Fonction pour ouvrir le popup avec les détails de la formation
+  const openFormationDetail = (formation: EnrolledFormation) => {
+    setSelectedFormation(formation)
+    setIsDetailModalOpen(true)
+  }
+
+  // Fonction pour convertir le markdown en HTML simple
+  const renderDescriptionAsHtml = (description: string) => {
+    // Pour cet exemple, on suppose que la description est déjà en texte brut ou qu'on veut l'afficher telle quelle
+    // Si vous avez du Markdown, vous devriez utiliser une bibliothèque comme marked ou showdown pour le convertir en HTML
+    return { __html: description }
+  }
+
   return (
-    <> <Header />
-    <div className="min-h-screen bg-gray-50">
-      
-      {/* Hero Section */}
-      <section className="relative py-16 bg-gradient-to-br from-[#06668C] via-blue-700 to-green-600 text-white overflow-hidden">
-        <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-32 h-32 bg-white rounded-full"></div>
-          <div className="absolute bottom-10 right-10 w-24 h-24 bg-white rounded-full"></div>
-        </div>
-
-        <div className="container mx-auto px-4 relative z-10">
-          <div
-            className={`transition-all duration-1000 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
-          >
-            <h1 className="text-4xl md:text-6xl font-bold mb-4">Mes Formations</h1>
-            <p className="text-xl md:text-2xl mb-8 opacity-90">Suivez votre progression et accédez à vos formations</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Dashboard */}
-      <section className="py-12 bg-white shadow-sm">
-        <div className="container mx-auto px-4">
-          {loading ? (
-            <div className="text-center">Chargement...</div>
-          ) : error ? (
-            <div className="text-center text-red-500">{error}</div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="text-center p-6 bg-gradient-to-br from-[#06668C] to-blue-700 text-white rounded-xl">
-                <div className="text-3xl font-bold mb-2">{totalFormations}</div>
-                <div className="text-sm opacity-90">Formations inscrites</div>
-              </div>
-              <div className="text-center p-6 bg-gradient-to-br from-green-600 to-green-700 text-white rounded-xl">
-                <div className="text-3xl font-bold mb-2">{completedFormations}</div>
-                <div className="text-sm opacity-90">Formations terminées</div>
-              </div>
-              <div className="text-center p-6 bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-xl">
-                <div className="text-3xl font-bold mb-2">{inProgressFormations}</div>
-                <div className="text-sm opacity-90">En cours</div>
-              </div>
-              <div className="text-center p-6 bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-xl">
-                <div className="text-3xl font-bold mb-2">{Math.round(averageProgress)}%</div>
-                <div className="text-sm opacity-90">Progression moyenne</div>
-              </div>
+    <>
+      <Header />
+      <div className="min-h-screen bg-gray-100">
+        {/* Hero Section */}
+        <section className="relative py-20 bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-600 text-white">
+          <div className="absolute inset-0 bg-black bg-opacity-30"></div>
+          <div className="container mx-auto px-6 relative z-10">
+            <div className={`transition-all duration-1000 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}>
+              <h1 className="text-5xl font-extrabold mb-4 tracking-tight">Mes Formations</h1>
+              <p className="text-xl opacity-90 max-w-2xl">Gérez et suivez votre progression dans vos programmes de formation avec facilité.</p>
             </div>
-          )}
-        </div>
-      </section>
-
-      {/* Filters */}
-      <section className="py-8 bg-white border-b">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-wrap gap-4 justify-center">
-            <button
-              onClick={() => setSelectedTab("toutes")}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                selectedTab === "toutes"
-                  ? "bg-[#06668C] text-white shadow-lg"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              Toutes ({totalFormations})
-            </button>
-            <button
-              onClick={() => setSelectedTab("en_cours")}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                selectedTab === "en_cours"
-                  ? "bg-[#06668C] text-white shadow-lg"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              En cours ({inProgressFormations})
-            </button>
-            <button
-              onClick={() => setSelectedTab("terminees")}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                selectedTab === "terminees"
-                  ? "bg-[#06668C] text-white shadow-lg"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              Terminées ({completedFormations})
-            </button>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Formations List */}
-      <section className="py-12">
-        <div className="container mx-auto px-4">
-          {loading ? (
-            <div className="text-center">Chargement des modules...</div>
-          ) : error ? (
-            <div className="text-center text-red-500">{error}</div>
-          ) : getFilteredFormations().length === 0 ? (
-            <div className="text-center py-16">
-              <div className="text-6xl mb-4">📚</div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">Aucune formation trouvée</h3>
-              <p className="text-gray-600 mb-8">
-                {selectedTab === "toutes"
-                  ? "Vous n'êtes inscrit à aucune formation pour le moment."
-                  : `Aucune formation ${selectedTab === "en_cours" ? "en cours" : "terminée"} trouvée.`}
-              </p>
-              <button className="bg-[#06668C] text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-300">
-                Découvrir nos formations
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {getFilteredFormations().map((formation) => (
-                <div
-                  key={formation.id}
-                  className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden"
-                >
-                  {/* Header avec image */}
-                  <div className="relative">
-                    {/* <img
-                      src={formation.image || "/placeholder.svg"}
-                      alt={formation.title}
-                      className="w-full h-48 object-cover"
-                    /> */}
-                    <div className="absolute top-4 left-4">{getStatusBadge(formation.status)}</div>
-                    <div className="absolute top-4 right-4">
-                      <span className="px-3 py-1 bg-black bg-opacity-70 text-white text-xs font-semibold rounded-full">
-                        {formation.category}
-                      </span>
-                    </div>
-                    {formation.certificateAvailable && (
-                      <div className="absolute bottom-4 right-4">
-                        <span className="px-3 py-1 bg-yellow-500 text-white text-xs font-semibold rounded-full flex items-center">
-                          🏆 Certificat disponible
+        {/* Stats Dashboard */}
+        <section className="py-10 bg-white">
+          <div className="container mx-auto px-6">
+            {loading ? (
+              <div className="text-center text-gray-600">Chargement...</div>
+            ) : error ? (
+              <div className="text-center text-red-600 font-medium">{error}</div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[
+                  { value: totalFormations, label: "Formations Inscrites", color: "bg-blue-600" },
+                  { value: completedFormations, label: "Terminées", color: "bg-green-600" },
+                  { value: inProgressFormations, label: "En cours", color: "bg-orange-600" },
+                ].map((stat, index) => (
+                  <div
+                    key={index}
+                    className={`p-6 ${stat.color} text-white rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300`}
+                  >
+                    <div className="text-4xl font-bold mb-2">{stat.value}</div>
+                    <div className="text-sm font-medium opacity-90">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Formations List */}
+        <section className="py-12 bg-gray-100">
+          <div className="container mx-auto px-6">
+            {loading ? (
+              <div className="text-center text-gray-600">Chargement des modules...</div>
+            ) : error ? (
+              <div className="text-center text-red-600 font-medium">{error}</div>
+            ) : formations.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="text-6xl mb-4">📚</div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-4">Aucune formation trouvée</h3>
+                <p className="text-gray-600 mb-8">
+                  Vous n'êtes inscrit à aucune formation pour le moment.
+                </p>
+                <button className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-300">
+                  Découvrir nos formations
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {formations.map((formation) => (
+                  <div
+                    key={formation.id}
+                    className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
+                  >
+                    <div className="p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-lg font-semibold text-gray-800">{formation.title}</h3>
+                        <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                          {formation.category}
                         </span>
                       </div>
-                    )}
-                  </div>
-
-                  {/* Contenu */}
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">{formation.title}</h3>
-                    <p className="text-gray-600 mb-4">{formation.description}</p>
-
-                    {/* Progression */}
-                    <div className="mb-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-gray-700">Progression</span>
-                        <span className="text-sm font-bold text-[#06668C]">{formation.progress}%</span>
+                      <div className="grid grid-cols-2 gap-4 text-sm mb-4 text-gray-600">
+                        <div>
+                          <span className="block text-xs text-gray-500">Instructeur</span>
+                          <span className="font-medium">{formation.instructor}</span>
+                        </div>
+                        <div>
+                          <span className="block text-xs text-gray-500">Durée</span>
+                          <span className="font-medium">{formation.duration}</span>
+                        </div>
+                        <div>
+                          <span className="block text-xs text-gray-500">Inscrit le</span>
+                          <span className="font-medium">{formatDate(formation.enrollmentDate)}</span>
+                        </div>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className={`bg-gradient-to-r ${formation.color} h-2 rounded-full transition-all duration-500`}
-                          style={{ width: `${formation.progress}%` }}
-                        ></div>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {formation.completedModules}/{formation.totalModules} modules terminés
-                      </div>
-                    </div>
-
-                    {/* Informations */}
-                    <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                      <div>
-                        <span className="text-gray-500">Instructeur:</span>
-                        <div className="font-medium">{formation.instructor}</div>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Durée:</span>
-                        <div className="font-medium">{formation.duration}</div>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Inscrit le:</span>
-                        <div className="font-medium">{formatDate(formation.enrollmentDate)}</div>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Dernier accès:</span>
-                        <div className="font-medium">{formatDate(formation.lastAccessed)}</div>
-                      </div>
-                    </div>
-                    {/* Actions */}
-                    <div className="flex gap-3">
-                      {formation.status === "termine" ? (
-                        <>
-                          <button className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition-colors duration-300">
-                            Revoir le contenu
-                          </button>
-                          {formation.certificateAvailable && (
-                            <button className="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white py-3 px-4 rounded-lg font-semibold hover:shadow-lg transition-all duration-300">
-                              Télécharger certificat
-                            </button>
-                          )}
-                        </>
-                      ) : formation.status === "en_cours" ? (
-                        <>
-                          <button
-                            className={`flex-1 bg-gradient-to-r ${formation.color} text-white py-3 px-4 rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300`}
-                          >
-                            Continuer
-                          </button>
-                          <button className="px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:border-[#06668C] hover:text-[#06668C] transition-colors duration-300">
-                            📋
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          className={`w-full bg-gradient-to-r ${formation.color} text-white py-3 px-4 rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300`}
-                        >
-                          Commencer la formation
-                        </button>
+                      {formation.certificateAvailable && (
+                        <div className="mb-4">
+                          <span className="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                            🏆 Certificat disponible
+                          </span>
+                        </div>
                       )}
+                      <div className="flex gap-3">
+                        {formation.status === "termine" ? (
+                          <>
+                            <button className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-300 transition-all duration-300">
+                              Revoir le contenu
+                            </button>
+                            {formation.certificateAvailable && (
+                              <button className="flex-1 bg-yellow-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-yellow-600 transition-all duration-300">
+                                Télécharger certificat
+                              </button>
+                            )}
+                          </>
+                        ) : formation.status === "en_cours" ? (
+                          <>
+                            <button
+                              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-2 px-4 rounded-lg font-medium hover:shadow-lg transition-all duration-300"
+                            >
+                              Continuer
+                            </button>
+                            <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-blue-600 hover:text-blue-600 transition-all duration-300">
+                              📋
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => openFormationDetail(formation)}
+                            className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-2 px-4 rounded-lg font-medium hover:shadow-lg transition-all duration-300"
+                          >
+                            Commencer la formation
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="h-1 bg-gradient-to-r from-blue-600 to-indigo-700" style={{ width: `${formation.progress}%` }} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+      <Footer />
+
+      {/* Popup de détails de formation */}
+      {isDetailModalOpen && selectedFormation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">{selectedFormation.title}</h2>
+                <button 
+                  onClick={() => setIsDetailModalOpen(false)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-700 mb-3">Description</h3>
+                  <div 
+                    className="text-gray-600" 
+                    dangerouslySetInnerHTML={renderDescriptionAsHtml(selectedFormation.description)}
+                  />
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-700 mb-2">Détails de la formation</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between border-b pb-2">
+                        <span className="text-gray-600">Catégorie</span>
+                        <span className="font-medium">{selectedFormation.category}</span>
+                      </div>
+                      <div className="flex justify-between border-b pb-2">
+                        <span className="text-gray-600">Instructeur</span>
+                        <span className="font-medium">{selectedFormation.instructor}</span>
+                      </div>
+                      <div className="flex justify-between border-b pb-2">
+                        <span className="text-gray-600">Durée</span>
+                        <span className="font-medium">{selectedFormation.duration}</span>
+                      </div>
+                      <div className="flex justify-between border-b pb-2">
+                        <span className="text-gray-600">Date d'inscription</span>
+                        <span className="font-medium">{formatDate(selectedFormation.enrollmentDate)}</span>
+                      </div>
+                      <div className="flex justify-between border-b pb-2">
+                        <span className="text-gray-600">Dernier accès</span>
+                        <span className="font-medium">{formatDate(selectedFormation.lastAccessed)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-700 mb-2">Progression</h3>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                      <div 
+                        className="bg-gradient-to-r from-blue-600 to-indigo-700 h-2.5 rounded-full" 
+                        style={{ width: `${selectedFormation.progress}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>{selectedFormation.progress}% complété</span>
+                      <span>{selectedFormation.completedModules}/{selectedFormation.totalModules} modules</span>
                     </div>
                   </div>
                 </div>
-              ))}
+              </div>
+              
+              <div className="mt-6 flex justify-end space-x-3">
+                <button 
+                  onClick={() => setIsDetailModalOpen(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors duration-300"
+                >
+                  Fermer
+                </button>
+                <button 
+                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-300"
+                >
+                  Commencer maintenant
+                </button>
+              </div>
             </div>
-          )}
+          </div>
         </div>
-      </section>
-    </div>
-    <Footer />
+      )}
     </>
   )
 }
