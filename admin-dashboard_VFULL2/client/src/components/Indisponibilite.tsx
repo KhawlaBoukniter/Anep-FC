@@ -1,157 +1,261 @@
-"use client"
+'use client';
 
-import type React from "react"
-import { useState } from "react"
-import { format, parseISO } from "date-fns"
-import { fr } from "date-fns/locale"
-import Header from "./header.tsx"
-import Footer from "./footer.tsx"
+import { useState, useEffect } from 'react';
+import { format, parseISO } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import Header from './header.tsx';
+import Footer from './footer.tsx';
+import {
+  useIndisponibilitesByEmploye,
+  useCreateIndisponibilite,
+  useUpdateIndisponibilite,
+  useDeleteIndisponibilite,
+} from '../hooks/useIndisponibilites.ts';
+import { Button } from './ui/button.tsx';
+import { Card, CardContent } from './ui/card.tsx';
+import { Badge } from './ui/badge.tsx';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from './ui/dialog.tsx';
+import { Input } from './ui/input.tsx';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select.tsx';
+import axios from 'axios';
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 interface Indisponibilite {
-  id_indisponibilite: number
-  id_employe: number
-  type_indisponibilite: "CONGE" | "REUNION_HEBDOMADAIRE" | "AUTRE"
-  date_debut: string
-  date_fin: string
-  description: string | null
-  created_at: string
-  updated_at: string
-  archived: boolean
+  id_indisponibilite: number;
+  id_employe: number;
+  type_indisponibilite: 'CONGE' | 'REUNION_HEBDOMADAIRE' | 'AUTRE';
+  date_debut: string;
+  date_fin: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+  archived: boolean;
 }
 
 interface NewIndisponibilite {
-  type_indisponibilite: "CONGE" | "REUNION_HEBDOMADAIRE" | "AUTRE"
-  date_debut: string
-  date_fin: string
-  description: string
+  id_employe: number;
+  type_indisponibilite: 'CONGE' | 'REUNION_HEBDOMADAIRE' | 'AUTRE';
+  date_debut: string;
+  date_fin: string;
+  description: string;
 }
 
 const Indisponibilite: React.FC = () => {
-  const [indisponibilites, setIndisponibilites] = useState<Indisponibilite[]>([])
-  const [isVisible, setIsVisible] = useState(false)
-  const [selectedTab, setSelectedTab] = useState<"toutes" | "CONGE" | "REUNION_HEBDOMADAIRE" | "AUTRE">("toutes")
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingId, setEditingId] = useState<number | null>(null)
+  const [employeId, setEmployeId] = useState<number | null>(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [selectedTab, setSelectedTab] = useState<
+    'toutes' | 'CONGE' | 'REUNION_HEBDOMADAIRE' | 'AUTRE'
+  >('toutes');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState<NewIndisponibilite>({
-    type_indisponibilite: "CONGE",
-    date_debut: "",
-    date_fin: "",
-    description: "",
-  })
-  const [error, setError] = useState<string | null>(null)
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [deleteId, setDeleteId] = useState<number | null>(null)
+    id_employe: 0,
+    type_indisponibilite: 'CONGE',
+    date_debut: '',
+    date_fin: '',
+    description: '',
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  // Sample data for frontend-only management
-  const addIndisponibilite = (newIndisponibilite: NewIndisponibilite) => {
-    const id = indisponibilites.length + 1
-    setIndisponibilites([
-      ...indisponibilites,
-      {
-        ...newIndisponibilite,
-        id_indisponibilite: id,
-        id_employe: 1,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        archived: false,
-      },
-    ])
-  }
+  // Récupérer l'ID de l'employé connecté
+  useEffect(() => {
+    const verifySession = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setAuthError('Veuillez vous connecter pour accéder à vos indisponibilités.');
+          setLoadingAuth(false);
+          return;
+        }
 
-  const updateIndisponibilite = (id: number, updatedIndisponibilite: NewIndisponibilite) => {
-    setIndisponibilites(
-      indisponibilites.map((item) =>
-        item.id_indisponibilite === id
-          ? { ...item, ...updatedIndisponibilite, updated_at: new Date().toISOString() }
-          : item
-      )
-    )
-  }
+        const response = await axios.get(`${API_BASE_URL}/api/employees/verify-session`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-  const deleteIndisponibilite = (id: number) => {
-    setIndisponibilites(indisponibilites.filter((item) => item.id_indisponibilite !== id))
-  }
+        setEmployeId(response.data.id);
+        setFormData((prev) => ({ ...prev, id_employe: response.data.id }));
+        setLoadingAuth(false);
+      } catch (err: any) {
+        console.error('Erreur lors de la vérification de la session:', err);
+        setAuthError('Session invalide. Veuillez vous reconnecter.');
+        setLoadingAuth(false);
+      }
+    };
+    verifySession();
+  }, []);
 
-  const handleAddOrUpdate = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Validate date range
-    if (new Date(formData.date_debut) >= new Date(formData.date_fin)) {
-      setError("La date de fin doit être postérieure à la date de début")
-      return
+  // Rediriger vers la page de connexion si non authentifié
+  useEffect(() => {
+    if (!loadingAuth && !employeId && !authError) {
+      window.location.href = '/';
     }
-    // Validate description for AUTRE type
-    if (formData.type_indisponibilite === "AUTRE" && !formData.description.trim()) {
-      setError("Une description est requise pour le type 'Autre'")
-      return
+  }, [loadingAuth, employeId, authError]);
+
+  // Récupérer les indisponibilités de l'employé
+  const {
+    data: indisponibilites = [],
+    isLoading,
+    isError,
+    error: queryError,
+  } = useIndisponibilitesByEmploye(employeId);
+
+  // Mutations pour les opérations CRUD
+  const createIndisponibilite = useCreateIndisponibilite();
+  const updateIndisponibilite = useUpdateIndisponibilite();
+  const deleteIndisponibilite = useDeleteIndisponibilite();
+
+  // Gestion de l'ajout ou de la mise à jour
+  const handleAddOrUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!employeId) {
+      setError('Utilisateur non authentifié');
+      return;
+    }
+    if (new Date(formData.date_debut) >= new Date(formData.date_fin)) {
+      setError('La date de fin doit être postérieure à la date de début');
+      return;
+    }
+    if (formData.type_indisponibilite === 'AUTRE' && !formData.description.trim()) {
+      setError('Une description est requise pour le type "Autre"');
+      return;
     }
 
     if (editingId) {
-      updateIndisponibilite(editingId, formData)
+      updateIndisponibilite.mutate(
+        { id: editingId, data: formData },
+        {
+          onSuccess: () => {
+            setIsModalOpen(false);
+            setFormData({
+              id_employe: employeId,
+              type_indisponibilite: 'CONGE',
+              date_debut: '',
+              date_fin: '',
+              description: '',
+            });
+            setEditingId(null);
+            setError(null);
+          },
+          onError: (err: any) => setError(err.response?.data?.message || 'Erreur lors de la mise à jour'),
+        }
+      );
     } else {
-      addIndisponibilite(formData)
+      createIndisponibilite.mutate(formData, {
+        onSuccess: () => {
+          setIsModalOpen(false);
+          setFormData({
+            id_employe: employeId,
+            type_indisponibilite: 'CONGE',
+            date_debut: '',
+            date_fin: '',
+            description: '',
+          });
+          setError(null);
+        },
+        onError: (err: any) => setError(err.response?.data?.message || 'Erreur lors de la création'),
+      });
     }
+  };
 
-    setIsModalOpen(false)
-    setFormData({ type_indisponibilite: "CONGE", date_debut: "", date_fin: "", description: "" })
-    setEditingId(null)
-    setError(null)
-  }
-
+  // Gestion de la suppression
   const handleDelete = () => {
-    if (!deleteId) return
-    deleteIndisponibilite(deleteId)
-    setIsDeleteModalOpen(false)
-    setDeleteId(null)
-  }
+    if (!deleteId) return;
+    deleteIndisponibilite.mutate(deleteId, {
+      onSuccess: () => {
+        setIsDeleteModalOpen(false);
+        setDeleteId(null);
+      },
+      onError: (err: any) => setError(err.response?.data?.message || 'Erreur lors de la suppression'),
+    });
+  };
 
   const openDeleteModal = (id: number) => {
-    setDeleteId(id)
-    setIsDeleteModalOpen(true)
-  }
+    setDeleteId(id);
+    setIsDeleteModalOpen(true);
+  };
 
   const handleEdit = (indisponibilite: Indisponibilite) => {
     setFormData({
+      id_employe: employeId!,
       type_indisponibilite: indisponibilite.type_indisponibilite,
       date_debut: indisponibilite.date_debut,
       date_fin: indisponibilite.date_fin,
-      description: indisponibilite.description || "",
-    })
-    setEditingId(indisponibilite.id_indisponibilite)
-    setIsModalOpen(true)
-  }
+      description: indisponibilite.description || '',
+    });
+    setEditingId(indisponibilite.id_indisponibilite);
+    setIsModalOpen(true);
+  };
 
   const getStatusBadge = (type: string) => {
     switch (type) {
-      case "CONGE":
-        return <span className="px-3 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-full">Congé</span>
-      case "REUNION_HEBDOMADAIRE":
+      case 'CONGE':
         return (
-          <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">
+          <Badge className="px-3 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-full">
+            Congé
+          </Badge>
+        );
+      case 'REUNION_HEBDOMADAIRE':
+        return (
+          <Badge className="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">
             Réunion Hebdomadaire
-          </span>
-        )
-      case "AUTRE":
-        return <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">Autre</span>
+          </Badge>
+        );
+      case 'AUTRE':
+        return (
+          <Badge className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
+            Autre
+          </Badge>
+        );
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   const getFilteredIndisponibilites = () => {
-    if (selectedTab === "toutes") return indisponibilites.filter((i) => !i.archived)
-    return indisponibilites.filter((i) => i.type_indisponibilite === selectedTab && !i.archived)
-  }
+    if (selectedTab === 'toutes') return indisponibilites.filter((i) => !i.archived);
+    return indisponibilites.filter((i) => i.type_indisponibilite === selectedTab && !i.archived);
+  };
 
   const formatDateTime = (dateString: string) => {
-    return format(parseISO(dateString), "dd MMMM yyyy HH:mm", { locale: fr })
+    return format(parseISO(dateString), 'dd MMMM yyyy HH:mm', { locale: fr });
+  };
+
+  const totalSlots = indisponibilites.filter((i) => !i.archived).length;
+  const congeSlots = indisponibilites.filter((i) => i.type_indisponibilite === 'CONGE' && !i.archived).length;
+  const reunionSlots = indisponibilites.filter(
+    (i) => i.type_indisponibilite === 'REUNION_HEBDOMADAIRE' && !i.archived
+  ).length;
+  const autreSlots = indisponibilites.filter((i) => i.type_indisponibilite === 'AUTRE' && !i.archived).length;
+
+  if (loadingAuth || isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Chargement...</div>;
   }
 
-  const totalSlots = indisponibilites.filter((i) => !i.archived).length
-  const congeSlots = indisponibilites.filter((i) => i.type_indisponibilite === "CONGE" && !i.archived).length
-  const reunionSlots = indisponibilites.filter(
-    (i) => i.type_indisponibilite === "REUNION_HEBDOMADAIRE" && !i.archived
-  ).length
-  const autreSlots = indisponibilites.filter((i) => i.type_indisponibilite === "AUTRE" && !i.archived).length
+  if (authError || isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-600">
+        {authError || (queryError as Error)?.message || 'Une erreur inconnue s\'est produite'}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -164,9 +268,7 @@ const Indisponibilite: React.FC = () => {
           <div className="absolute bottom-10 right-10 w-24 h-24 bg-white rounded-full"></div>
         </div>
         <div className="container mx-auto px-4 relative z-10">
-          <div
-            className={`transition-all duration-1000 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
-          >
+          <div className="opacity-100 translate-y-0">
             <h1 className="text-4xl md:text-6xl font-bold mb-4">Mes Indisponibilités</h1>
             <p className="text-xl md:text-2xl mb-8 opacity-90">
               Gérez vos indisponibilités et suivez vos créneaux
@@ -179,22 +281,22 @@ const Indisponibilite: React.FC = () => {
       <section className="py-12 bg-white shadow-sm">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="text-center p-6 bg-gradient-to-br from-[#06668C] to-blue-700 text-white rounded-xl">
-              <div className="text-3xl font-bold mb-2">{totalSlots}</div>
+            <Card className="text-center p-6 bg-gradient-to-br from-[#06668C] to-blue-700 text-white rounded-xl">
+              <CardContent className="text-3xl font-bold mb-2">{totalSlots}</CardContent>
               <div className="text-sm opacity-90">Créneaux totaux</div>
-            </div>
-            <div className="text-center p-6 bg-gradient-to-br from-red-600 to-red-700 text-white rounded-xl">
-              <div className="text-3xl font-bold mb-2">{congeSlots}</div>
+            </Card>
+            <Card className="text-center p-6 bg-gradient-to-br from-red-600 to-red-700 text-white rounded-xl">
+              <CardContent className="text-3xl font-bold mb-2">{congeSlots}</CardContent>
               <div className="text-sm opacity-90">Congés</div>
-            </div>
-            <div className="text-center p-6 bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-xl">
-              <div className="text-3xl font-bold mb-2">{reunionSlots}</div>
+            </Card>
+            <Card className="text-center p-6 bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-xl">
+              <CardContent className="text-3xl font-bold mb-2">{reunionSlots}</CardContent>
               <div className="text-sm opacity-90">Réunions</div>
-            </div>
-            <div className="text-center p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl">
-              <div className="text-3xl font-bold mb-2">{autreSlots}</div>
+            </Card>
+            <Card className="text-center p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl">
+              <CardContent className="text-3xl font-bold mb-2">{autreSlots}</CardContent>
               <div className="text-sm opacity-90">Autres</div>
-            </div>
+            </Card>
           </div>
         </div>
       </section>
@@ -203,219 +305,227 @@ const Indisponibilite: React.FC = () => {
       <section className="py-8 bg-white border-b">
         <div className="container mx-auto px-4">
           <div className="flex flex-wrap gap-4 justify-center">
-            <button
-              onClick={() => setSelectedTab("toutes")}
+            <Button
+              onClick={() => setSelectedTab('toutes')}
               className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                selectedTab === "toutes"
-                  ? "bg-[#06668C] text-white shadow-lg"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                selectedTab === 'toutes'
+                  ? 'bg-[#06668C] text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               Toutes ({totalSlots})
-            </button>
-            <button
-              onClick={() => setSelectedTab("CONGE")}
+            </Button>
+            <Button
+              onClick={() => setSelectedTab('CONGE')}
               className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                selectedTab === "CONGE"
-                  ? "bg-[#06668C] text-white shadow-lg"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                selectedTab === 'CONGE'
+                  ? 'bg-[#06668C] text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               Congés ({congeSlots})
-            </button>
-            <button
-              onClick={() => setSelectedTab("REUNION_HEBDOMADAIRE")}
+            </Button>
+            <Button
+              onClick={() => setSelectedTab('REUNION_HEBDOMADAIRE')}
               className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                selectedTab === "REUNION_HEBDOMADAIRE"
-                  ? "bg-[#06668C] text-white shadow-lg"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                selectedTab === 'REUNION_HEBDOMADAIRE'
+                  ? 'bg-[#06668C] text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               Réunions ({reunionSlots})
-            </button>
-            <button
-              onClick={() => setSelectedTab("AUTRE")}
+            </Button>
+            <Button
+              onClick={() => setSelectedTab('AUTRE')}
               className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                selectedTab === "AUTRE"
-                  ? "bg-[#06668C] text-white shadow-lg"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                selectedTab === 'AUTRE'
+                  ? 'bg-[#06668C] text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               Autres ({autreSlots})
-            </button>
+            </Button>
           </div>
         </div>
       </section>
 
       {/* Modal for Adding/Editing */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4">
-              {editingId ? "Modifier l'indisponibilité" : "Ajouter une indisponibilité"}
-            </h2>
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogContent className="max-w-md rounded-xl bg-white shadow-2xl border border-gray-200">
+            <DialogHeader>
+              <DialogTitle>
+                {editingId ? 'Modifier l\'indisponibilité' : 'Ajouter une indisponibilité'}
+              </DialogTitle>
+            </DialogHeader>
             {error && <div className="text-red-600 mb-4">{error}</div>}
-            <form onSubmit={handleAddOrUpdate}>
-              <div className="mb-4">
+            <form onSubmit={handleAddOrUpdate} className="space-y-4">
+              <div>
                 <label className="block text-gray-700 mb-2">Type</label>
-                <select
+                <Select
                   value={formData.type_indisponibilite}
-                  onChange={(e) =>
-                    setFormData({ ...formData, type_indisponibilite: e.target.value as any })
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, type_indisponibilite: value as any })
                   }
-                  className="w-full p-2 border rounded-lg"
                 >
-                  <option value="CONGE">Congé</option>
-                  <option value="REUNION_HEBDOMADAIRE">Réunion Hebdomadaire</option>
-                  <option value="AUTRE">Autre</option>
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sélectionner un type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CONGE">Congé</SelectItem>
+                    <SelectItem value="REUNION_HEBDOMADAIRE">Réunion Hebdomadaire</SelectItem>
+                    <SelectItem value="AUTRE">Autre</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="mb-4">
+              <div>
                 <label className="block text-gray-700 mb-2">Date de début</label>
-                <input
+                <Input
                   type="datetime-local"
                   value={formData.date_debut}
                   onChange={(e) => setFormData({ ...formData, date_debut: e.target.value })}
-                  className="w-full p-2 border rounded-lg"
                   required
                 />
               </div>
-              <div className="mb-4">
+              <div>
                 <label className="block text-gray-700 mb-2">Date de fin</label>
-                <input
+                <Input
                   type="datetime-local"
                   value={formData.date_fin}
                   onChange={(e) => setFormData({ ...formData, date_fin: e.target.value })}
-                  className="w-full p-2 border rounded-lg"
                   required
                 />
               </div>
-              <div className="mb-4">
+              <div>
                 <label className="block text-gray-700 mb-2">
-                  Description {formData.type_indisponibilite === "AUTRE" && <span className="text-red-600">*</span>}
+                  Description {formData.type_indisponibilite === 'AUTRE' && <span className="text-red-600">*</span>}
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full p-2 border rounded-lg"
                   rows={4}
-                  required={formData.type_indisponibilite === "AUTRE"}
+                  required={formData.type_indisponibilite === 'AUTRE'}
                 ></textarea>
               </div>
-              <div className="flex gap-4">
-                <button
+              <DialogFooter className="flex justify-end gap-3">
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => {
-                    setIsModalOpen(false)
-                    setError(null)
-                    setEditingId(null)
-                    setFormData({ type_indisponibilite: "CONGE", date_debut: "", date_fin: "", description: "" })
+                    setIsModalOpen(false);
+                    setError(null);
+                    setEditingId(null);
+                    setFormData({
+                      id_employe: employeId!,
+                      type_indisponibilite: 'CONGE',
+                      date_debut: '',
+                      date_fin: '',
+                      description: '',
+                    });
                   }}
-                  className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-200"
                 >
                   Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 bg-[#06668C] text-white py-3 px-4 rounded-lg hover:bg-blue-700"
-                >
-                  {editingId ? "Modifier" : "Ajouter"}
-                </button>
-              </div>
+                </Button>
+                <Button type="submit" disabled={createIndisponibilite.isLoading || updateIndisponibilite.isLoading}>
+                  {editingId ? 'Modifier' : 'Ajouter'}
+                </Button>
+              </DialogFooter>
             </form>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4">Confirmer la suppression</h2>
+        <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+          <DialogContent className="max-w-md rounded-xl bg-white shadow-2xl border border-gray-200">
+            <DialogHeader>
+              <DialogTitle>Confirmer la suppression</DialogTitle>
+            </DialogHeader>
             <p className="text-gray-600 mb-6">
               Voulez-vous vraiment supprimer cette indisponibilité ?
             </p>
-            <div className="flex gap-4">
-              <button
-                onClick={() => setIsDeleteModalOpen(false)}
-                className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-200"
-              >
+            <DialogFooter className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
                 Annuler
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="destructive"
                 onClick={handleDelete}
-                className="flex-1 bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700"
+                disabled={deleteIndisponibilite.isLoading}
               >
                 Supprimer
-              </button>
-            </div>
-          </div>
-        </div>
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Indisponibilites List */}
       <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="mb-8 text-right">
-            <button
+            <Button
               onClick={() => setIsModalOpen(true)}
               className="bg-[#06668C] text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-300"
             >
               Ajouter un créneau
-            </button>
+            </Button>
           </div>
           {getFilteredIndisponibilites().length === 0 ? (
             <div className="text-center py-16">
               <div className="text-6xl mb-4">📅</div>
               <h3 className="text-2xl font-bold text-gray-800 mb-4">Aucune indisponibilité trouvée</h3>
               <p className="text-gray-600 mb-8">
-                {selectedTab === "toutes"
-                  ? "Vous n'avez aucune indisponibilité pour le moment."
+                {selectedTab === 'toutes'
+                  ? 'Vous n\'avez aucune indisponibilité pour le moment.'
                   : `Aucune indisponibilité de type ${
-                      selectedTab === "CONGE"
-                        ? "congé"
-                        : selectedTab === "REUNION_HEBDOMADAIRE"
-                        ? "réunion hebdomada urchin"
-                        : "autre"
+                      selectedTab === 'CONGE'
+                        ? 'congé'
+                        : selectedTab === 'REUNION_HEBDOMADAIRE'
+                        ? 'réunion hebdomadaire'
+                        : 'autre'
                     } trouvée.`}
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {getFilteredIndisponibilites().map((indisponibilite) => (
-                <div
+                <Card
                   key={indisponibilite.id_indisponibilite}
-                  className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden"
+                  className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
                 >
-                  <div className="p-6">
+                  <CardContent className="p-6">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-xl font-bold text-gray-800">
-                        {formatDateTime(indisponibilite.date_debut)} - {formatDateTime(indisponibilite.date_fin)}
+                        {formatDateTime(indisponibilite.date_debut)} -{' '}
+                        {formatDateTime(indisponibilite.date_fin)}
                       </h3>
                       {getStatusBadge(indisponibilite.type_indisponibilite)}
                     </div>
                     <div className="grid grid-cols-1 gap-4 mb-4 text-sm">
                       <div>
                         <span className="text-gray-500">Description:</span>
-                        <div className="font-medium">{indisponibilite.description || "Aucune"}</div>
+                        <div className="font-medium">{indisponibilite.description || 'Aucune'}</div>
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      <button
+                      <Button
                         onClick={() => handleEdit(indisponibilite)}
-                        className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition-colors duration-300"
+                        className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200"
                       >
                         Modifier
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => openDeleteModal(indisponibilite.id_indisponibilite)}
-                        className="px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:border-red-600 hover:text-red-600 transition-colors duration-300"
+                        className="px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:border-red-600 hover:text-red-600"
                       >
                         🗑️
-                      </button>
+                      </Button>
                     </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}
@@ -424,7 +534,7 @@ const Indisponibilite: React.FC = () => {
 
       <Footer />
     </div>
-  )
-}
+  );
+};
 
-export default Indisponibilite
+export default Indisponibilite;
