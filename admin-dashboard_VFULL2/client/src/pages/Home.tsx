@@ -12,7 +12,7 @@ const HomePage: React.FC = () => {
             <section
                 className="relative h-screen flex items-center justify-center overflow-hidden"
                 style={{
-                    backgroundImage: `url("/images/bg.jpg")`,
+                    backgroundImage: `url("/images/bg.jpeg")`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                     height: "590px",
@@ -20,7 +20,7 @@ const HomePage: React.FC = () => {
                 }}
             >
                 {/* Fallback background si la vidéo ne charge pas */}
-                <div className="absolute inset-0 bg-gradient-to-b from-[#ffffff] z-0"></div>
+                <div className="absolute inset-0 bg-gradient-to-b from-[#fffff] z-0"></div>
 
                 {/* Overlay sombre pour améliorer la lisibilité */}
                 <div className="absolute inset-0 bg-black bg-opacity-40 z-10"></div>
