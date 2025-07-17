@@ -458,11 +458,6 @@ const FormationPersonnel: React.FC = () => {
                 >
                   Fermer
                 </button>
-                <button
-                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-300"
-                >
-                  Commencer maintenant
-                </button>
               </div>
             </div>
           </div>
