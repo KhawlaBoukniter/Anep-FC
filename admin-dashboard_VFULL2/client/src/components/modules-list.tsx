@@ -376,18 +376,19 @@ export function ModulesList() {
   const handleDownloadAssignedUsers = async (courseId: string) => {
     try {
       const response = await useApiAxios.get(`/courses/${courseId}/assignedUsers/download`, {
-        responseType: "blob",
+        responseType: 'blob',
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.href = url;
-      link.setAttribute("download", "assigned_users.xlsx");
+      link.setAttribute('download', `assigned_users_${courseId}.xlsx`); // Unique filename per course
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Échec du téléchargement des utilisateurs assignés:", error);
+      console.error('Échec du téléchargement des utilisateurs assignés:', error);
+      alert('Erreur lors du téléchargement des utilisateurs assignés. Veuillez réessayer.');
     }
   };
 

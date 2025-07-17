@@ -5,20 +5,33 @@ const User = require('../models/User');
 const XLSX = require('xlsx');
 const path = require('path')
 const fs = require('fs').promises
+const mongoose = require('mongoose');
+const { pool } = require('../config/database');
 
 const calculateModuleDuration = (times) => {
-    let minDate = new Date();
-    let maxDate = new Date(0);
+    // Set to store unique dates (ignoring time)
+    const uniqueDates = new Set();
+
     for (const session of times) {
         for (const dateRange of session.dateRanges) {
             const start = new Date(dateRange.startTime);
             const end = new Date(dateRange.endTime);
-            if (start < minDate) minDate = start;
-            if (end > maxDate) maxDate = end;
+
+            // Get the start date (ignoring time)
+            const startDate = new Date(start.toDateString());
+            uniqueDates.add(startDate.toISOString().split('T')[0]);
+
+            // Iterate over each day in the range
+            const currentDate = new Date(start);
+            while (currentDate <= end) {
+                uniqueDates.add(new Date(currentDate.toDateString()).toISOString().split('T')[0]);
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
         }
     }
-    const diffTime = maxDate - minDate;
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    // Return the number of unique days
+    return uniqueDates.size;
 };
 
 // Get all courses
@@ -640,46 +653,64 @@ const deleteComment = async (req, res) => {
 const userAssignedDownload = async (req, res) => {
     try {
         const courseId = req.params.courseId;
-        const course = await Course.findById(courseId)
-            .populate('assignedUsers')
-            .select('assignedUsers presence times');
+        const course = await Course.findById(courseId).select('assignedUsers times presence');
 
         if (!course) {
             return res.status(404).send('Course not found');
         }
 
-        const duration = calculateModuleDuration(course.times);
+        // If no assigned users, return an empty Excel file with headers
+        if (!course.assignedUsers || course.assignedUsers.length === 0) {
+            const worksheet = XLSX.utils.json_to_sheet([]);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Assigned Users');
+            const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+            res.setHeader('Content-Disposition', 'attachment; filename=assigned_users.xlsx');
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            return res.send(buffer);
+        }
 
-        const usersData = course.assignedUsers.map(user => {
-            const presence = course.presence.find(p => p.userId.equals(user._id)) || {};
+        // Fetch user data from PostgreSQL profile and employe tables
+        const query = `
+      SELECT 
+        p.id_profile,
+        p."NOM PRENOM",
+        p."CIN",
+        p."LIBELLE LOC",
+        p."LIBELLE REGION"
+      FROM profile p
+      WHERE p.id_profile = ANY($1)
+    `;
+        const result = await pool.query(query, [course.assignedUsers]);
+
+        // Calculate duration using the updated function
+        const duration = calculateModuleDuration(course.times || []);
+        const usersData = result.rows.map(row => {
+            const presence = course.presence.find(p => p.userId === row.id_profile) || {};
             const dailyStatuses = presence.dailyStatuses || Array.from({ length: duration }, (_, i) => ({ day: i + 1, status: 'absent' }));
             const statusColumns = {};
             dailyStatuses.forEach(ds => {
                 statusColumns[`Day_${ds.day}`] = ds.status;
             });
             return {
-                Name: user.name,
-                GRADE_fonction: user.GRADE_fonction,
-                AFFECTATION: user.AFFECTATION,
-                DEPARTEMENT_DIVISION: user.DEPARTEMENT_DIVISION,
-                SERVICE: user.SERVICE,
-                Localite: user.Localite,
-                FONCTION: user.FONCTION,
+                "NOM PRENOM": row["NOM PRENOM"] || '',
+                CIN: row["CIN"] || '',
+                LIBELLE_LOC: row["LIBELLE LOC"] || '',
+                LIBELLE_REGION: row["LIBELLE REGION"] || '',
+                created_at: new Date().toISOString(), // Default to current date if not available
                 DaysPresent: presence.daysPresent || 0,
-                ...statusColumns
+                ...statusColumns,
             };
         });
 
+        // Create Excel file
         const worksheet = XLSX.utils.json_to_sheet(usersData);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Assigned Users');
 
         const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 
-        res.setHeader(
-            'Content-Disposition',
-            'attachment; filename=assigned_users.xlsx'
-        );
+        res.setHeader('Content-Disposition', `attachment; filename=assigned_users_${courseId}.xlsx`);
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.send(buffer);
     } catch (error) {
