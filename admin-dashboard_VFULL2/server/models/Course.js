@@ -85,7 +85,7 @@ const courseSchema = new mongoose.Schema({
     assignedUsers: [{ type: Number }],
     resources: [resourceSchema],
     comments: [commentSchema],
-    interestedUsers: [{ type: Number }],
+    // interestedUsers: [{ type: Number }],
     presence: [{
         userId: { type: Number },
         dailyStatuses: [dailyPresenceSchema],

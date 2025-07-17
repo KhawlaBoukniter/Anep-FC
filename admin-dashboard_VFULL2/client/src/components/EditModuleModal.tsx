@@ -50,7 +50,7 @@ interface Course {
   };
   photosFiles: File[];
   assignedUsers: Profile[] | string[];
-  interestedUsers: Profile[] | string[];
+  // interestedUsers: Profile[] | string[];
 }
 
 interface Profile {
@@ -111,12 +111,12 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     support: module.support || { type: "link", value: "" },
     photosFiles: [],
     assignedUsers: module.assignedUsers,
-    interestedUsers: module.interestedUsers,
+    // interestedUsers: module.interestedUsers,
   });
 
   const [users, setUsers] = useState<Profile[]>([]);
   const [assignedUsers, setAssignedUsers] = useState<Profile[]>([]);
-  const [interestedUsers, setInterestedUsers] = useState<Profile[]>([]);
+  // const [interestedUsers, setInterestedUsers] = useState<Profile[]>([]);
   const [internalInstructors, setInternalInstructors] = useState<{ label: string; id: number }[]>([]);
   const [filter, setFilter] = useState({
     fonction: null as { label: string } | null,
@@ -156,7 +156,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
           id: profile.id_profile,
         }))
       );
-      if (module.assignedUsers?.length || module.interestedUsers?.length) {
+      if (module.assignedUsers?.length) {
         const mapUsers = (userIds: number[] | Profile[]): Profile[] => {
           const mappedUsers: Profile[] = [];
           const missingProfileIds: number[] = [];
@@ -223,7 +223,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
         // if (assigned.length < (module.assignedUsers?.length || 0)) {
         //   console.warn(`Incomplete assignedUsers mapping. Expected: ${module.assignedUsers?.length}, Got: ${assigned.length}`);
         // }
-        setInterestedUsers(mapUsers(module.interestedUsers));
+        // setInterestedUsers(mapUsers(module.interestedUsers));
       }
     }
   }, [profiles, module, toast]);
@@ -512,17 +512,17 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     return null;
   };
 
-  const handleAssignUser = (userId: string) => {
-    const userToAssign = interestedUsers.find((user) => user.id_profile.toString() === userId);
-    if (userToAssign) {
-      setAssignedUsers((prev) => [...prev, userToAssign].filter((user): user is Profile => !!user));
-    }
-  };
+  // const handleAssignUser = (userId: string) => {
+  //   const userToAssign = interestedUsers.find((user) => user.id_profile.toString() === userId);
+  //   if (userToAssign) {
+  //     setAssignedUsers((prev) => [...prev, userToAssign].filter((user): user is Profile => !!user));
+  //   }
+  // };
 
-  const filteredInterestedUsers = interestedUsers.filter(
-    (interestedUser) =>
-      !assignedUsers.some((assignedUser) => assignedUser.id_profile === interestedUser.id_profile)
-  );
+  // const filteredInterestedUsers = interestedUsers.filter(
+  //   (interestedUser) =>
+  //     !assignedUsers.some((assignedUser) => assignedUser.id_profile === interestedUser.id_profile)
+  // );
 
   const handleUserToggle = (user: Profile) => {
     setAssignedUsers((prev) => {
@@ -712,10 +712,10 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
         value: ""
       },
       assignedUsers: [],
-      interestedUsers: [],
+      // interestedUsers: [],
     });
     setAssignedUsers([]);
-    setInterestedUsers([]);
+    // setInterestedUsers([]);
     setFilter({
       fonction: null,
       localite: null,
@@ -1365,7 +1365,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                   ))}
                 </div>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Utilisateurs Intéressés</h3>
+              {/* <h3 className="text-lg font-semibold text-gray-900">Utilisateurs Intéressés</h3>
               <div className="space-y-2">
                 {filteredInterestedUsers.map((user) => (
                   <div
@@ -1383,7 +1383,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                     </Button>
                   </div>
                 ))}
-              </div>
+              </div> */}
             </div>
           )}
           <div className="flex justify-between pt-6 border-t">

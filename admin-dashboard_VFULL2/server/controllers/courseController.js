@@ -85,7 +85,7 @@ const getAllCourses = async (req, res) => {
 const getCourseById = async (req, res) => {
     try {
         const course = await Course.findById(req.params.id)
-            .populate('interestedUsers', '_id name profileId')
+            // .populate('interestedUsers', '_id name profileId')
             .populate('assignedUsers', '_id name profileId')
             .exec();
 
@@ -94,7 +94,7 @@ const getCourseById = async (req, res) => {
         }
 
         const assignedUsers = await User.find({ profileId: { $in: course.assignedUsers } }).select('_id name profileId');
-        const interestedUsers = await User.find({ profileId: { $in: course.interestedUsers } }).select('_id name profileId');
+        // const interestedUsers = await User.find({ profileId: { $in: course.interestedUsers } }).select('_id name profileId');
 
         const courseWithUsers = {
             ...course.toObject(),
@@ -106,14 +106,14 @@ const getCourseById = async (req, res) => {
                     userId: user ? user._id.toString() : null,
                 };
             }),
-            interestedUsers: course.interestedUsers.map((profileId) => {
-                const user = interestedUsers.find((u) => u.profileId === profileId);
-                return {
-                    profileId,
-                    name: user ? user.name : `Unknown User (${profileId})`,
-                    userId: user ? user._id.toString() : null,
-                };
-            }),
+            // interestedUsers: course.interestedUsers.map((profileId) => {
+            //     const user = interestedUsers.find((u) => u.profileId === profileId);
+            //     return {
+            //         profileId,
+            //         name: user ? user.name : `Unknown User (${profileId})`,
+            //         userId: user ? user._id.toString() : null,
+            //     };
+            // }),
             duration: calculateModuleDuration(course.times),
         };
 
@@ -393,11 +393,8 @@ const getCoursesByUserId = async (req, res) => {
 
     try {
         const courses = await Course.find({
-            $or: [
-                { assignedUsers: userId },
-                { interestedUsers: userId }
-            ]
-        }).populate('assignedUsers interestedUsers');
+            assignedUsers: userId
+        }).populate('assignedUsers');
 
         res.status(200).json(courses);
     } catch (error) {
@@ -544,50 +541,52 @@ const fetchFiles = async (req, res) => {
         res.status(500).send(error.message);
     }
 };
-const assignInterestedUser = async (req, res) => {
-    const { userId } = req.body;
-    const id = req.params.id;
 
-    try {
-        // First, pull the user from interestedUsers
-        const course = await Course.findByIdAndUpdate(id, {
-            $pull: { interestedUsers: userId }
-        }, { new: true });
+// const assignInterestedUser = async (req, res) => {
+//     const { userId } = req.body;
+//     const id = req.params.id;
 
-        if (!course) {
-            return res.status(404).send('Course not found');
-        }
+//     try {
+//         // First, pull the user from interestedUsers
+//         const course = await Course.findByIdAndUpdate(id, {
+//             $pull: { interestedUsers: userId }
+//         }, { new: true });
 
-        // Then, add the user to assignedUsers
-        const updatedCourse = await Course.findByIdAndUpdate(id, {
-            $addToSet: { assignedUsers: userId }
-        }, { new: true }).populate('assignedUsers').populate('interestedUsers');
+//         if (!course) {
+//             return res.status(404).send('Course not found');
+//         }
 
-        res.status(200).json(updated, updatedCourse);
-    } catch (error) {
-        res.status(500).send(error.message);
-    }
-}
-const requestJoin = async (req, res) => {
-    const { userId } = req.body; // Assume userId is passed in the request body
-    const id = req.params.id;
+//         // Then, add the user to assignedUsers
+//         const updatedCourse = await Course.findByIdAndUpdate(id, {
+//             $addToSet: { assignedUsers: userId }
+//         }, { new: true }).populate('assignedUsers').populate('interestedUsers');
 
-    try {
-        const updatedCourse = await Course.findByIdAndUpdate(
-            id,
-            { $addToSet: { interestedUsers: userId } }, // Use $addToSet to avoid duplicates
-            { new: true }
-        ).populate('interestedUsers'); // Optionally populate to return detailed info
+//         res.status(200).json(updated, updatedCourse);
+//     } catch (error) {
+//         res.status(500).send(error.message);
+//     }
+// }
+// const requestJoin = async (req, res) => {
+//     const { userId } = req.body; // Assume userId is passed in the request body
+//     const id = req.params.id;
 
-        if (!updatedCourse) {
-            return res.status(404).send('Course not found');
-        }
+//     try {
+//         const updatedCourse = await Course.findByIdAndUpdate(
+//             id,
+//             { $addToSet: { interestedUsers: userId } }, // Use $addToSet to avoid duplicates
+//             { new: true }
+//         ).populate('interestedUsers'); // Optionally populate to return detailed info
 
-        res.status(200).json(updatedCourse);
-    } catch (error) {
-        res.status(500).send(error.message);
-    }
-}
+//         if (!updatedCourse) {
+//             return res.status(404).send('Course not found');
+//         }
+
+//         res.status(200).json(updatedCourse);
+//     } catch (error) {
+//         res.status(500).send(error.message);
+//     }
+// }
+
 const sendCourseNotification = async (req, res) => {
     const courseName = req.body.courseName;
     try {
@@ -807,8 +806,8 @@ module.exports = {
     handleComments,
     filesUpload,
     fetchFiles,
-    assignInterestedUser,
-    requestJoin,
+    // assignInterestedUser,
+    // requestJoin,
     sendCourseNotification,
     deleteComment,
     createEvaluation,

@@ -53,8 +53,8 @@ const userRoutes = [
     { method: 'get', path: '/:courseId/assignedUsers/download', handler: courseController.userAssignedDownload },
     { method: 'get', path: '/:id/assignedUsers', handler: courseController.getAssignedUsers },
     { method: 'post', path: '/:id/updatePresence', handler: courseController.updateCoursePresence },
-    { method: 'post', path: '/:id/request-join', handler: courseController.requestJoin },
-    { method: 'post', path: '/:id/assign-interseted-user', handler: courseController.assignInterestedUser },
+    // { method: 'post', path: '/:id/request-join', handler: courseController.requestJoin },
+    // { method: 'post', path: '/:id/assign-interseted-user', handler: courseController.assignInterestedUser },
 ];
 
 const notificationRoutes = [

@@ -437,7 +437,7 @@ export function AddModuleModal({ onCourseCreated }) {
             },
           })),
           assignedUsers: [],
-          interestedUsers: [],
+          // interestedUsers: [],
         };
 
         console.log("Submitting course data:", finalCourseData);

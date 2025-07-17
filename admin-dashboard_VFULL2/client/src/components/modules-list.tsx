@@ -50,7 +50,7 @@ interface Course {
   }[];
   image: File | null;
   assignedUsers: Profile[] | string[];
-  interestedUsers: Profile[] | string[];
+  // interestedUsers: Profile[] | string[];
   archived: boolean;
   cycleProgramTitle?: string
 }
