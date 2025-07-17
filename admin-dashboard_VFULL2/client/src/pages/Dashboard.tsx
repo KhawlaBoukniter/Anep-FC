@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, Link, NavLink } from "react-router-dom";
 import { SidebarProvider } from "../components/ui/sidebar.tsx";
 import { AppSidebar } from "../components/app-sidebar.tsx";
@@ -12,7 +12,6 @@ import { Toaster } from "../components/ui/toaster.tsx";
 import { ReqSkillsManagement } from "../components/reqSkillsManagement.tsx";
 import { ModulesList } from "../components/modules-list.tsx"
 import { CycleProgramList } from "../components/CycleProgramList.tsx";
-import { Button } from "../components/ui/button.tsx";
 import { User } from "lucide-react";
 import { RegistrationsValidation } from "../components/registrations-validation.tsx";
 
@@ -25,6 +24,11 @@ export default function AdminDashboard() {
   );
 
   const [user, setUser] = useState<{ id: string; email: string; role?: string } | null>(null);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
 
   useEffect(() => {
     if (location.state?.activeSection) {
@@ -68,13 +72,24 @@ export default function AdminDashboard() {
     checkAuth();
   }, [navigate]);
 
-  const handleSwitchToProfile = () => {
-    if (user?.id) {
-      navigate(`/profile/${user.id}`);
-    } else {
-      console.log("User not authenticated or ID missing");
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setIsAuthenticated(false);
+    setUser(null);
+    setIsMobileMenuOpen(false);
+    setIsUserMenuOpen(false);
+    navigate("/");
   };
+
+  const toggleUserMenu = () => {
+    setIsUserMenuOpen(!isUserMenuOpen);
+    const handleSwitchToProfile = () => {
+      if (user?.id) {
+        navigate(`/profile/${user.id}`);
+        setIsMobileMenuOpen(false);
+      }
+    };
+  }
 
   const renderContent = () => {
     switch (activeSection) {
@@ -87,9 +102,9 @@ export default function AdminDashboard() {
       case "skills-analysis":
         return <SkillsAnalysis />;
       case "modules":
-        return <ModulesList/>
+        return <ModulesList />
       case "cycles-programs":
-        return <CycleProgramList/>
+        return <CycleProgramList />
       case "registrations-validation":
         return <RegistrationsValidation />;
       default:
@@ -123,15 +138,42 @@ export default function AdminDashboard() {
               <h1 className="text-xl font-bold text-white tracking-wide">Admin Dashboard</h1>
             </div>
           </div>
-          {user?.role === "admin" && (
-            <Link
-              to={`/profile/${user.id}`}
-              className="flex items-center gap-2 px-4 py-2 bg-[#15669d] text-white font-semibold rounded-lg hover:bg-cyan-600 transition-all duration-300 transform hover:scale-105 shadow-md"
-            >
-              <User />
-              <span>Profile</span>
-            </Link>
-          )}
+
+          <div className="flex items-center relative">
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={toggleUserMenu}
+                className="text-[#dce8ed] font-medium px-4 py-2 rounded-lg"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-3.31 0-6 2.69-6 6v1h12v-1c0-3.31-2.69-6-6-6z" />
+                </svg>
+              </button>
+              {isUserMenuOpen && (
+                <div className="absolute right-0 mt-1 w-48 bg-white shadow-lg rounded-lg py-2 z-50">
+
+                  <Link
+                    to={`/profile/${user?.id}`}
+                    className="flex items-center gap-2 px-4 py-2 text-[#06668C] hover:bg-gray-100 w-full text-left"
+                  >
+                    <User className="" />
+                    <span>Profile</span>
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center px-4 py-2 text-[#06668C] hover:bg-gray-100 w-full text-left"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Déconnexion
+                  </button>
+                </div>
+
+              )}
+            </div>
+
+          </div>
         </header>
         <div className="flex flex-1 flex-col gap-6 p-6 bg-gray-50">
           {renderContent()}
