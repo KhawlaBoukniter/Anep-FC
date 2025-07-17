@@ -1,5 +1,5 @@
 // courseController.js
-const { CycleProgram, CycleProgramModule } = require('../models/index');
+const { CycleProgram, CycleProgramModule, CycleProgramRegistration, CycleProgramUserModule } = require('../models/index');
 const Course = require('../models/Course');
 const User = require('../models/User');
 const XLSX = require('xlsx');
@@ -148,7 +148,7 @@ const getCourseById = async (req, res) => {
 const createCourse = async (req, res) => {
     console.log('Received data for new course:', req.body);
     try {
-        const { times, support } = req.body;
+        const { times, support, cycleProgramTitle, ...courseData } = req.body;
 
         if (support) {
             if (!['file', 'link'].includes(support.type)) {
@@ -175,8 +175,17 @@ const createCourse = async (req, res) => {
             }
         }
 
-        const course = new Course(req.body);
+        const course = new Course(courseData);
         await course.save();
+
+        // Sync assignedUsers with CycleProgram if associated
+        if (cycleProgramTitle) {
+            const cycleProgram = await CycleProgram.findOne({ where: { title: cycleProgramTitle } });
+            if (cycleProgram) {
+                await syncAssignedUsersToCycleProgram(course._id.toString(), course.assignedUsers, cycleProgram.id);
+            }
+        }
+
         res.status(201).json(course);
     } catch (error) {
         console.error('Error saving course:', error);
@@ -186,7 +195,7 @@ const createCourse = async (req, res) => {
 
 // Update an existing course
 const updateCourse = async (req, res) => {
-    const { assignedUsers, times, photos = [], link, support, ...updateData } = req.body;
+    const { assignedUsers, times, photos = [], link, support, cycleProgramTitle, ...updateData } = req.body;
     try {
         const courseToUpdate = await Course.findById(req.params.id);
         if (!courseToUpdate) {
@@ -231,18 +240,6 @@ const updateCourse = async (req, res) => {
 
         // Handle assigned users
         if (assignedUsers) {
-            // const users = await User.find({ profileId: { $in: assignedUsers.map(Number) } }).select('profileId');
-            // const foundProfileIds = users.map((u) => u.profileId);
-            // const invalidProfileIds = assignedUsers.filter((id) => !foundProfileIds.includes(Number(id)));
-            // if (invalidProfileIds.length > 0) {
-            //     return res.status(400).json({
-            //         message: `Invalid profileIds: ${invalidProfileIds.join(', ')}`,
-            //         invalidProfileIds,
-            //     });
-            // }
-
-            // const numericProfileIds = assignedUsers.map(Number);
-
             const newlyAssignedUsers = assignedUsers.filter(
                 (profileId) => !courseToUpdate.assignedUsers.includes(Number(profileId))
             );
@@ -261,12 +258,7 @@ const updateCourse = async (req, res) => {
             updateData.assignedUsers = assignedUsers.map(Number);
         }
 
-        // if (imageUrl) {
-        //     updateData.imageUrl = imageUrl;
-        // }
-        // if (photos) {
         updateData.photos = photos;
-        // }
         if (link) {
             updateData.link = link;
         }
@@ -274,6 +266,14 @@ const updateCourse = async (req, res) => {
         console.log('Update data:', JSON.stringify(updateData, null, 2));
 
         const updatedCourse = await Course.findByIdAndUpdate(req.params.id, { $set: updateData }, { new: true });
+
+        // Sync assignedUsers with CycleProgram if associated
+        if (cycleProgramTitle) {
+            const cycleProgram = await CycleProgram.findOne({ where: { title: cycleProgramTitle } });
+            if (cycleProgram) {
+                await syncAssignedUsersToCycleProgram(updatedCourse._id.toString(), updatedCourse.assignedUsers, cycleProgram.id);
+            }
+        }
 
         console.log('Updated course:', JSON.stringify(updatedCourse, null, 2));
 
@@ -823,6 +823,55 @@ const unarchiveCourse = async (req, res) => {
     }
 };
 
+const syncAssignedUsersToCycleProgram = async (courseId, assignedUsers, cycleProgramId) => {
+    try {
+        // Find or create registration for each user
+        const registrations = await CycleProgramRegistration.findAll({
+            where: { cycle_program_id: cycleProgramId, user_id: assignedUsers },
+        });
+
+        const existingUserIds = registrations.map((r) => r.user_id);
+        const newUsers = assignedUsers.filter((id) => !existingUserIds.includes(id));
+
+        // Create new registrations for new users
+        const newRegistrations = await Promise.all(
+            newUsers.map((userId) =>
+                CycleProgramRegistration.create({
+                    cycle_program_id: cycleProgramId,
+                    user_id: userId,
+                    status: 'pending',
+                })
+            )
+        );
+
+        // Combine existing and new registrations
+        const allRegistrations = [...registrations, ...newRegistrations];
+        const registrationIds = allRegistrations.map((r) => r.id);
+
+        // Find associated modules for the course
+        const cycleProgramModule = await CycleProgramModule.findOne({
+            where: { module_id: courseId },
+        });
+        if (!cycleProgramModule) {
+            throw new Error('No associated CycleProgramModule found');
+        }
+
+        // Update or create CycleProgramUserModule entries
+        await CycleProgramUserModule.destroy({
+            where: { registration_id: registrationIds, module_id: courseId },
+        });
+        const userModuleEntries = allRegistrations.flatMap((reg) => ({
+            registration_id: reg.id,
+            module_id: courseId,
+            status: 'pending',
+        }));
+        await CycleProgramUserModule.bulkCreate(userModuleEntries, { ignoreDuplicates: true });
+    } catch (error) {
+        console.error('Error syncing assigned users to CycleProgram:', error);
+        throw error;
+    }
+};
+
 module.exports = {
     getAllCourses,
     getCourseById,
@@ -846,6 +895,7 @@ module.exports = {
     getAllComments,
     userAssignedDownload,
     archiveCourse,
-    unarchiveCourse
+    unarchiveCourse,
+    syncAssignedUsersToCycleProgram
     // getCourseNameById,
 };
