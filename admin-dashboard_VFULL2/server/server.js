@@ -7,9 +7,7 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 const dotenv = require('dotenv');
 
-const envPath = process.env.NODE_ENV === 'production'
-  ? path.resolve(__dirname, '.env.production')
-  : path.resolve(__dirname, '.env.development');
+const envPath = path.resolve(__dirname, '.env.production')
 
 dotenv.config({ path: envPath });
 console.log(`✅ Chargement config depuis: ${envPath}`);
