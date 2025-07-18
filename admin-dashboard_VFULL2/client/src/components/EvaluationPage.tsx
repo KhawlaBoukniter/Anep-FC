@@ -2,6 +2,10 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
+import { useLocation } from "react-router-dom"
+import axios from "axios"
+import { toast } from "../hooks/use-toast.ts"
+import jsPDF from "jspdf"
 
 interface EvaluationData {
   [key: string]: number
@@ -22,7 +26,10 @@ const axisConfig: AxisConfig[] = [
   { id: "qualite", title: "Qualité de l'animation", angle: 288, color: "#EA580C" },
 ]
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000"
+
 const EvaluationPage: React.FC = () => {
+  const location = useLocation()
   const [evaluationData, setEvaluationData] = useState<EvaluationData>({
     apports: 0,
     reponse: 0,
@@ -32,6 +39,78 @@ const EvaluationPage: React.FC = () => {
   })
   const [isVisible, setIsVisible] = useState(false)
   const [hoveredAxis, setHoveredAxis] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [moduleId, setModuleId] = useState<string | null>(null)
+  const [registrationId, setRegistrationId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search)
+    const userIdParam = queryParams.get('userId')
+    const moduleIdParam = queryParams.get('moduleId')
+    
+    if (userIdParam) setUserId(userIdParam)
+    if (moduleIdParam) setModuleId(moduleIdParam)
+
+    const fetchRegistrationId = async () => {
+      if (!userIdParam || !moduleIdParam) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "ID utilisateur ou module manquant.",
+        })
+        setLoading(false)
+        return
+      }
+
+      try {
+        const token = localStorage.getItem("token")
+        if (!token) {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Session invalide. Veuillez vous reconnecter.",
+          })
+          setLoading(false)
+          return
+        }
+
+        // Fetch registrations to find the registration_id
+        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/registrations`, {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { user_id: userIdParam },
+        })
+
+        const registrations = response.data
+        const registration = registrations.find((reg: any) =>
+          reg.CycleProgramUserModules.some((mod: any) => mod.module_id === moduleIdParam)
+        )
+
+        if (!registration) {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Aucune inscription trouvée pour ce module.",
+          })
+          setLoading(false)
+          return
+        }
+
+        setRegistrationId(registration.id.toString())
+        setLoading(false)
+      } catch (error) {
+        console.error("Erreur lors de la récupération de l'inscription:", error)
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Erreur lors de la récupération de l'inscription.",
+        })
+        setLoading(false)
+      }
+    }
+
+    fetchRegistrationId()
+  }, [location])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -40,7 +119,6 @@ const EvaluationPage: React.FC = () => {
     return () => clearTimeout(timer)
   }, [])
 
-  // Fonction pour convertir les coordonnées polaires en cartésiennes
   const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
     const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0
     return {
@@ -49,7 +127,6 @@ const EvaluationPage: React.FC = () => {
     }
   }
 
-  // Fonction pour gérer le clic sur un axe
   const handleAxisClick = (axisId: string, level: number) => {
     setEvaluationData((prev) => ({
       ...prev,
@@ -57,43 +134,117 @@ const EvaluationPage: React.FC = () => {
     }))
   }
 
-  // Fonction pour télécharger en PDF (simulation)
   const handleDownloadPDF = () => {
     const results = axisConfig.map((axis) => ({
       titre: axis.title,
       note: evaluationData[axis.id],
     }))
 
-    // Simulation de génération PDF
-    console.log("Génération PDF avec les données:", results)
-    alert(
-      `PDF généré avec succès!\n\nRésultats:\n${results
-        .map((r) => `${r.titre}: ${r.note}/5`)
-        .join("\n")}\n\nEn production, ceci téléchargerait un vrai PDF.`,
-    )
+    // Generate LaTeX content
+    const latexContent = `
+\\documentclass[a4paper,12pt]{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage[T1]{fontenc}
+\\usepackage{geometry}
+\\usepackage{booktabs}
+\\usepackage{xcolor}
+\\usepackage{colortbl}
+\\geometry{margin=1in}
+
+\\begin{document}
+
+\\begin{center}
+  \\Huge{\\textbf{Rapport d'Évaluation de Formation}}
+  \\vspace{0.5cm}
+  \\large{Module ID: ${moduleId || 'Non spécifié'}}
+  \\vspace{0.5cm}
+  \\large{Date: \\today}
+\\end{center}
+
+\\section*{Résultats de l'Évaluation}
+\\begin{table}[h]
+  \\centering
+  \\begin{tabular}{|l|c|}
+    \\hline
+    \\rowcolor[gray]{0.9} \\textbf{Critère} & \\textbf{Note (/5)} \\\\
+    \\hline
+    ${results.map((r) => `${r.titre} & ${r.note} \\\\ \\hline`).join('\n    ')}
+  \\end{tabular}
+  \\caption{Résultats de l'évaluation pour le module}
+\\end{table}
+
+\\section*{Résumé}
+Moyenne des scores: ${averageScore.toFixed(1)}/5
+
+\\end{document}
+`
+
+    // Simulate PDF generation (in a real environment, this would be sent to a LaTeX server or compiled)
+    const doc = new jsPDF()
+    doc.text("Génération PDF en cours...", 10, 10)
+    doc.text("Dans une environnement de production, le PDF serait généré à partir du LaTeX suivant:", 10, 20)
+    doc.text(latexContent, 10, 30, { maxWidth: 190 })
+    doc.save(`evaluation_module_${moduleId || 'unknown'}.pdf`)
+
+    toast({
+      title: "Succès",
+      description: "PDF généré et téléchargé avec succès.",
+    })
   }
 
-  // Fonction pour envoyer les réponses
-  const handleSendResults = () => {
+  const handleSendResults = async () => {
     const completedAxes = Object.values(evaluationData).filter((value) => value > 0).length
     const totalAxes = axisConfig.length
 
     if (completedAxes < totalAxes) {
-      alert(`Veuillez compléter toutes les évaluations (${completedAxes}/${totalAxes} complétées)`)
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: `Veuillez compléter toutes les évaluations (${completedAxes}/${totalAxes} complétées)`,
+      })
       return
     }
 
-    // Simulation d'envoi
-    console.log("Envoi des résultats:", evaluationData)
-    alert("Évaluation envoyée avec succès! Merci pour votre participation.")
+    if (!registrationId || !moduleId) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "ID d'inscription ou module manquant.",
+      })
+      return
+    }
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/evaluations`, {
+        registration_id: parseInt(registrationId),
+        module_id: moduleId,
+        ...evaluationData,
+      })
+
+      console.log("Réponse du serveur:", response.data)
+      toast({
+        title: "Succès",
+        description: "Évaluation envoyée avec succès! Merci pour votre participation.",
+      })
+    } catch (error: any) {
+      console.error("Erreur lors de l'envoi de l'évaluation:", error)
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: error.response?.data?.message || "Une erreur est survenue lors de l'envoi de l'évaluation.",
+      })
+    }
   }
 
-  // Calcul du score moyen
   const averageScore = Object.values(evaluationData).reduce((sum, value) => sum + value, 0) / axisConfig.length
 
   const svgSize = 400
   const center = svgSize / 2
   const maxRadius = 150
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Chargement...</div>
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -166,7 +317,6 @@ const EvaluationPage: React.FC = () => {
                           strokeWidth="1"
                           opacity={0.5}
                         />
-                        {/* Numéros de niveau */}
                         <text
                           x={center + ((maxRadius * level) / 5) * 0.1}
                           y={center - (maxRadius * level) / 5 + 5}
@@ -193,7 +343,6 @@ const EvaluationPage: React.FC = () => {
                             strokeWidth="2"
                           />
 
-                          {/* Points cliquables sur chaque axe */}
                           {[1, 2, 3, 4, 5].map((level) => {
                             const point = polarToCartesian(center, center, (maxRadius * level) / 5, axis.angle)
                             const isSelected = evaluationData[axis.id] === level
@@ -216,7 +365,6 @@ const EvaluationPage: React.FC = () => {
                             )
                           })}
 
-                          {/* Titres des axes */}
                           <text
                             x={polarToCartesian(center, center, maxRadius + 30, axis.angle).x}
                             y={polarToCartesian(center, center, maxRadius + 30, axis.angle).y}
@@ -233,7 +381,6 @@ const EvaluationPage: React.FC = () => {
                       )
                     })}
 
-                    {/* Forme remplie basée sur les sélections */}
                     {Object.values(evaluationData).some((value) => value > 0) && (
                       <polygon
                         points={axisConfig
@@ -270,7 +417,6 @@ const EvaluationPage: React.FC = () => {
                           </span>
                         </div>
 
-                        {/* Boutons de sélection */}
                         <div className="flex gap-2">
                           {[1, 2, 3, 4, 5].map((level) => (
                             <button
@@ -294,7 +440,6 @@ const EvaluationPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Statistiques */}
                 <div className="bg-gradient-to-r from-[#06668C] to-green-600 text-white rounded-2xl p-6">
                   <h4 className="text-lg font-bold mb-4">Résumé</h4>
                   <div className="grid grid-cols-2 gap-4">
@@ -311,7 +456,6 @@ const EvaluationPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button
                     onClick={handleDownloadPDF}
