@@ -111,7 +111,7 @@ export function JobsList() {
   const filterOptions: FilterOption[] = useMemo(
     () => [
       { label: "Entité", value: "Entité", options: uniqueEntites },
-      { label: "Archivage", value: "Archivage", options: ["Archivés", "Désarchivés"] },
+      { label: "Archivage", value: "Archivage", options: ["Archivés", "Actifs"] },
     ],
     [uniqueEntites]
   );
@@ -124,7 +124,7 @@ export function JobsList() {
       if (filter.type === "Archivage") {
         return filter.values.every((val) => {
           if (val === "Archivés") return job.archived === true;
-          if (val === "Désarchivés") return job.archived === false;
+          if (val === "Actifs") return job.archived === false;
           return true;
         });
       }

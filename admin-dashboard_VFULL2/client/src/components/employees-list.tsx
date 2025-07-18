@@ -170,7 +170,7 @@ export function EmployeesList() {
       if (filter.type === "Archivage") {
         return filter.values.every((val) => {
           if (val === "Archivés") return employee.archived === true;
-          if (val === "Désarchivés") return employee.archived === false;
+          if (val === "Actifs") return employee.archived === false;
           return true;
         });
       }
@@ -281,7 +281,7 @@ export function EmployeesList() {
     { label: "Direction", value: "Direction", options: uniqueDepartements },
     { label: "Région", value: "Région", options: uniqueRegions },
     { label: "Statut", value: "Statut", options: uniqueStatuses },
-    { label: "Archivage", value: "Archivage", options: ["Archivés", "Désarchivés"] },
+    { label: "Archivage", value: "Archivage", options: ["Archivés", "Actifs"] },
   ];
 
   const availableOptions = filterOptions.find((opt) => opt.value === newFilterType)?.options || [];
@@ -503,7 +503,7 @@ export function EmployeesList() {
                     const confirmUndo = window.confirm("Voulez-vous vraiment annuler les derniers changements ?");
                     if (!confirmUndo) return;
                     try {
-                      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/undo-last-import`, { method: "POST" , credentials: 'include',});
+                      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/undo-last-import`, { method: "POST", credentials: 'include', });
                       const data = await res.json();
                       alert(data.message || "Import annulé.");
                     } catch (err) {

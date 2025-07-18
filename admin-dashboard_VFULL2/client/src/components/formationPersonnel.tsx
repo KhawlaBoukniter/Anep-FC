@@ -6,6 +6,9 @@ import axios from "axios";
 import { toast } from "../hooks/use-toast.ts";
 import Header from "./header.tsx";
 import Footer from "./footer.tsx";
+import { Input } from "./ui/input.tsx";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.tsx";
+import { Search } from "lucide-react";
 
 interface EnrolledFormation {
   id: string;
@@ -40,6 +43,8 @@ const FormationPersonnel: React.FC = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [selectedFormation, setSelectedFormation] = useState<EnrolledFormation | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "accepted" | "pending" | "rejected">("all");
 
   useEffect(() => {
     const verifySession = async () => {
@@ -185,6 +190,21 @@ const FormationPersonnel: React.FC = () => {
   const totalFormations = formations.length;
   const acceptedFormations = formations.filter((f) => f.registrationStatus === "accepted").length;
   const pendingFormations = formations.filter((f) => f.registrationStatus === "pending").length;
+  const rejectedFormations = formations.filter((f) => f.registrationStatus === "rejected").length;
+
+  const filteredFormations = formations.filter((formation) => {
+    const matchesSearch =
+      formation.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      formation.instructor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      formation.category.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === "all" ||
+      formation.registrationStatus === statusFilter ||
+      (statusFilter === "all" && !formation.registrationStatus);
+
+    return matchesSearch && matchesStatus;
+  });
 
   const getStatusBadge = (registrationStatus: string | null) => {
     if (!registrationStatus) {
@@ -200,10 +220,10 @@ const FormationPersonnel: React.FC = () => {
     return (
       <span
         className={`px-3 py-1 text-white text-xs font-semibold rounded-full ${registrationStatus === "accepted"
-            ? "bg-green-500"
-            : registrationStatus === "pending"
-              ? "bg-yellow-500"
-              : "bg-red-500"
+          ? "bg-green-500"
+          : registrationStatus === "pending"
+            ? "bg-yellow-500"
+            : "bg-red-500"
           }`}
         aria-label={`Statut de l'inscription : ${registrationStatus}`}
       >
@@ -263,7 +283,7 @@ const FormationPersonnel: React.FC = () => {
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: errorMessage, // Fixed: Use errorMessage variable
+        description: errorMessage,
       });
     }
   };
@@ -297,17 +317,18 @@ const FormationPersonnel: React.FC = () => {
         </section>
 
         <section className="py-10 bg-white">
-          <div className="container mx-auto px-6">
+          <div className="mx-auto px-6">
             {loading ? (
               <div className="text-center text-gray-600">Chargement...</div>
             ) : error ? (
               <div className="text-center text-red-600 font-medium">{error}</div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
-                  { value: totalFormations, label: "Formations Inscrites", color: "bg-blue-600" },
+                  { value: totalFormations, label: "Total", color: "bg-blue-600" },
                   { value: acceptedFormations, label: "Acceptées", color: "bg-green-600" },
                   { value: pendingFormations, label: "En attente", color: "bg-yellow-600" },
+                  { value: rejectedFormations, label: "Rejetées", color: "bg-red-600" },
                 ].map((stat, index) => (
                   <div
                     key={index}
@@ -323,18 +344,49 @@ const FormationPersonnel: React.FC = () => {
           </div>
         </section>
 
+        <section className="py-6 bg-gray-100">
+          <div className="mx-auto px-6">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Input
+                  placeholder="Rechercher par titre, instructeur ou catégorie..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-white border-gray-300 rounded-lg"
+                  aria-label="Rechercher des formations"
+                />
+              </div>
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => setStatusFilter(value as "all" | "accepted" | "pending" | "rejected")}
+              >
+                <SelectTrigger className="w-48 bg-white border-gray-300 rounded-lg">
+                  <SelectValue placeholder="Filtrer par statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les statuts</SelectItem>
+                  <SelectItem value="accepted">Accepté</SelectItem>
+                  <SelectItem value="pending">En attente</SelectItem>
+                  <SelectItem value="rejected">Rejeté</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </section>
+
         <section className="section section--formation-list py-12 bg-gray-100">
-          <div className="container mx-auto px-6">
+          <div className="mx-auto px-6">
             {loading ? (
               <div className="text-center text-gray-600">Chargement des modules...</div>
             ) : error ? (
               <div className="text-center text-red-600 font-medium">{error}</div>
-            ) : formations.length === 0 ? (
+            ) : filteredFormations.length === 0 ? (
               <div className="text-center py-16">
                 <div className="text-6xl mb-4">📚</div>
                 <h3 className="text-2xl font-bold text-gray-800 mb-4">Aucune formation trouvée</h3>
                 <p className="text-gray-600 mb-8">
-                  Vous n'êtes inscrit à aucune formation pour le moment.
+                  Aucune formation ne correspond à vos critères de recherche ou de filtrage.
                 </p>
                 <button
                   className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-300"
@@ -345,7 +397,7 @@ const FormationPersonnel: React.FC = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {formations.map((formation) => (
+                {filteredFormations.map((formation) => (
                   <div
                     key={`${formation.id}-${formation.programId}`}
                     className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
@@ -461,12 +513,12 @@ const FormationPersonnel: React.FC = () => {
                         <span className="text-gray-600">Statut de l'inscription</span>
                         <span
                           className={`font-medium ${selectedFormation.registrationStatus === "accepted"
-                              ? "text-green-600"
-                              : selectedFormation.registrationStatus === "pending"
-                                ? "text-yellow-600"
-                                : selectedFormation.registrationStatus === "rejected"
-                                  ? "text-red-600"
-                                  : "text-gray-600"
+                            ? "text-green-600"
+                            : selectedFormation.registrationStatus === "pending"
+                              ? "text-yellow-600"
+                              : selectedFormation.registrationStatus === "rejected"
+                                ? "text-red-600"
+                                : "text-gray-600"
                             }`}
                         >
                           {selectedFormation.registrationStatus

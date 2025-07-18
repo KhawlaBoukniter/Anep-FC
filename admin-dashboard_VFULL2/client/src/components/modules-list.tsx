@@ -194,8 +194,8 @@ export function ModulesList() {
 
   // React Query: Fetch courses
   const { data: courses = [], isLoading, error } = useQuery(
-    ["courses", { search: searchTerm, archived: filters.some((f) => f.type === "Archivé" && f.values.length === 1 && f.values.includes("Oui")) }],
-    () => useApiAxios.get("/courses", { params: { archived: filters.some((f) => f.type === "Archivé" && f.values.length === 1 && f.values.includes("Oui")) ? true : false } }).then((res) => res.data),
+    ["courses", { search: searchTerm, archived: filters.some((f) => f.type === "Archivage" && f.values.length === 1 && f.values.includes("Archivés")) }],
+    () => useApiAxios.get("/courses", { params: { archived: filters.some((f) => f.type === "Archivage" && f.values.length === 1 && f.values.includes("Archivés")) ? true : false } }).then((res) => res.data),
     {
       staleTime: 5 * 60 * 1000,
       cacheTime: 10 * 60 * 1000,
@@ -442,14 +442,14 @@ export function ModulesList() {
         );
       if (filter.type === "Statut")
         return filter.values.length === 0 || filter.values.some((val) => (val === "Caché" && course.hidden === "hidden") || (val === "Visible" && course.hidden === "visible"));
-      if (filter.type === "Archivé")
-        return filter.values.length === 0 || filter.values.some((val) => (val === "Oui" && course.archived) || (val === "Non" && !course.archived));
+      if (filter.type === "Archivage")
+        return filter.values.length === 0 || filter.values.some((val) => (val === "Archivés" && course.archived) || (val === "Actifs" && !course.archived));
       if (filter.type === "Cycle")
         return filter.values.length === 0 || filter.values.includes(course.cycleProgramTitle || "");
       return true;
     });
 
-    const isArchivedFilterActive = filters.some((f) => f.type === "Archivé" && f.values.includes("Oui"))
+    const isArchivedFilterActive = filters.some((f) => f.type === "Archivage" && f.values.includes("Archivés"))
     return matchesSearch && matchesFilters && (!course.archived || isArchivedFilterActive);
   });
 
@@ -507,7 +507,7 @@ export function ModulesList() {
         return "bg-blue-50 text-blue-700 border-blue-200";
       case "Statut":
         return "bg-green-50 text-green-700 border-green-200";
-      case "Archivé":
+      case "Archivage":
         return "bg-gray-50 text-gray-700 border-gray-200";
       case "Cycle":
         return "bg-purple-50 text-purple-700 border-purple-200";
@@ -523,7 +523,7 @@ export function ModulesList() {
       options: ["En ligne", "Hybride", "Présentiel"],
     },
     { label: "Statut", value: "Statut", options: ["Visible", "Caché"] },
-    { label: "Archivé", value: "Archivé", options: ["Oui", "Non"] },
+    { label: "Archivage", value: "Archivage", options: ["Archivés", "Actifs"] },
     {
       label: "Cycle",
       value: "Cycle",
@@ -797,9 +797,9 @@ export function ModulesList() {
           <CardHeader>
             <div className="flex items-center justify-between text-blue-900">
               <CardTitle className="text-xl">
-                {filters.some((f) => f.type === "Archivé" && f.values.includes("Oui")) ? "Modules Archivés" : 
-                 filters.some((f) => f.type === "Archivé" && f.values.includes("Non")) ? "Modules Non Archivés" :
-                  "Liste des Modules"}
+                {filters.some((f) => f.type === "Archivage" && f.values.includes("Archivés")) ? "Modules Archivés" :
+                  filters.some((f) => f.type === "Archivage" && f.values.includes("Actifs")) ? "Liste de Modules" :
+                    "Liste des Modules"}
               </CardTitle>
               <Badge variant="secondary">{filteredCourses.length} résultat(s)</Badge>
             </div>
@@ -820,7 +820,7 @@ export function ModulesList() {
                       <TableHead className="text-blue-900 text-center">Description</TableHead>
                       <TableHead className="text-blue-900 text-center">Statut</TableHead>
                       <TableHead className="text-blue-900 text-center">Budget</TableHead>
-                      {/* <TableHead className="text-blue-900 text-center">Archivé</TableHead> */}
+                      {/* <TableHead className="text-blue-900 text-center">Archivage</TableHead> */}
                       <TableHead className="text-blue-900 text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -833,15 +833,15 @@ export function ModulesList() {
                           {course.offline === CourseMode.Online
                             ? "En ligne"
                             : course.offline === CourseMode.Hybrid
-                            ? "Hybride"
-                            : "Présentiel"}
+                              ? "Hybride"
+                              : "Présentiel"}
                         </TableCell>
                         <TableCell className="text-center">
                           <div dangerouslySetInnerHTML={{ __html: course.description }} />
                         </TableCell>
                         <TableCell className="text-center">{course.hidden === "hidden" ? "Caché" : "Visible"}</TableCell>
                         <TableCell className="text-center">{course.budget}</TableCell>
-                        {/* <TableCell className="text-center">{course.archived ? "Oui" : "Non"}</TableCell> */}
+                        {/* <TableCell className="text-center">{course.archived ? "Archivés" : "Actifs"}</TableCell> */}
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-center">
                             {!course.archived && (
@@ -887,7 +887,7 @@ export function ModulesList() {
                                 <p>Gérer évaluations et présence</p>
                               </TooltipContent>
                             </Tooltip>
-                            
+
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button

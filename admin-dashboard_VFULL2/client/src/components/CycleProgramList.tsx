@@ -75,11 +75,11 @@ export const CycleProgramList = () => {
 
     const { data: cyclePrograms = [], isLoading, error } = useQuery(
         ["cycles-programs", { archived: filters.some(f => f.type === "Archivage" && f.values.includes("Archivés")), search: debouncedSearchTerm }],
-        () => useApiAxios.get("/api/cycles-programs", { 
-            params: { 
+        () => useApiAxios.get("/api/cycles-programs", {
+            params: {
                 archived: filters.some(f => f.type === "Archivage" && f.values.includes("Archivés")),
-                search: debouncedSearchTerm 
-            } 
+                search: debouncedSearchTerm
+            }
         }).then((res) => res.data),
         {
             staleTime: 5 * 60 * 1000,
@@ -177,7 +177,7 @@ export const CycleProgramList = () => {
 
     const filterOptions: FilterOption[] = useMemo(() => [
         { label: "Type", value: "Type", options: ["Cycle", "Programme"] },
-        { label: "Archivage", value: "Archivage", options: ["Archivés", "Désarchivés"] },
+        { label: "Archivage", value: "Archivage", options: ["Archivés", "Actifs"] },
     ], []);
 
     const availableOptions = filterOptions.find((opt) => opt.value === newFilterType)?.options || [];
@@ -194,7 +194,7 @@ export const CycleProgramList = () => {
             if (filter.type === "Archivage") {
                 return filter.values.every((val) => {
                     if (val === "Archivés") return cp.archived === true;
-                    if (val === "Désarchivés") return cp.archived === false;
+                    if (val === "Actifs") return cp.archived === false;
                     return true;
                 });
             }
@@ -504,20 +504,20 @@ export const CycleProgramList = () => {
                                                                         <DialogTitle>Modules de {cp.title}</DialogTitle>
                                                                     </DialogHeader>
                                                                     <div className="my-6">
-                                                                            {selectedCycleProgram ? (
-                                                                                selectedCycleProgram.modules.length > 0 ? (
-                                                                                    <ul className="list-disc pl-5 text-gray-600">
-                                                                                        {selectedCycleProgram.modules.map((module) => (
-                                                                                            <li key={module._id}>{module.title}</li>
-                                                                                        ))}
-                                                                                    </ul>
-                                                                                ) : (
-                                                                                    <p className="text-gray-600">Aucun module associé.</p>
-                                                                                )
+                                                                        {selectedCycleProgram ? (
+                                                                            selectedCycleProgram.modules.length > 0 ? (
+                                                                                <ul className="list-disc pl-5 text-gray-600">
+                                                                                    {selectedCycleProgram.modules.map((module) => (
+                                                                                        <li key={module._id}>{module.title}</li>
+                                                                                    ))}
+                                                                                </ul>
                                                                             ) : (
-                                                                                <p className="text-gray-600">Aucun programme sélectionné.</p>
-                                                                            )}
-                                                                        </div>
+                                                                                <p className="text-gray-600">Aucun module associé.</p>
+                                                                            )
+                                                                        ) : (
+                                                                            <p className="text-gray-600">Aucun programme sélectionné.</p>
+                                                                        )}
+                                                                    </div>
                                                                 </DialogContent>
                                                             </Dialog>
                                                         </TooltipTrigger>
@@ -614,7 +614,7 @@ export const CycleProgramList = () => {
                                         ))}
                                     </TableBody>
                                 </Table>
-                                
+
                                 {totalPages > 1 && (
                                     <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                                         <div className="text-sm text-gray-600 text-center md:text-left">
