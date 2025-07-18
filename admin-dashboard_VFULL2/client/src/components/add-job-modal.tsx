@@ -201,9 +201,8 @@ export function AddJobModal() {
           <div className="flex items-center justify-center gap-4">
             <div className="justify-items-center">
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  currentStep === 1 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"
-                }`}
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 1 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"
+                  }`}
               >
                 1
               </div>
@@ -212,9 +211,8 @@ export function AddJobModal() {
             <div className="w-16 h-0.5 bg-gray-200"></div>
             <div className="justify-items-center">
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  currentStep === 2 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"
-                }`}
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 2 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"
+                  }`}
               >
                 2
               </div>
@@ -306,22 +304,22 @@ export function AddJobModal() {
                       />
                       {openCompetencePopover && (
                         <CommandList className="absolute top-10 w-full border shadow-md bg-white z-10">
-                              <CommandEmpty>Aucune compétence trouvée.</CommandEmpty>
-                              <CommandGroup>
-                                {availableCompetences
-                                  .filter((competence: Competence) =>
-                                    competence.competencer.toLowerCase().includes(newCompetence.toLowerCase())
-                                  )
-                                  .map((competence: Competence) => (
-                                    <CommandItem
-                                      key={competence.id_competencer}
-                                      onSelect={() => addCompetence(competence.id_competencer)}
-                                      className="cursor-pointer"
-                                    >
-                                      <span>{competence.competencer}</span>
-                                    </CommandItem>
-                                  ))}
-                              </CommandGroup>
+                          <CommandEmpty>Aucune compétence trouvée.</CommandEmpty>
+                          <CommandGroup>
+                            {availableCompetences
+                              .filter((competence: Competence) =>
+                                competence.competencer.toLowerCase().includes(newCompetence.toLowerCase())
+                              )
+                              .map((competence: Competence) => (
+                                <CommandItem
+                                  key={competence.id_competencer}
+                                  onSelect={() => addCompetence(competence.id_competencer)}
+                                  className="cursor-pointer"
+                                >
+                                  <span>{competence.competencer}</span>
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
                         </CommandList>
                       )}
                     </Command>

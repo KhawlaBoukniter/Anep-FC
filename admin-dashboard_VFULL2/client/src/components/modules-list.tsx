@@ -146,31 +146,40 @@ const EvaluationsDialog = ({
   onOpenChange,
   evaluationsData,
   courseTitle,
+  selectedCourse, // Add selectedCourse as a prop
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   evaluationsData: {
     message?: string
-    evaluations: { user: { id: number; name: string; email: string }; evaluation: string; program: string }[]
+    evaluations: {
+      user: { id: number; name: string; email: string }
+      evaluation: string
+      program: string
+      evaluationDetails?: { apports: number; reponse: number; condition: number; conception: number; qualite: number; total_score: number }
+    }[]
   }
   courseTitle: string
+  selectedCourse: Course | null // Add type for selectedCourse
 }) => {
-  const getEvaluationScore = (evaluation: string) => {
-    // Extraire le score numérique de l'évaluation
-    const match = evaluation.match(/(\d+(?:\.\d+)?)/)
-    return match ? Number.parseFloat(match[1]) : 0
+  const getEvaluationScore = (evaluationDetails: { total_score: number } | null) => {
+    if (!evaluationDetails) return 0;
+    // Divide total_score by 5 to get score out of 5 (since 5 axes, each max 5)
+    return evaluationDetails.total_score / 5;
   }
 
   const getEvaluationColor = (score: number) => {
-    if (score >= 16) return "text-emerald-600 bg-emerald-50 border-emerald-200"
-    if (score >= 12) return "text-blue-600 bg-blue-50 border-blue-200"
-    if (score >= 10) return "text-amber-600 bg-amber-50 border-amber-200"
+    // Adjust thresholds for score out of 5
+    if (score >= 4) return "text-emerald-600 bg-emerald-50 border-emerald-200"
+    if (score >= 3) return "text-blue-600 bg-blue-50 border-blue-200"
+    if (score >= 2) return "text-amber-600 bg-amber-50 border-amber-200"
     return "text-red-600 bg-red-50 border-red-200"
   }
 
   const getEvaluationIcon = (score: number) => {
-    if (score >= 16) return <Award className="w-5 h-5" />
-    if (score >= 12) return <Star className="w-5 h-5" />
+    // Adjust thresholds for score out of 5
+    if (score >= 4) return <Award className="w-5 h-5" />
+    if (score >= 3) return <Star className="w-5 h-5" />
     return <BarChart3 className="w-5 h-5" />
   }
 
@@ -184,12 +193,36 @@ const EvaluationsDialog = ({
       Participant: evaluation.user.name,
       Email: evaluation.user.email,
       Programme: evaluation.program,
-      Évaluation: evaluation.evaluation,
+      Apports: evaluation.evaluationDetails?.apports || '',
+      Réponse: evaluation.evaluationDetails?.reponse || '',
+      Condition: evaluation.evaluationDetails?.condition || '',
+      Conception: evaluation.evaluationDetails?.conception || '',
+      Qualité: evaluation.evaluationDetails?.qualite || '',
+      'Score Total': evaluation.evaluationDetails?.total_score ? (evaluation.evaluationDetails.total_score / 5).toFixed(2) : '',
     }))
 
     const filename = `evaluations_${courseTitle.replace(/[^a-z0-9]/gi, "_")}_${new Date().toISOString().split("T")[0]}.xlsx`
-
     exportToExcel(exportData, filename, "Évaluations")
+  }
+
+  const handleDownloadEvaluation = async (moduleId: string) => {
+    try {
+      const response = await useApiAxios.get(`/api/cycles-programs/module/${moduleId}/evaluations?format=excel`, {
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `evaluations_${moduleId}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Échec du téléchargement du fichier d\'évaluation:', error);
+      alert('Erreur lors du téléchargement du fichier d\'évaluation. Veuillez réessayer.');
+    }
   }
 
   return (
@@ -229,7 +262,6 @@ const EvaluationsDialog = ({
             </Card>
           ) : (
             <div className="space-y-6">
-              {/* Tableau des évaluations */}
               <Tabs defaultValue="cards" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 mb-6">
                   <TabsTrigger value="cards" className="flex items-center gap-2">
@@ -244,8 +276,8 @@ const EvaluationsDialog = ({
                 <TabsContent value="cards" className="space-y-4">
                   <div className="grid gap-4">
                     {evaluationsData?.evaluations?.map((evaluation) => {
-                      const score = getEvaluationScore(evaluation.evaluation)
-                      const colorClass = getEvaluationColor(score)
+                      const score = getEvaluationScore(evaluation.evaluationDetails);
+                      const colorClass = getEvaluationColor(score);
                       return (
                         <Card
                           key={evaluation.user.id}
@@ -269,7 +301,21 @@ const EvaluationsDialog = ({
                             </div>
                             <div className="mt-4 p-4 bg-gray-50 rounded-xl">
                               <p className="text-sm text-gray-700 font-medium">Évaluation soumise:</p>
-                              <p className="text-gray-600 mt-1">{evaluation.evaluation}</p>
+                              <p className="text-gray-600 mt-1">
+                                Score: {score.toFixed(2)}/5 {evaluation.evaluationDetails ?
+                                  `(Apports: ${evaluation.evaluationDetails.apports}, Réponse: ${evaluation.evaluationDetails.reponse}, Condition: ${evaluation.evaluationDetails.condition}, Conception: ${evaluation.evaluationDetails.conception}, Qualité: ${evaluation.evaluationDetails.qualite})`
+                                  : '--'}
+                              </p>
+                              {evaluation.evaluationDetails && selectedCourse && (
+                                <Button
+                                  variant="link"
+                                  className="mt-2 text-blue-600"
+                                  onClick={() => handleDownloadEvaluation(selectedCourse._id)}
+                                >
+                                  <Download className="w-4 h-4 mr-2" />
+                                  Télécharger l'évaluation
+                                </Button>
+                              )}
                             </div>
                           </CardContent>
                         </Card>
@@ -306,8 +352,8 @@ const EvaluationsDialog = ({
                         </TableHeader>
                         <TableBody>
                           {evaluationsData?.evaluations?.map((evaluation) => {
-                            const score = getEvaluationScore(evaluation.evaluation)
-                            const colorClass = getEvaluationColor(score)
+                            const score = getEvaluationScore(evaluation.evaluationDetails);
+                            const colorClass = getEvaluationColor(score);
                             return (
                               <TableRow key={evaluation.user.id} className="hover:bg-gray-50">
                                 <TableCell>
@@ -318,10 +364,19 @@ const EvaluationsDialog = ({
                                 <TableCell className="text-gray-600">{evaluation.user.email}</TableCell>
                                 <TableCell className="text-gray-600">{evaluation.program}</TableCell>
                                 <TableCell>
-                                  <div className="max-w-xs">
+                                  <div className="max-w-xs flex items-center gap-2">
                                     <p className="text-sm text-gray-600 truncate" title={evaluation.evaluation}>
-                                      {evaluation.evaluation}
+                                      Score: {score.toFixed(2)}/5
                                     </p>
+                                    {evaluation.evaluationDetails && selectedCourse && (
+                                      <Button
+                                        variant="link"
+                                        className="text-blue-600 p-0"
+                                        onClick={() => handleDownloadEvaluation(selectedCourse._id)}
+                                      >
+                                        <Download className="w-4 h-4" />
+                                      </Button>
+                                    )}
                                   </div>
                                 </TableCell>
                               </TableRow>
@@ -355,6 +410,10 @@ EvaluationsDialog.propTypes = {
   onOpenChange: PropTypes.func.isRequired,
   evaluationsData: PropTypes.object.isRequired,
   courseTitle: PropTypes.string.isRequired,
+  selectedCourse: PropTypes.shape({
+    _id: PropTypes.string.isRequired,
+    title: PropTypes.string.isRequired,
+  }),
 }
 
 const PresenceDialog = ({
@@ -1544,6 +1603,7 @@ export function ModulesList() {
               onOpenChange={setEvaluationsDialogOpen}
               evaluationsData={evaluationsData || { evaluations: [] }}
               courseTitle={selectedCourse.title}
+              selectedCourse={selectedCourse}
             />
             <PresenceDialog
               open={presenceDialogOpen}

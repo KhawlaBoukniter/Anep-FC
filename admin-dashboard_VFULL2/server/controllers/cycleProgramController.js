@@ -717,6 +717,7 @@ const updateRegistrationStatus = async (req, res) => {
 
 const getModuleEvaluations = async (req, res) => {
     const { module_id } = req.params;
+    const { format } = req.query; // New query parameter to specify output format (json or excel)
 
     try {
         // Validate module_id
@@ -725,13 +726,12 @@ const getModuleEvaluations = async (req, res) => {
         }
 
         // Check if the module exists in MongoDB
-        console.log('Course model:', Course); // Debugging
         const module = await Course.findById(module_id);
         if (!module) {
             return res.status(404).json({ message: 'Module not found' });
         }
 
-        // Query PostgreSQL to get all accepted registrations and their evaluations (if any)
+        // Query PostgreSQL to get all accepted registrations and their evaluations
         const registrations = await db.sequelize.query(
             `
             SELECT 
@@ -763,10 +763,41 @@ const getModuleEvaluations = async (req, res) => {
         );
 
         if (registrations.length === 0) {
+            if (format === 'excel') {
+                const worksheet = XLSX.utils.json_to_sheet([{
+                    'Participant': '',
+                    'Email': '',
+                    'Programme': '',
+                    'Apports': '',
+                    'Réponse': '',
+                    'Condition': '',
+                    'Conception': '',
+                    'Qualité': '',
+                    'Score Total': ''
+                }]);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, 'Evaluations');
+                XLSX.utils.sheet_add_aoa(worksheet, [[
+                    'Participant',
+                    'Email',
+                    'Programme',
+                    'Apports',
+                    'Réponse',
+                    'Condition',
+                    'Conception',
+                    'Qualité',
+                    'Score Total'
+                ]], { origin: 'A1' });
+
+                const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+                res.setHeader('Content-Disposition', `attachment; filename=evaluations_${module_id}.xlsx`);
+                res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                return res.status(200).send(buffer);
+            }
             return res.status(200).json({ message: 'Aucun employé inscrit', evaluations: [] });
         }
 
-        // Format the response to match frontend expectations
+        // Format the response for JSON output
         const evaluationsData = registrations.map(reg => ({
             user: {
                 id: reg.user_id,
@@ -777,7 +808,50 @@ const getModuleEvaluations = async (req, res) => {
                 ? `Score: ${reg.total_score}/25 (Apports: ${reg.apports}, Réponse: ${reg.reponse}, Condition: ${reg.condition}, Conception: ${reg.conception}, Qualité: ${reg.qualite})`
                 : '--',
             program: reg.program_title || 'Unknown',
+            evaluationDetails: reg.id_evaluation ? {
+                apports: reg.apports,
+                reponse: reg.reponse,
+                condition: reg.condition,
+                conception: reg.conception,
+                qualite: reg.qualite,
+                total_score: reg.total_score
+            } : null
         }));
+
+        if (format === 'excel') {
+            // Prepare data for Excel
+            const exportData = registrations.map(reg => ({
+                'Participant': reg.user_name || 'Unknown',
+                'Email': reg.user_email || 'Unknown',
+                'Programme': reg.program_title || 'Unknown',
+                'Apports': reg.apports || '',
+                'Réponse': reg.reponse || '',
+                'Condition': reg.condition || '',
+                'Conception': reg.conception || '',
+                'Qualité': reg.qualite || '',
+                'Score Total': reg.total_score ? (reg.total_score / 5).toFixed(2) : '',
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Evaluations');
+            XLSX.utils.sheet_add_aoa(worksheet, [[
+                'Participant',
+                'Email',
+                'Programme',
+                'Apports',
+                'Réponse',
+                'Condition',
+                'Conception',
+                'Qualité',
+                'Score Total'
+            ]], { origin: 'A1' });
+
+            const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+            res.setHeader('Content-Disposition', `attachment; filename=evaluations_${module_id}.xlsx`);
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            return res.status(200).send(buffer);
+        }
 
         res.status(200).json({ evaluations: evaluationsData });
     } catch (error) {
