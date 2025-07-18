@@ -1411,7 +1411,7 @@ export function ModulesList() {
                                 <p>Gérer la présence</p>
                               </TooltipContent>
                             </Tooltip>
-                            <Tooltip>
+                            {/* <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
                                   variant="ghost"
@@ -1425,8 +1425,8 @@ export function ModulesList() {
                               <TooltipContent>
                                 <p>Quick Notify</p>
                               </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
+                            </Tooltip> */}
+                            {/* <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
                                   variant="ghost"
@@ -1440,7 +1440,7 @@ export function ModulesList() {
                               <TooltipContent>
                                 <p>Télécharger les utilisateurs assignés</p>
                               </TooltipContent>
-                            </Tooltip>
+                            </Tooltip> */}
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
