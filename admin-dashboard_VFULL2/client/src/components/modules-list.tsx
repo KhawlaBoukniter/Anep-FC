@@ -32,6 +32,11 @@ import {
   UserCheck,
   UserX,
   Clock,
+  Star,
+  Award,
+  BarChart3,
+  Mail,
+  User,
 } from "lucide-react"
 import useApiAxios from "../config/axios"
 import PropTypes from "prop-types"
@@ -128,46 +133,181 @@ const EvaluationsDialog = ({
   }
   courseTitle: string
 }) => {
+  const getEvaluationScore = (evaluation: string) => {
+    // Extraire le score numérique de l'évaluation
+    const match = evaluation.match(/(\d+(?:\.\d+)?)/)
+    return match ? Number.parseFloat(match[1]) : 0
+  }
+
+  const getEvaluationColor = (score: number) => {
+    if (score >= 16) return "text-emerald-600 bg-emerald-50 border-emerald-200"
+    if (score >= 12) return "text-blue-600 bg-blue-50 border-blue-200"
+    if (score >= 10) return "text-amber-600 bg-amber-50 border-amber-200"
+    return "text-red-600 bg-red-50 border-red-200"
+  }
+
+  const getEvaluationIcon = (score: number) => {
+    if (score >= 16) return <Award className="w-5 h-5" />
+    if (score >= 12) return <Star className="w-5 h-5" />
+    return <BarChart3 className="w-5 h-5" />
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!min-w-[48rem] h-[90vh] rounded-2xl bg-white shadow-xl border border-gray-100 animate-in fade-in duration-300">
-        <DialogHeader className="border-b border-gray-100 p-6">
-          <DialogTitle className="text-2xl font-semibold text-gray-900">Évaluations pour {courseTitle}</DialogTitle>
+      <DialogContent className="!min-w-[48rem] h-[90vh] rounded-3xl bg-white shadow-2xl border-0 animate-in fade-in-0 zoom-in-95 duration-300 overflow-hidden">
+        <DialogHeader className="bg-gradient-to-r from-[#15669d] to-[#94b3ca] text-white p-6 -m-6 mb-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
+                <Award className="w-6 h-6" />
+              </div>
+              <div>
+                <DialogTitle className="text-2xl font-bold">Tableau des évaluations</DialogTitle>
+                <p className="text-blue-100 mt-1">{courseTitle}</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </div>
+          </div>
         </DialogHeader>
-        <div className="p-6">
+
+        <div className="p-6 overflow-y-auto flex-1">
           {evaluationsData?.message ? (
-            <p className="text-gray-600">{evaluationsData.message}</p>
+            <Card className="border-amber-200 bg-amber-50">
+              <CardContent className="p-6 text-center">
+                <FileText className="w-12 h-12 text-amber-600 mx-auto mb-4" />
+                <p className="text-amber-800 text-lg">{evaluationsData.message}</p>
+              </CardContent>
+            </Card>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-blue-900">Employé</TableHead>
-                  <TableHead className="text-blue-900">Email</TableHead>
-                  <TableHead className="text-blue-900">Programme</TableHead>
-                  <TableHead className="text-blue-900">Évaluation</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {evaluationsData?.evaluations?.map((evaluation) => (
-                  <TableRow key={evaluation.user.id}>
-                    <TableCell>{evaluation.user.name}</TableCell>
-                    <TableCell>{evaluation.user.email}</TableCell>
-                    <TableCell>{evaluation.program}</TableCell>
-                    <TableCell>{evaluation.evaluation}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="space-y-6">
+
+              {/* Tableau des évaluations */}
+              <Tabs defaultValue="cards" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="cards" className="flex items-center gap-2">
+                    <Award className="w-4 h-4" />
+                    Vue Cartes
+                  </TabsTrigger>
+                  <TabsTrigger value="table" className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4" />
+                    Vue Tableau
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="cards" className="space-y-4">
+                  <div className="grid gap-4">
+                    {evaluationsData?.evaluations?.map((evaluation) => {
+                      const score = getEvaluationScore(evaluation.evaluation)
+                      const colorClass = getEvaluationColor(score)
+
+                      return (
+                        <Card
+                          key={evaluation.user.id}
+                          className="overflow-hidden hover:shadow-lg transition-all duration-300"
+                        >
+                          <CardContent className="p-6">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div>
+                                  <h3 className="font-semibold text-lg text-gray-900">{evaluation.user.name}</h3>
+                                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                                    <Mail className="w-4 h-4" />
+                                    {evaluation.user.email}
+                                  </div>
+                                  <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
+                                    <FileText className="w-4 h-4" />
+                                    {evaluation.program}
+                                  </div>
+                                </div>
+                              </div>
+
+                            </div>
+
+                            <div className="mt-4 p-4 bg-gray-50 rounded-xl">
+                              <p className="text-sm text-gray-700 font-medium">Évaluation soumise:</p>
+                              <p className="text-gray-600 mt-1">{evaluation.evaluation}</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="table" className="space-y-4">
+                  <Card>
+                    <CardContent className="p-0">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-gray-50">
+                            <TableHead className="text-[#15669d] font-semibold">
+                              <div className="flex items-center gap-2">
+                                <User className="w-4 h-4" />
+                                Participant
+                              </div>
+                            </TableHead>
+                            <TableHead className="text-[#15669d] font-semibold">
+                              <div className="flex items-center gap-2">
+                                <Mail className="w-4 h-4" />
+                                Email
+                              </div>
+                            </TableHead>
+                            <TableHead className="text-[#15669d] font-semibold">
+                              <div className="flex items-center gap-2">
+                                <FileText className="w-4 h-4" />
+                                Programme
+                              </div>
+                            </TableHead>
+                            <TableHead className="text-[#15669d] font-semibold">Évaluation</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {evaluationsData?.evaluations?.map((evaluation) => {
+                            const score = getEvaluationScore(evaluation.evaluation)
+                            const colorClass = getEvaluationColor(score)
+
+                            return (
+                              <TableRow key={evaluation.user.id} className="hover:bg-gray-50">
+                                <TableCell>
+                                  <div className="flex items-center gap-3">
+                                    <span className="font-medium">{evaluation.user.name}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-gray-600">{evaluation.user.email}</TableCell>
+                                <TableCell className="text-gray-600">{evaluation.program}</TableCell>
+                                <TableCell>
+                                  <div className="max-w-xs">
+                                    <p className="text-sm text-gray-600 truncate" title={evaluation.evaluation}>
+                                      {evaluation.evaluation}
+                                    </p>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
           )}
         </div>
-        <DialogFooter className="border-t border-gray-100 p-6 flex justify-end">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2 transition-all duration-200"
-          >
-            Fermer
-          </Button>
+
+        <DialogFooter className="border-t bg-gray-50 p-6 -m-6 mt-0">
+          <div className="flex items-center justify-end w-full">
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-xl px-6">
+                Fermer
+              </Button>
+            </div>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
