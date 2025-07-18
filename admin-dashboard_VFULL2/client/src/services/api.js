@@ -12,11 +12,9 @@ const api = axios.create({
   withCredentials: false,
 })
 
-
 // Intercepteur pour les requêtes
 api.interceptors.request.use(
   (config) => {
-    // Ajouter le token d'authentification si disponible
     const token = localStorage.getItem("token")
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
@@ -34,13 +32,10 @@ api.interceptors.response.use(
     return response
   },
   (error) => {
-    // Gestion globale des erreurs
     if (error.response?.status === 401) {
-      // Token expiré ou invalide
       localStorage.removeItem("token")
       window.location.href = "/"
     }
-
     console.error("Erreur API:", error.response?.data || error.message)
     return Promise.reject(error)
   },
@@ -59,12 +54,6 @@ export const employeeService = {
   unarchive: (id) => api.put(`/api/employees/${id}/unarchive`),
 }
 
-const apiClient = axios.create({
-  baseURL: "/api",
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
 // Services pour les emplois
 export const jobService = {
   getAll: (params = {}) => api.get("/api/jobs", { params }),
@@ -79,8 +68,8 @@ export const jobService = {
       headers: {
         "Content-Type": "multipart/form-data",
       },
-    });
-  }
+    })
+  },
 }
 
 // Services pour les compétences
@@ -92,6 +81,7 @@ export const skillService = {
   delete: (id) => api.delete(`/api/skills/${id}`),
 }
 
+// Services pour les compétences requises
 export const reqSkillService = {
   getAll: (params = {}) => api.get("/api/req-skills", { params }),
   getById: (id) => api.get(`/api/req-skills/${id}`),
@@ -120,7 +110,18 @@ export const indisponibiliteService = {
   create: (data) => api.post("/api/indisponibilites", data),
   update: (id, data) => api.put(`/api/indisponibilites/${id}`, data),
   delete: (id) => api.delete(`/api/indisponibilites/${id}`),
-};
+}
+
+// Services pour les évaluations
+export const evaluationService = {
+  getAll: (params = {}) => api.get("/api/evaluations", { params }),
+  getById: (id) => api.get(`/api/evaluations/${id}`),
+  getByRegistrationId: (registrationId) => api.get(`/api/evaluations/registration/${registrationId}`),
+  create: (data) => api.post("/api/evaluations", data),
+  update: (id, data) => api.put(`/api/evaluations/${id}`, data),
+  delete: (id) => api.delete(`/api/evaluations/${id}`),
+}
+
 // Service de santé de l'API
 export const healthService = {
   check: () => api.get("/api/health"),
