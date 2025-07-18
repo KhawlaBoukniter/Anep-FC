@@ -105,7 +105,7 @@ const EvaluationsDialog = ({
 }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg rounded-2xl bg-white shadow-xl border border-gray-100 animate-in fade-in duration-300">
+      <DialogContent className="rounded-2xl bg-white shadow-xl border border-gray-100 animate-in fade-in duration-300">
         <DialogHeader className="border-b border-gray-100 p-6">
           <DialogTitle className="text-2xl font-semibold text-gray-900">
             Évaluations pour {courseTitle}
@@ -173,7 +173,7 @@ const PresenceDialog = ({
 }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl rounded-2xl bg-white shadow-xl border border-gray-100 animate-in fade-in duration-300">
+      <DialogContent className="rounded-2xl bg-white shadow-xl border border-gray-100 animate-in fade-in duration-300">
         <DialogHeader className="border-b border-gray-100 p-6">
           <DialogTitle className="text-2xl font-semibold text-gray-900">
             Gestion de la présence pour {courseTitle}
@@ -274,7 +274,7 @@ export function ModulesList() {
   // React Query: Fetch evaluations
   const { data: evaluationsData, refetch: refetchEvaluations } = useQuery(
     ["evaluations", selectedCourse?._id],
-    () => useApiAxios.get(`/cycles-programs/module/${selectedCourse?._id}/evaluations`).then((res) => res.data),
+    () => useApiAxios.get(`/api/cycles-programs/module/${selectedCourse?._id}/evaluations`).then((res) => res.data),
     {
       enabled: !!selectedCourse && evaluationsDialogOpen,
       staleTime: 5 * 60 * 1000,

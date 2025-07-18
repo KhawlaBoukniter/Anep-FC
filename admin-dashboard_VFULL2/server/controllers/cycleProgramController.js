@@ -749,7 +749,7 @@ const getModuleEvaluations = async (req, res) => {
 
                 return {
                     user: user || { id: reg.user_id, name: 'Unknown', email: 'Unknown' },
-                    evaluation: evaluation ? evaluation.score : 'Pas encore soumise',
+                    evaluation: evaluation ? evaluation.score : '--',
                     program: reg.CycleProgram.title,
                 };
             })
