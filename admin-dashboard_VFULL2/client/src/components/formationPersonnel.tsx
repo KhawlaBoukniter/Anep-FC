@@ -9,6 +9,7 @@ import Footer from "./footer.tsx";
 import { Input } from "./ui/input.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.tsx";
 import { Search } from "lucide-react";
+import { useNavigate } from "react-router-dom"; // Import ajouté
 
 interface EnrolledFormation {
   id: string;
@@ -36,6 +37,7 @@ interface EnrolledFormation {
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const FormationPersonnel: React.FC = () => {
+  const navigate = useNavigate(); // Hook ajouté
   const [formations, setFormations] = useState<EnrolledFormation[]>([]);
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -286,6 +288,19 @@ const FormationPersonnel: React.FC = () => {
         description: errorMessage,
       });
     }
+  };
+
+  // Nouvelle fonction pour naviguer vers la page d'évaluation
+  const navigateToEvaluation = (moduleId: string) => {
+    if (!userId) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Veuillez vous connecter pour accéder à l'évaluation.",
+      });
+      return;
+    }
+    navigate(`/evaluation?userId=${userId}&moduleId=${moduleId}`);
   };
 
   const openFormationDetail = (formation: EnrolledFormation) => {
@@ -556,20 +571,17 @@ const FormationPersonnel: React.FC = () => {
                           </a>
                         </div>
                       )}
-                      {selectedFormation.evaluationLink && (
-                        <div className="flex justify-between border-b pb-2">
-                          <span className="text-gray-600">Lien d'évaluation</span>
-                          <a
-                            href={selectedFormation.evaluationLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-medium text-blue-600 hover:underline"
-                            aria-label="Accéder au lien d'évaluation"
-                          >
-                            Accéder
-                          </a>
-                        </div>
-                      )}
+                      {/* Nouveau lien d'évaluation */}
+                      <div className="flex justify-between border-b pb-2">
+                        <span className="text-gray-600">Évaluation du module</span>
+                        <button
+                          onClick={() => navigateToEvaluation(selectedFormation.id)}
+                          className="font-medium text-blue-600 hover:underline"
+                          aria-label="Accéder à l'évaluation"
+                        >
+                          Évaluer ce module
+                        </button>
+                      </div>
                       {selectedFormation.photosLinks &&
                         selectedFormation.photosLinks.length > 0 &&
                         selectedFormation.photosLinks.map((photoLink, index) => (

@@ -2,6 +2,8 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
+import { useLocation } from "react-router-dom"; // Import ajouté
+import axios from "axios"; // Import ajouté
 
 interface EvaluationData {
   [key: string]: number
@@ -22,7 +24,10 @@ const axisConfig: AxisConfig[] = [
   { id: "qualite", title: "Qualité de l'animation", angle: 288, color: "#EA580C" },
 ]
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000"; // Ajouté
+
 const EvaluationPage: React.FC = () => {
+  const location = useLocation(); // Hook ajouté
   const [evaluationData, setEvaluationData] = useState<EvaluationData>({
     apports: 0,
     reponse: 0,
@@ -32,6 +37,18 @@ const EvaluationPage: React.FC = () => {
   })
   const [isVisible, setIsVisible] = useState(false)
   const [hoveredAxis, setHoveredAxis] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null); // Ajouté
+  const [moduleId, setModuleId] = useState<string | null>(null); // Ajouté
+
+  useEffect(() => {
+    // Récupération des paramètres URL
+    const queryParams = new URLSearchParams(location.search);
+    const userIdParam = queryParams.get('userId');
+    const moduleIdParam = queryParams.get('moduleId');
+    
+    if (userIdParam) setUserId(userIdParam);
+    if (moduleIdParam) setModuleId(moduleIdParam);
+  }, [location]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -73,8 +90,8 @@ const EvaluationPage: React.FC = () => {
     )
   }
 
-  // Fonction pour envoyer les réponses
-  const handleSendResults = () => {
+  // Fonction pour envoyer les réponses (modifiée)
+  const handleSendResults = async () => {
     const completedAxes = Object.values(evaluationData).filter((value) => value > 0).length
     const totalAxes = axisConfig.length
 
@@ -83,9 +100,26 @@ const EvaluationPage: React.FC = () => {
       return
     }
 
-    // Simulation d'envoi
-    console.log("Envoi des résultats:", evaluationData)
-    alert("Évaluation envoyée avec succès! Merci pour votre participation.")
+    // Vérification des IDs
+    if (!userId || !moduleId) {
+      alert("ID utilisateur ou module manquant. Veuillez passer par la page de formation.");
+      return;
+    }
+
+    try {
+      // Envoi des données au backend
+      const response = await axios.post(`${API_BASE_URL}/api/evaluations`, {
+        userId,
+        moduleId,
+        scores: evaluationData
+      });
+
+      console.log("Réponse du serveur:", response.data);
+      alert("Évaluation envoyée avec succès! Merci pour votre participation.");
+    } catch (error) {
+      console.error("Erreur lors de l'envoi de l'évaluation:", error);
+      alert("Une erreur est survenue lors de l'envoi de l'évaluation.");
+    }
   }
 
   // Calcul du score moyen
