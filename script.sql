@@ -236,6 +236,29 @@ ALTER TABLE cycle_program_registrations ADD COLUMN status registration_status NO
 ALTER TABLE cycle_program_user_modules ADD COLUMN status registration_status NOT NULL DEFAULT 'pending';
 /********************************/
 	
+-- Début New -------
+
+CREATE TABLE evaluations (
+    id_evaluation SERIAL PRIMARY KEY,
+    registration_id INTEGER NOT NULL REFERENCES cycle_program_registrations(id) ON DELETE CASCADE,
+    module_id VARCHAR(255) NOT NULL,
+    apports INTEGER NOT NULL CHECK (apports BETWEEN 0 AND 5),
+    reponse INTEGER NOT NULL CHECK (reponse BETWEEN 0 AND 5),
+    condition INTEGER NOT NULL CHECK (condition BETWEEN 0 AND 5),
+    conception INTEGER NOT NULL CHECK (conception BETWEEN 0 AND 5),
+    qualite INTEGER NOT NULL CHECK (qualite BETWEEN 0 AND 5),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_evaluations_cycle_program_registrations
+        FOREIGN KEY (registration_id)
+        REFERENCES cycle_program_registrations(id) ON DELETE CASCADE,
+    CONSTRAINT unique_evaluation_per_user_module
+        UNIQUE (registration_id, module_id)
+);
+
+CREATE INDEX idx_evaluations_registration_id ON evaluations(registration_id);
+CREATE INDEX idx_evaluations_module_id ON evaluations(module_id);
+-- Fin   New -------
 
 \copy emploi(entite, formation, experience, codeemploi, poidsemploi, nom_emploi) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_emploi.csv' DELIMITER ';' CSV HEADER;
 \copy employe(nom_complet, email, telephone1, telephone2, categorie, specialite, experience_employe) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_employe1.csv' DELIMITER ';' CSV HEADER;
