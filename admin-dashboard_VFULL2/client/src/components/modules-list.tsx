@@ -1,7 +1,6 @@
 "use client"
 import { useState, useRef, useEffect } from "react"
 import type React from "react"
-
 import { io } from "socket.io-client"
 import { useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "react-query"
@@ -119,6 +118,29 @@ interface ChangeDetail {
   changedFields: { field: string; before: string; after: string }[]
 }
 
+// Fonction utilitaire pour exporter en Excel
+const exportToExcel = (data: any[], filename: string, sheetName = "Sheet1") => {
+  // Importer la bibliothèque xlsx
+  import("xlsx")
+    .then((XLSX) => {
+      // Créer un nouveau workbook
+      const workbook = XLSX.utils.book_new()
+
+      // Créer une worksheet à partir des données
+      const worksheet = XLSX.utils.json_to_sheet(data)
+
+      // Ajouter la worksheet au workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
+
+      // Écrire le fichier
+      XLSX.writeFile(workbook, filename)
+    })
+    .catch((error) => {
+      console.error("Erreur lors du chargement de la bibliothèque xlsx:", error)
+      alert("Erreur lors de l'export Excel. Veuillez réessayer.")
+    })
+}
+
 const EvaluationsDialog = ({
   open,
   onOpenChange,
@@ -152,6 +174,24 @@ const EvaluationsDialog = ({
     return <BarChart3 className="w-5 h-5" />
   }
 
+  const handleExportEvaluations = () => {
+    if (!evaluationsData?.evaluations || evaluationsData.evaluations.length === 0) {
+      alert("Aucune donnée d'évaluation à exporter")
+      return
+    }
+
+    const exportData = evaluationsData.evaluations.map((evaluation) => ({
+      Participant: evaluation.user.name,
+      Email: evaluation.user.email,
+      Programme: evaluation.program,
+      Évaluation: evaluation.evaluation,
+    }))
+
+    const filename = `evaluations_${courseTitle.replace(/[^a-z0-9]/gi, "_")}_${new Date().toISOString().split("T")[0]}.xlsx`
+
+    exportToExcel(exportData, filename, "Évaluations")
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="!min-w-[48rem] h-[90vh] rounded-3xl bg-white shadow-2xl border-0 animate-in fade-in-0 zoom-in-95 duration-300 overflow-hidden">
@@ -167,14 +207,18 @@ const EvaluationsDialog = ({
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white/20"
+                onClick={handleExportEvaluations}
+              >
                 <Download className="w-4 h-4 mr-2" />
                 Export
               </Button>
             </div>
           </div>
         </DialogHeader>
-
         <div className="p-6 overflow-y-auto flex-1">
           {evaluationsData?.message ? (
             <Card className="border-amber-200 bg-amber-50">
@@ -185,7 +229,6 @@ const EvaluationsDialog = ({
             </Card>
           ) : (
             <div className="space-y-6">
-
               {/* Tableau des évaluations */}
               <Tabs defaultValue="cards" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 mb-6">
@@ -198,13 +241,11 @@ const EvaluationsDialog = ({
                     Vue Tableau
                   </TabsTrigger>
                 </TabsList>
-
                 <TabsContent value="cards" className="space-y-4">
                   <div className="grid gap-4">
                     {evaluationsData?.evaluations?.map((evaluation) => {
                       const score = getEvaluationScore(evaluation.evaluation)
                       const colorClass = getEvaluationColor(score)
-
                       return (
                         <Card
                           key={evaluation.user.id}
@@ -225,9 +266,7 @@ const EvaluationsDialog = ({
                                   </div>
                                 </div>
                               </div>
-
                             </div>
-
                             <div className="mt-4 p-4 bg-gray-50 rounded-xl">
                               <p className="text-sm text-gray-700 font-medium">Évaluation soumise:</p>
                               <p className="text-gray-600 mt-1">{evaluation.evaluation}</p>
@@ -238,7 +277,6 @@ const EvaluationsDialog = ({
                     })}
                   </div>
                 </TabsContent>
-
                 <TabsContent value="table" className="space-y-4">
                   <Card>
                     <CardContent className="p-0">
@@ -270,7 +308,6 @@ const EvaluationsDialog = ({
                           {evaluationsData?.evaluations?.map((evaluation) => {
                             const score = getEvaluationScore(evaluation.evaluation)
                             const colorClass = getEvaluationColor(score)
-
                             return (
                               <TableRow key={evaluation.user.id} className="hover:bg-gray-50">
                                 <TableCell>
@@ -299,7 +336,6 @@ const EvaluationsDialog = ({
             </div>
           )}
         </div>
-
         <DialogFooter className="border-t bg-gray-50 p-6 -m-6 mt-0">
           <div className="flex items-center justify-end w-full">
             <div className="flex gap-3">
@@ -359,6 +395,37 @@ const PresenceDialog = ({
     return days[index % 7]
   }
 
+  const handleExportPresence = () => {
+    if (!presenceData?.presence || presenceData.presence.length === 0) {
+      alert("Aucune donnée de présence à exporter")
+      return
+    }
+
+    const exportData = presenceData.presence.map((record) => {
+      const attendanceRate = calculateAttendanceRate(record.presence)
+      const dayStatuses = record.presence.map((day) => (day.status === "present" ? "Présent" : "Absent"))
+
+      const baseData = {
+        Participant: record.user.name,
+        Email: record.user.email,
+        Programme: record.program,
+        "Taux de présence (%)": attendanceRate,
+      }
+
+      // Ajouter les colonnes pour chaque jour
+      const dayColumns = {}
+      for (let i = 0; i < presenceData.durationDays; i++) {
+        dayColumns[`Jour ${i + 1}`] = dayStatuses[i] || "Non défini"
+      }
+
+      return { ...baseData, ...dayColumns }
+    })
+
+    const filename = `presences_${courseTitle.replace(/[^a-z0-9]/gi, "_")}_${new Date().toISOString().split("T")[0]}.xlsx`
+
+    exportToExcel(exportData, filename, "Présences")
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="!min-w-[48rem] h-[90vh] rounded-3xl bg-white shadow-2xl border-0 animate-in fade-in-0 zoom-in-95 duration-300 overflow-hidden">
@@ -374,14 +441,13 @@ const PresenceDialog = ({
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
+              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20" onClick={handleExportPresence}>
                 <Download className="w-4 h-4 mr-2" />
                 Export
               </Button>
             </div>
           </div>
         </DialogHeader>
-
         <div className="p-6 overflow-y-auto flex-1">
           {presenceData?.message ? (
             <Card className="border-amber-200 bg-amber-50">
@@ -402,7 +468,6 @@ const PresenceDialog = ({
                   Vue Timeline
                 </TabsTrigger>
               </TabsList>
-
               <TabsContent value="cards" className="space-y-4">
                 <div className="grid gap-4">
                   {presenceData?.presence?.map((record) => {
@@ -464,7 +529,6 @@ const PresenceDialog = ({
                   })}
                 </div>
               </TabsContent>
-
               <TabsContent value="timeline" className="space-y-6">
                 {/* Header des jours */}
                 <Card className="bg-gray-50">
@@ -485,7 +549,6 @@ const PresenceDialog = ({
                     </div>
                   </CardContent>
                 </Card>
-
                 {/* Timeline des présences */}
                 {presenceData?.presence?.map((record) => (
                   <Card key={record.user.id} className="hover:shadow-md transition-all duration-200">
@@ -531,7 +594,6 @@ const PresenceDialog = ({
             </Tabs>
           )}
         </div>
-
         <DialogFooter className="border-t bg-gray-50 p-6 -m-6 mt-0">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-6 text-sm text-gray-600">
@@ -586,6 +648,7 @@ export function ModulesList() {
   const [showChanges, setShowChanges] = useState(false)
   const [fileToUpload, setFileToUpload] = useState<File | null>(null)
   const [addModuleDialogOpen, setAddModuleDialogOpen] = useState(false)
+
   const coursesPerPage = 10
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
@@ -687,6 +750,7 @@ export function ModulesList() {
     socket.on("notification", (message) => {
       alert(`Notification: ${message}`)
     })
+
     return () => {
       socket.off("notification")
     }
@@ -725,19 +789,25 @@ export function ModulesList() {
       console.log("Aucun fichier sélectionné")
       return
     }
+
     const formData = new FormData()
     formData.append("file", fileToUpload)
+
     try {
       const res = await useApiAxios.post("/courses/import", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       })
+
       const data = res.data
       setChangeDetails(data.updates || [])
+
       const summary = `Import terminé. ${data.inserted} ajouté(s), ${data.updated} modifié(s), ${data.unchanged} inchangé(s).`
       setSyncStatus(summary)
+
       if (data.updates && data.updates.length > 0) {
         setShowChanges(true)
       }
+
       queryClient.invalidateQueries(["courses"])
     } catch (err) {
       console.error("Erreur d'importation :", err)
@@ -749,6 +819,7 @@ export function ModulesList() {
     try {
       const response = await useApiAxios.post("/courses/sync", {})
       const data = response.data
+
       if (response.status === 200) {
         setSyncStatus(
           `Synchronisation terminée à ${new Date().toLocaleTimeString("fr-FR", {
@@ -808,6 +879,7 @@ export function ModulesList() {
       const response = await useApiAxios.get(`/courses/${courseId}/assignedUsers/download`, {
         responseType: "blob",
       })
+
       const url = window.URL.createObjectURL(new Blob([response.data]))
       const link = document.createElement("a")
       link.href = url
@@ -826,11 +898,13 @@ export function ModulesList() {
     try {
       const response = await useApiAxios.get(`/courses/${course._id}/assignedUsers`)
       const userIds = response.data.map((user: any) => user._id)
+
       socket.emit("notify", {
         userIds,
         message: `Notification pour le cours: ${course.title}`,
         courseId: course._id,
       })
+
       console.log("Notification des utilisateurs pour le cours:", course.title)
     } catch (error) {
       console.error("Échec de la récupération des utilisateurs assignés pour la notification:", error)
@@ -874,6 +948,7 @@ export function ModulesList() {
       })
 
     const isArchivedFilterActive = filters.some((f) => f.type === "Archivage" && f.values.includes("Archivés"))
+
     return matchesSearch && matchesFilters && (!course.archived || isArchivedFilterActive)
   })
 
