@@ -1,17 +1,23 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const evaluationController = require('../controllers/evaluationController');
+const evaluationController = require("../controllers/evaluationController");
 
-// Créer ou mettre à jour une évaluation
-router.post('/', evaluationController.createOrUpdate);
+// Créer une évaluation
+router.post("/", evaluationController.createEvaluation);
 
-// Obtenir les évaluations par inscription
-router.get('/registration/:registrationId', evaluationController.getByRegistration);
+// Récupérer toutes les évaluations
+router.get("/", evaluationController.getAllEvaluations);
 
-// Obtenir les évaluations par module
-router.get('/module/:moduleId', evaluationController.getByModule);
+// Récupérer une évaluation par ID
+router.get("/:id", evaluationController.getEvaluationById);
 
-// Calculer la moyenne des évaluations pour un module
-router.get('/stats/module/:moduleId', evaluationController.calculateAverage);
+// Mettre à jour une évaluation
+router.put("/:id", evaluationController.updateEvaluation);
+
+// Supprimer une évaluation
+router.delete("/:id", evaluationController.deleteEvaluation);
+
+// Récupérer les évaluations par registration_id
+router.get("/registration/:registrationId", evaluationController.getEvaluationsByRegistrationId);
 
 module.exports = router;

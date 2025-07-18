@@ -1,80 +1,137 @@
-const db = require('../models');
-const Evaluation = db.Evaluation;
+const evaluationModel = require("../models/Evaluation");
 
-exports.createOrUpdate = async (req, res) => {
+const createEvaluation = async (req, res) => {
   try {
-    const { registration_id, module_id, ...evaluationData } = req.body;
-    
-    const [evaluation, created] = await Evaluation.upsert({
-      registration_id,
-      module_id,
-      ...evaluationData
-    }, {
-      returning: true
-    });
+    const evaluationData = req.body;
 
-    res.status(created ? 201 : 200).json(evaluation);
-  } catch (error) {
-    console.error("Erreur création/mise à jour évaluation:", error);
-    res.status(500).json({ 
-      message: error.message || "Erreur serveur" 
-    });
-  }
-};
-
-exports.getByRegistration = async (req, res) => {
-  try {
-    const evaluations = await Evaluation.findAll({
-      where: { registration_id: req.params.registrationId }
-    });
-    
-    if (!evaluations.length) {
-      return res.status(404).json({
-        message: "Aucune évaluation trouvée pour cette inscription"
-      });
+    // Validation des données
+    if (
+      !evaluationData.registration_id ||
+      !evaluationData.module_id ||
+      !Number.isInteger(evaluationData.apports) ||
+      !Number.isInteger(evaluationData.reponse) ||
+      !Number.isInteger(evaluationData.condition) ||
+      !Number.isInteger(evaluationData.conception) ||
+      !Number.isInteger(evaluationData.qualite) ||
+      evaluationData.apports < 0 ||
+      evaluationData.apports > 5 ||
+      evaluationData.reponse < 0 ||
+      evaluationData.reponse > 5 ||
+      evaluationData.condition < 0 ||
+      evaluationData.condition > 5 ||
+      evaluationData.conception < 0 ||
+      evaluationData.conception > 5 ||
+      evaluationData.qualite < 0 ||
+      evaluationData.qualite > 5
+    ) {
+      return res.status(400).json({ error: "Données d'évaluation invalides" });
     }
-    
-    res.json(evaluations);
+
+    // Vérification si une évaluation existe déjà
+    const existingEvaluations = await evaluationModel.getByRegistrationId(evaluationData.registration_id);
+    if (existingEvaluations.some((eval) => eval.module_id === evaluationData.module_id)) {
+      return res.status(409).json({ error: "Une évaluation existe déjà pour ce module et cette inscription" });
+    }
+
+    const evaluation = await evaluationModel.create(evaluationData);
+    res.status(201).json(evaluation);
   } catch (error) {
-    res.status(500).json({ message: "Erreur serveur" });
+    console.error("Erreur lors de la création de l'évaluation:", error);
+    res.status(500).json({ error: "Erreur serveur lors de la création de l'évaluation" });
   }
 };
 
-exports.getByModule = async (req, res) => {
+const getAllEvaluations = async (req, res) => {
   try {
-    const evaluations = await Evaluation.findAll({
-      where: { module_id: req.params.moduleId }
-    });
-    
+    const evaluations = await evaluationModel.getAll();
     res.json(evaluations);
   } catch (error) {
-    res.status(500).json({ message: "Erreur serveur" });
+    console.error("Erreur lors de la récupération des évaluations:", error);
+    res.status(500).json({ error: "Erreur serveur lors de la récupération des évaluations" });
   }
 };
 
-exports.calculateAverage = async (req, res) => {
+const getEvaluationById = async (req, res) => {
   try {
-    const result = await Evaluation.findOne({
-      attributes: [
-        [sequelize.fn('AVG', sequelize.col('apports')), 'avg_apports'],
-        [sequelize.fn('AVG', sequelize.col('reponse')), 'avg_reponse'],
-        [sequelize.fn('AVG', sequelize.col('condition')), 'avg_condition'],
-        [sequelize.fn('AVG', sequelize.col('conception')), 'avg_conception'],
-        [sequelize.fn('AVG', sequelize.col('qualite')), 'avg_qualite']
-      ],
-      where: {
-        module_id: req.params.moduleId
-      }
-    });
-
-    res.json({
-      apports: parseFloat(result.dataValues.avg_apports).toFixed(2),
-      reponse: parseFloat(result.dataValues.avg_reponse).toFixed(2),
-      condition: parseFloat(result.dataValues.avg_condition).toFixed(2),
-      conception: parseFloat(result.dataValues.avg_conception).toFixed(2),
-      qualite: parseFloat(result.dataValues.avg_qualite).toFixed(2)
-    });
+    const { id } = req.params;
+    const evaluation = await evaluationModel.getById(id);
+    if (!evaluation) {
+      return res.status(404).json({ error: "Évaluation non trouvée" });
+    }
+    res.json(evaluation);
   } catch (error) {
-    res.status(500).json({ message: "Erreur calcul moyenne" });
+    console.error("Erreur lors de la récupération de l'évaluation:", error);
+    res.status(500).json({ error: "Erreur serveur lors de la récupération de l'évaluation" });
   }
+};
+
+const updateEvaluation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const evaluationData = req.body;
+
+    // Validation des données
+    if (
+      !Number.isInteger(evaluationData.apports) ||
+      !Number.isInteger(evaluationData.reponse) ||
+      !Number.isInteger(evaluationData.condition) ||
+      !Number.isInteger(evaluationData.conception) ||
+      !Number.isInteger(evaluationData.qualite) ||
+      evaluationData.apports < 0 ||
+      evaluationData.apports > 5 ||
+      evaluationData.reponse < 0 ||
+      evaluationData.reponse > 5 ||
+      evaluationData.condition < 0 ||
+      evaluationData.condition > 5 ||
+      evaluationData.conception < 0 ||
+      evaluationData.conception > 5 ||
+      evaluationData.qualite < 0 ||
+      evaluationData.qualite > 5
+    ) {
+      return res.status(400).json({ error: "Données d'évaluation invalides" });
+    }
+
+    const evaluation = await evaluationModel.update(id, evaluationData);
+    if (!evaluation) {
+      return res.status(404).json({ error: "Évaluation non trouvée" });
+    }
+    res.json(evaluation);
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour de l'évaluation:", error);
+    res.status(500).json({ error: "Erreur serveur lors de la mise à jour de l'évaluation" });
+  }
+};
+
+const deleteEvaluation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const evaluation = await evaluationModel.remove(id);
+    if (!evaluation) {
+      return res.status(404).json({ error: "Évaluation non trouvée" });
+    }
+    res.json({ message: "Évaluation supprimée avec succès" });
+  } catch (error) {
+    console.error("Erreur lors de la suppression de l'évaluation:", error);
+    res.status(500).json({ error: "Erreur serveur lors de la suppression de l'évaluation" });
+  }
+};
+
+const getEvaluationsByRegistrationId = async (req, res) => {
+  try {
+    const { registrationId } = req.params;
+    const evaluations = await evaluationModel.getByRegistrationId(registrationId);
+    res.json(evaluations);
+  } catch (error) {
+    console.error("Erreur lors de la récupération des évaluations par registration_id:", error);
+    res.status(500).json({ error: "Erreur serveur lors de la récupération des évaluations" });
+  }
+};
+
+module.exports = {
+  createEvaluation,
+  getAllEvaluations,
+  getEvaluationById,
+  updateEvaluation,
+  deleteEvaluation,
+  getEvaluationsByRegistrationId,
 };
