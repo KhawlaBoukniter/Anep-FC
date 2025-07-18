@@ -7,7 +7,7 @@ import { Button } from "./ui/button.tsx"
 import { Card, CardContent } from "./ui/card.tsx"
 import { Badge } from "./ui/badge.tsx"
 import { Alert, AlertDescription } from "./ui/alert.tsx"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs.tsx"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs.tsx"
 import { Input } from "./ui/input.tsx"
 import { Separator } from "./ui/separator.tsx"
 import { useToast } from "../hooks/use-toast.ts"
@@ -92,11 +92,10 @@ const RegistrationCard = ({ registration, isProcessing, onUpdateStatus, onModule
   return (
     <Card className="group overflow-hidden bg-white/70 backdrop-blur-sm border-white/20 hover:bg-white/90 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1">
       <div
-        className={`h-1 ${
-          registration.CycleProgram.type === "cycle"
+        className={`h-1 ${registration.CycleProgram.type === "cycle"
             ? "bg-gradient-to-r from-blue-800 to-blue-400"
             : "bg-gradient-to-r from-green-800 to-green-500"
-        }`}
+          }`}
       ></div>
 
       <CardContent className="p-4 space-y-4">
@@ -130,11 +129,10 @@ const RegistrationCard = ({ registration, isProcessing, onUpdateStatus, onModule
             </div>
             <Badge
               variant="outline"
-              className={`text-xs flex-shrink-0 ${
-                registration.CycleProgram.type === "cycle"
+              className={`text-xs flex-shrink-0 ${registration.CycleProgram.type === "cycle"
                   ? "border-blue-200 text-blue-700 bg-blue-50"
                   : "border-green-200 text-green-700 bg-green-50"
-              }`}
+                }`}
             >
               {registration.CycleProgram.type === "cycle" ? "Cycle" : "Programme"}
             </Badge>
@@ -161,11 +159,10 @@ const RegistrationCard = ({ registration, isProcessing, onUpdateStatus, onModule
                         disabled={module.status === "accepted" || isProcessing}
                         size="sm"
                         variant={module.status === "accepted" ? "secondary" : "default"}
-                        className={`h-5 w-5 p-0 ${
-                          module.status === "accepted"
+                        className={`h-5 w-5 p-0 ${module.status === "accepted"
                             ? "bg-emerald-100 text-emerald-600 hover:bg-emerald-100"
                             : "bg-emerald-500 hover:bg-emerald-600 text-white"
-                        }`}
+                          }`}
                       >
                         <Check className="w-2.5 h-2.5" />
                       </Button>
@@ -174,9 +171,8 @@ const RegistrationCard = ({ registration, isProcessing, onUpdateStatus, onModule
                         disabled={module.status === "rejected" || isProcessing}
                         size="sm"
                         variant={module.status === "rejected" ? "secondary" : "destructive"}
-                        className={`h-5 w-5 p-0 ${
-                          module.status === "rejected" ? "bg-rose-100 text-rose-600 hover:bg-rose-100" : ""
-                        }`}
+                        className={`h-5 w-5 p-0 ${module.status === "rejected" ? "bg-rose-100 text-rose-600 hover:bg-rose-100" : ""
+                          }`}
                       >
                         <X className="w-2.5 h-2.5" />
                       </Button>
@@ -225,7 +221,6 @@ export const RegistrationsValidation: React.FC = () => {
   const stats = useMemo(() => {
     const cycles = registrations.filter((r) => r.CycleProgram.type === "cycle")
     const programs = registrations.filter((r) => r.CycleProgram.type === "program")
-
     return {
       total: registrations.length,
       cycles: cycles.length,
@@ -235,22 +230,19 @@ export const RegistrationsValidation: React.FC = () => {
 
   const filteredRegistrations = useMemo(() => {
     let filtered = registrations
-
     if (activeTab === "cycles") {
       filtered = filtered.filter((r) => r.CycleProgram.type === "cycle")
     } else if (activeTab === "programs") {
       filtered = filtered.filter((r) => r.CycleProgram.type === "program")
     }
-
     if (searchTerm) {
       filtered = filtered.filter(
         (r) =>
           r.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           r.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          r.CycleProgram.title.toLowerCase().includes(searchTerm.toLowerCase()),
+          r.CycleProgram.title.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
-
     return filtered
   }, [registrations, activeTab, searchTerm])
 
@@ -281,8 +273,7 @@ export const RegistrationsValidation: React.FC = () => {
 
   const handleUpdateStatus = async (
     registrationId: number,
-    status: "accepted" | "rejected" | "pending",
-    moduleStatuses?: { module_id: string; status: "accepted" | "rejected" | "pending" }[],
+    status: "accepted" | "rejected" | "pending"
   ) => {
     setProcessingIds((prev) => new Set(prev).add(registrationId))
 
@@ -290,8 +281,8 @@ export const RegistrationsValidation: React.FC = () => {
       const token = localStorage.getItem("token")
       await axios.put(
         `${API_BASE_URL}/api/cycles-programs/registrations/${registrationId}/status`,
-        { status, moduleStatuses },
-        { headers: { Authorization: `Bearer ${token}` } },
+        { status },
+        { headers: { Authorization: `Bearer ${token}` } }
       )
 
       setRegistrations((prev) => prev.filter((reg) => reg.id !== registrationId))
@@ -318,20 +309,61 @@ export const RegistrationsValidation: React.FC = () => {
   const handleProgramModuleStatus = async (
     registrationId: number,
     moduleId: string,
-    status: "accepted" | "rejected" | "pending",
+    status: "accepted" | "rejected" | "pending"
   ) => {
-    const registration = registrations.find((reg) => reg.id === registrationId)
-    if (!registration) return
+    setProcessingIds((prev) => new Set(prev).add(registrationId))
 
-    const updatedModuleStatuses = registration.modules.map((mod) => ({
-      module_id: mod.id,
-      status: mod.id === moduleId ? status : mod.status,
-    }))
+    try {
+      const registration = registrations.find((reg) => reg.id === registrationId)
+      if (!registration) return
 
-    // If the module is being accepted, ensure the program registration status is also set to accepted
-    const finalStatus = status === "accepted" ? "accepted" : registration.status
+      const updatedModuleStatuses = registration.modules.map((mod) => ({
+        module_id: mod.id,
+        status: mod.id === moduleId ? status : mod.status,
+      }))
 
-    await handleUpdateStatus(registrationId, finalStatus, updatedModuleStatuses)
+      const token = localStorage.getItem("token")
+      await axios.put(
+        `${API_BASE_URL}/api/cycles-programs/registrations/${registrationId}/status`,
+        { status: registration.status, moduleStatuses: updatedModuleStatuses },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+
+      setRegistrations((prev) =>
+        prev.map((reg) =>
+          reg.id === registrationId
+            ? {
+              ...reg,
+              modules: reg.modules.map((mod) =>
+                mod.id === moduleId ? { ...mod, status } : mod
+              ),
+              status: updatedModuleStatuses.every((mod) => mod.status === "accepted")
+                ? "accepted"
+                : updatedModuleStatuses.every((mod) => mod.status === "rejected")
+                  ? "rejected"
+                  : "pending",
+            }
+            : reg
+        )
+      )
+
+      toast({
+        title: status === "accepted" ? "✅ Module accepté" : "❌ Module rejeté",
+        description: `Le module a été ${status === "accepted" ? "accepté" : "rejeté"} avec succès.`,
+      })
+    } catch (err: any) {
+      toast({
+        title: "Erreur",
+        description: err.response?.data?.message || "Erreur lors de la mise à jour du statut du module.",
+        variant: "destructive",
+      })
+    } finally {
+      setProcessingIds((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(registrationId)
+        return newSet
+      })
+    }
   }
 
   if (loading) {

@@ -611,11 +611,23 @@ const getRegistrationsByProgramId = async (req, res) => {
 
 const getPendingRegistrations = async (req, res) => {
     try {
+        // Fetch registrations with pending status or pending modules
         const registrations = await CycleProgramRegistration.findAll({
-            where: { status: 'pending' },
+            where: {
+                [Sequelize.Op.or]: [
+                    { status: 'pending' },
+                    {
+                        '$CycleProgramUserModules.status$': 'pending',
+                    },
+                ],
+            },
             include: [
                 { model: CycleProgram, as: 'CycleProgram', attributes: ['id', 'title', 'type'] },
-                { model: CycleProgramUserModule, as: 'CycleProgramUserModules', attributes: ['module_id', 'status'] },
+                {
+                    model: CycleProgramUserModule,
+                    as: 'CycleProgramUserModules',
+                    attributes: ['module_id', 'status'],
+                },
             ],
         });
 
@@ -647,7 +659,16 @@ const getPendingRegistrations = async (req, res) => {
             })
         );
 
-        res.status(200).json(enrichedRegistrations);
+        // Filter out registrations with no pending modules for programs if registration status is not pending
+        const filteredRegistrations = enrichedRegistrations.filter((reg) => {
+            if (reg.status === 'pending') return true;
+            if (reg.CycleProgram.type === 'program') {
+                return reg.modules.some((module) => module.status === 'pending');
+            }
+            return false;
+        });
+
+        res.status(200).json(filteredRegistrations);
     } catch (error) {
         console.error('Error fetching pending registrations:', error);
         res.status(500).json({ message: 'Erreur serveur', details: error.message });
@@ -671,34 +692,37 @@ const updateRegistrationStatus = async (req, res) => {
 
         const transaction = await db.sequelize.transaction();
         try {
-            // Determine if any module is being accepted
-            const hasAcceptedModule = moduleStatuses && Array.isArray(moduleStatuses)
-                ? moduleStatuses.some(mod => mod.status === 'accepted')
-                : false;
+            let finalStatus = status;
 
-            // If any module is accepted and the program is of type 'program', set registration status to 'accepted'
-            const finalStatus = registration.CycleProgram.type === 'program' && hasAcceptedModule
-                ? 'accepted'
-                : status;
-
-            // Update registration status
-            await registration.update({ status: finalStatus }, { transaction });
-
-            // For cycles, module statuses follow the cycle status
-            if (registration.CycleProgram.type === 'cycle') {
-                await CycleProgramUserModule.update(
-                    { status: finalStatus },
-                    { where: { registration_id: id }, transaction }
-                );
-            } else if (moduleStatuses && Array.isArray(moduleStatuses)) {
-                // For programs, update individual module statuses
+            if (registration.CycleProgram.type === 'program' && moduleStatuses && Array.isArray(moduleStatuses)) {
+                // Update individual module statuses
                 for (const { module_id, status: moduleStatus } of moduleStatuses) {
                     await CycleProgramUserModule.update(
                         { status: moduleStatus },
                         { where: { registration_id: id, module_id }, transaction }
                     );
                 }
+
+                // Determine program status based on module statuses
+                const updatedModules = await CycleProgramUserModule.findAll({
+                    where: { registration_id: id },
+                    transaction,
+                });
+
+                const allAccepted = updatedModules.every((mod) => mod.status === 'accepted');
+                const allRejected = updatedModules.every((mod) => mod.status === 'rejected');
+
+                finalStatus = allAccepted ? 'accepted' : allRejected ? 'rejected' : 'pending';
+            } else {
+                // For cycles or direct registration status updates, update all modules to match
+                await CycleProgramUserModule.update(
+                    { status: finalStatus },
+                    { where: { registration_id: id }, transaction }
+                );
             }
+
+            // Update registration status
+            await registration.update({ status: finalStatus }, { transaction });
 
             await transaction.commit();
             res.status(200).json({ message: 'Statut de l\'inscription mis à jour' });
