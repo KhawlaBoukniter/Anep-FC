@@ -75,7 +75,6 @@ const EvaluationPage: React.FC = () => {
           return
         }
 
-        // Fetch registrations to find the registration_id
         const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/registrations`, {
           headers: { Authorization: `Bearer ${token}` },
           params: { user_id: userIdParam },
@@ -135,55 +134,59 @@ const EvaluationPage: React.FC = () => {
   }
 
   const handleDownloadPDF = () => {
-    const results = axisConfig.map((axis) => ({
-      titre: axis.title,
-      note: evaluationData[axis.id],
-    }))
-
-    // Generate LaTeX content
-    const latexContent = `
-\\documentclass[a4paper,12pt]{article}
-\\usepackage[utf8]{inputenc}
-\\usepackage[T1]{fontenc}
-\\usepackage{geometry}
-\\usepackage{booktabs}
-\\usepackage{xcolor}
-\\usepackage{colortbl}
-\\geometry{margin=1in}
-
-\\begin{document}
-
-\\begin{center}
-  \\Huge{\\textbf{Rapport d'Évaluation de Formation}}
-  \\vspace{0.5cm}
-  \\large{Module ID: ${moduleId || 'Non spécifié'}}
-  \\vspace{0.5cm}
-  \\large{Date: \\today}
-\\end{center}
-
-\\section*{Résultats de l'Évaluation}
-\\begin{table}[h]
-  \\centering
-  \\begin{tabular}{|l|c|}
-    \\hline
-    \\rowcolor[gray]{0.9} \\textbf{Critère} & \\textbf{Note (/5)} \\\\
-    \\hline
-    ${results.map((r) => `${r.titre} & ${r.note} \\\\ \\hline`).join('\n    ')}
-  \\end{tabular}
-  \\caption{Résultats de l'évaluation pour le module}
-\\end{table}
-
-\\section*{Résumé}
-Moyenne des scores: ${averageScore.toFixed(1)}/5
-
-\\end{document}
-`
-
-    // Simulate PDF generation (in a real environment, this would be sent to a LaTeX server or compiled)
     const doc = new jsPDF()
-    doc.text("Génération PDF en cours...", 10, 10)
-    doc.text("Dans une environnement de production, le PDF serait généré à partir du LaTeX suivant:", 10, 20)
-    doc.text(latexContent, 10, 30, { maxWidth: 190 })
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const margin = 20
+    let yPosition = 20
+
+    // Titre
+    doc.setFontSize(22)
+    doc.setFont("helvetica", "bold")
+    doc.text("Rapport d'Évaluation de Formation", pageWidth / 2, yPosition, { align: "center" })
+    yPosition += 15
+
+    // Module ID et Date
+    doc.setFontSize(12)
+    doc.setFont("helvetica", "normal")
+    yPosition += 10
+    const today = new Date().toLocaleDateString("fr-FR")
+    doc.text(`Date: ${today}`, pageWidth / 2, yPosition, { align: "center" })
+    yPosition += 20
+
+    // Tableau des évaluations
+    doc.setFontSize(16)
+    doc.setFont("helvetica", "bold")
+    doc.text("Résultats de l'Évaluation", margin, yPosition)
+    yPosition += 10
+
+    // En-tête du tableau
+    doc.setFontSize(12)
+    doc.setFont("helvetica", "bold")
+    doc.setFillColor(220, 220, 220)
+    doc.rect(margin, yPosition, pageWidth - 2 * margin, 10, "F")
+    doc.text("Axe", margin + 5, yPosition + 7)
+    doc.text("Score (/5)", pageWidth - margin - 30, yPosition + 7)
+    yPosition += 10
+
+    // Contenu du tableau
+    doc.setFont("helvetica", "normal")
+    axisConfig.forEach((axis) => {
+      doc.text(axis.title, margin + 5, yPosition + 7)
+      doc.text(`${evaluationData[axis.id] || 0}/5`, pageWidth - margin - 30, yPosition + 7)
+      yPosition += 10
+      doc.setLineWidth(0.5)
+      doc.line(margin, yPosition, pageWidth - margin, yPosition)
+      yPosition += 5
+    })
+
+    // Moyenne des scores
+    const averageScore = Object.values(evaluationData).reduce((sum, value) => sum + value, 0) / axisConfig.length
+    yPosition += 10
+    doc.setFontSize(14)
+    doc.setFont("helvetica", "bold")
+    doc.text(`Moyenne des scores: ${averageScore.toFixed(1)}/5`, margin, yPosition)
+
+    // Sauvegarde du PDF
     doc.save(`evaluation_module_${moduleId || 'unknown'}.pdf`)
 
     toast({
