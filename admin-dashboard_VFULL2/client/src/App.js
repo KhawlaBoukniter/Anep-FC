@@ -7,6 +7,7 @@ import FormationPage from "./components/FormationPage.tsx";
 import ProfilePage from "./pages/profile.tsx";
 import Indisponibilite from "./components/Indisponibilite.tsx";
 import FormationPersonnel from "./components/formationPersonnel.tsx";
+import EvaluationPage from "./components/EvaluationPage.tsx";
 import "./App.css";
 
 // Configuration du client React Query
@@ -37,6 +38,7 @@ function App() {
             <Route path="/formation" element={<FormationPage />} />
             <Route path="/indisponibilite" element={<Indisponibilite />} />
             <Route path="/formationPersonnel" element={<FormationPersonnel />} />
+            <Route path="/evaluation" element={<EvaluationPage />} />
           </Routes>
         </div>
       </Router>

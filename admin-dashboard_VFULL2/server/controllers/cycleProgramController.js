@@ -719,46 +719,70 @@ const getModuleEvaluations = async (req, res) => {
     const { module_id } = req.params;
 
     try {
-        const registrations = await CycleProgramRegistration.findAll({
-            include: [
-                {
-                    model: CycleProgramUserModule,
-                    as: 'CycleProgramUserModules',
-                    where: { module_id, status: 'accepted' },
-                },
-                { model: CycleProgram, as: 'CycleProgram', attributes: ['id', 'title'] },
-            ],
-        });
+        // Validate module_id
+        if (!mongoose.Types.ObjectId.isValid(module_id)) {
+            return res.status(400).json({ message: 'Invalid module_id format' });
+        }
+
+        // Check if the module exists in MongoDB
+        console.log('Course model:', Course); // Debugging
+        const module = await Course.findById(module_id);
+        if (!module) {
+            return res.status(404).json({ message: 'Module not found' });
+        }
+
+        // Query PostgreSQL to get all accepted registrations and their evaluations (if any)
+        const registrations = await db.sequelize.query(
+            `
+            SELECT 
+                cpr.id AS registration_id,
+                cpr.user_id,
+                emp.nom_complet AS user_name,
+                emp.email AS user_email,
+                cp.title AS program_title,
+                e.id_evaluation,
+                e.apports,
+                e.reponse,
+                e.condition,
+                e.conception,
+                e.qualite,
+                COALESCE((e.apports + e.reponse + e.condition + e.conception + e.qualite), 0) AS total_score
+            FROM cycle_program_registrations cpr
+            JOIN employe emp ON cpr.user_id = emp.id_employe
+            JOIN cycles_programs cp ON cpr.cycle_program_id = cp.id
+            JOIN cycle_program_user_modules cpum ON cpr.id = cpum.registration_id
+            LEFT JOIN evaluations e ON cpr.id = e.registration_id AND e.module_id = :moduleId
+            WHERE cpum.module_id = :moduleId
+            AND cpum.status = 'accepted'
+            AND cpr.status = 'accepted'
+            `,
+            {
+                replacements: { moduleId: module_id },
+                type: db.sequelize.QueryTypes.SELECT,
+            }
+        );
 
         if (registrations.length === 0) {
             return res.status(200).json({ message: 'Aucun employé inscrit', evaluations: [] });
         }
 
-        const evaluationsData = await Promise.all(
-            registrations.map(async (reg) => {
-                const [user] = await db.sequelize.query(
-                    `SELECT id_employe AS id, nom_complet AS name, email FROM employe WHERE id_employe = :userId`,
-                    {
-                        replacements: { userId: reg.user_id },
-                        type: db.sequelize.QueryTypes.SELECT,
-                    }
-                );
-
-                const module = await Course.findById(module_id);
-                const evaluation = module.evaluations.find((e) => e.user_id.toString() === reg.user_id.toString());
-
-                return {
-                    user: user || { id: reg.user_id, name: 'Unknown', email: 'Unknown' },
-                    evaluation: evaluation ? evaluation.score : '--',
-                    program: reg.CycleProgram.title,
-                };
-            })
-        );
+        // Format the response to match frontend expectations
+        const evaluationsData = registrations.map(reg => ({
+            user: {
+                id: reg.user_id,
+                name: reg.user_name || 'Unknown',
+                email: reg.user_email || 'Unknown',
+            },
+            evaluation: reg.id_evaluation
+                ? `Score: ${reg.total_score}/25 (Apports: ${reg.apports}, Réponse: ${reg.reponse}, Condition: ${reg.condition}, Conception: ${reg.conception}, Qualité: ${reg.qualite})`
+                : '--',
+            program: reg.program_title || 'Unknown',
+        }));
 
         res.status(200).json({ evaluations: evaluationsData });
     } catch (error) {
         console.error('Error fetching module evaluations:', error);
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: 'Server error', details: error.message });
     }
 };
 
