@@ -1199,7 +1199,7 @@ export function ModulesList() {
                       <Filter className="h-5 w-5" /> Ajouter Filtre
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-md rounded-2xl bg-white shadow-xl border border-gray-100 animate-in fade-in duration-300">
+                  <DialogContent className="w-2/5 rounded-2xl bg-white shadow-xl border border-gray-100 animate-in fade-in duration-300">
                     <DialogHeader className="border-b border-gray-100 p-6">
                       <DialogTitle className="text-2xl font-semibold text-gray-900">Ajouter un filtre</DialogTitle>
                     </DialogHeader>

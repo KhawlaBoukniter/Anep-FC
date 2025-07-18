@@ -191,7 +191,7 @@ export function AddJobModal() {
           Ajouter Emploi
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-1/2 h-[90vh] overflow-y-auto">
         <DialogHeader className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Briefcase className="h-6 w-6 text-green-600" />

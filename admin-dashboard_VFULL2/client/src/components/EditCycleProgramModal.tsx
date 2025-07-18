@@ -93,7 +93,7 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
             onSuccess: () => {
                 toast({ title: "Succès", description: "Cycle/Programme mis à jour avec succès." });
                 setOpen(false);
-                queryClient.invalidateQueries(["cycles-programs", {archived: false}])
+                queryClient.invalidateQueries(["cycles-programs", { archived: false }])
                 onCycleProgramUpdated();
             },
             onError: (error) => {
@@ -109,12 +109,12 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
     const handleInputChange = (field: keyof CycleProgram, value: any) => {
         if (field === "start_date" || field === "end_date") {
             if (value === "" || /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
-                setFormData((prev) => ({...prev, [field]: value}))
+                setFormData((prev) => ({ ...prev, [field]: value }))
             }
         } else {
             setFormData((prev) => ({ ...prev, [field]: value }));
         }
-        
+
     };
 
     const handleFileChange = (field: string, files: FileList | null) => {
@@ -137,11 +137,11 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
     };
 
     const moduleOptions = modules
-    .filter((module) => !module.archived)
-    .map((module) => ({
-        value: module._id,
-        label: module.title,
-    }));
+        .filter((module) => !module.archived)
+        .map((module) => ({
+            value: module._id,
+            label: module.title,
+        }));
 
     // Update the handleSubmit function
     const handleSubmit = (e: React.FormEvent) => {
@@ -196,7 +196,7 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
             }
         }
         formDataToSend.append("description", formData.description || "");
-        
+
         const startDateStr = formData.start_date || "";
         const endDateStr = formData.end_date || "";
         console.log("formData.start_date:", formData.start_date);
@@ -222,7 +222,7 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
 
         formDataToSend.append("start_date", startDate.toISOString());
         formDataToSend.append("end_date", endDate.toISOString());
-        
+
         // Append budget with fallback
         console.log("formData.budget:", formData.budget);
         formDataToSend.append("budget", (formData.budget ?? 0).toString());
@@ -239,7 +239,7 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
                     <Edit className="h-4 w-4" />
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="w-1/2 h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Modifier Cycle/Programme</DialogTitle>
                 </DialogHeader>

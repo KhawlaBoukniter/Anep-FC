@@ -10,7 +10,7 @@ import { ChevronLeft, ChevronRight, Edit, Briefcase, X, Check } from "lucide-rea
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command.tsx";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover.tsx";
 import { useUpdateJob } from "../hooks/useJobs";
-import { useSkills } from "../hooks/useReqSkills"; 
+import { useSkills } from "../hooks/useReqSkills";
 import { Job, Competence } from "../types/job.ts";
 import { useToast } from "../hooks/use-toast.ts";
 
@@ -202,7 +202,7 @@ export function EditJobModal({ job }: EditJobModalProps) {
           <Edit className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white">
+      <DialogContent className="w-1/2 h-[90vh] overflow-y-auto bg-white">
         <DialogHeader className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Briefcase className="h-6 w-6 text-green-600" />
@@ -211,9 +211,8 @@ export function EditJobModal({ job }: EditJobModalProps) {
           <div className="flex items-center justify-center gap-4">
             <div className="justify-items-center">
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  currentStep === 1 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"
-                }`}
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 1 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"
+                  }`}
               >
                 1
               </div>
@@ -222,9 +221,8 @@ export function EditJobModal({ job }: EditJobModalProps) {
             <div className="w-16 h-0.5 bg-gray-200"></div>
             <div className="justify-items-center">
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  currentStep === 2 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"
-                }`}
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 2 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"
+                  }`}
               >
                 2
               </div>
@@ -321,11 +319,10 @@ export function EditJobModal({ job }: EditJobModalProps) {
                                   onSelect={() => addCompetence(skill.id_competencer)}
                                 >
                                   <Check
-                                    className={`mr-2 h-4 w-4 ${
-                                      selectedCompetences.some((s) => s.id_competencer === skill.id_competencer)
+                                    className={`mr-2 h-4 w-4 ${selectedCompetences.some((s) => s.id_competencer === skill.id_competencer)
                                         ? "opacity-100"
                                         : "opacity-0"
-                                    }`}
+                                      }`}
                                   />
                                   <span>{skill.competencer}</span>
                                 </CommandItem>

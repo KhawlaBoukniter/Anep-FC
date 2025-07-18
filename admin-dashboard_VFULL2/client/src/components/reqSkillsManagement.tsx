@@ -72,10 +72,10 @@ export function ReqSkillsManagement() {
 
   const generateNextCode = (latestCode) => {
     if (!latestCode) return "C1";
-    
+
     const match = latestCode.match(/\d+/);
     if (!match) return "C1";
-    
+
     const currentNumber = parseInt(match[0]);
     return `C${currentNumber + 1}`;
   };
@@ -794,7 +794,7 @@ export function ReqSkillsManagement() {
 
         {isAddModalOpen && (
           <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-            <DialogContent>
+            <DialogContent className="w-2/5">
               <DialogHeader>
                 <DialogTitle>Ajouter une compétence</DialogTitle>
               </DialogHeader>
@@ -849,7 +849,7 @@ export function ReqSkillsManagement() {
 
         {isEditModalOpen && (
           <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-            <DialogContent>
+            <DialogContent className="w-2/5">
               <DialogHeader>
                 <DialogTitle>Modifier une compétence</DialogTitle>
               </DialogHeader>

@@ -81,7 +81,7 @@ export function AddCycleProgramModal({ onCycleProgramCreated }) {
                     facilitator: "",
                     module_ids: [],
                 });
-                queryClient.invalidateQueries(["cycles-programs", {archived: false}])
+                queryClient.invalidateQueries(["cycles-programs", { archived: false }])
                 onCycleProgramCreated();
             },
             onError: (error) => {
@@ -108,11 +108,11 @@ export function AddCycleProgramModal({ onCycleProgramCreated }) {
     };
 
     const moduleOptions = modules
-    .filter((module) => !module.archived)
-    .map((module) => ({
-        value: module._id,
-        label: module.title,
-    }));
+        .filter((module) => !module.archived)
+        .map((module) => ({
+            value: module._id,
+            label: module.title,
+        }));
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -161,7 +161,7 @@ export function AddCycleProgramModal({ onCycleProgramCreated }) {
                     <Plus className="h-5 w-5" /> Créer Cycle/Programme
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="w-1/2 h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Créer un Cycle ou Programme</DialogTitle>
                 </DialogHeader>

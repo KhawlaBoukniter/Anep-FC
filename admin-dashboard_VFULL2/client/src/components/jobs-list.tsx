@@ -335,7 +335,7 @@ export function JobsList() {
                       <Filter className="h-4 w-4" /> Ajouter Filtre
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-md rounded-xl bg-white shadow-2xl border border-gray-200 animate-in fade-in duration-200">
+                  <DialogContent className="w-2/5 rounded-xl bg-white shadow-2xl border border-gray-200 animate-in fade-in duration-200">
                     <DialogHeader className="border-b border-gray-100 p-4">
                       <DialogTitle className="text-xl font-bold text-gray-900">Ajouter un filtre</DialogTitle>
                     </DialogHeader>
