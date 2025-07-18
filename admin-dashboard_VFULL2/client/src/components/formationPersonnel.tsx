@@ -200,10 +200,10 @@ const FormationPersonnel: React.FC = () => {
     return (
       <span
         className={`px-3 py-1 text-white text-xs font-semibold rounded-full ${registrationStatus === "accepted"
-          ? "bg-green-500"
-          : registrationStatus === "pending"
-            ? "bg-yellow-500"
-            : "bg-red-500"
+            ? "bg-green-500"
+            : registrationStatus === "pending"
+              ? "bg-yellow-500"
+              : "bg-red-500"
           }`}
         aria-label={`Statut de l'inscription : ${registrationStatus}`}
       >
@@ -250,17 +250,20 @@ const FormationPersonnel: React.FC = () => {
 
       setFormations((prev) =>
         prev.map((f) =>
-          f.id === moduleId ? { ...f, registrationStatus: "pending" } : f
+          f.id === moduleId && f.programId === programId ? { ...f, registrationStatus: "pending" } : f
         )
       );
-      toast({ title: "Succès", description: "Réinscription soumise. En attente de validation par l'administrateur." });
+      toast({
+        title: "Succès",
+        description: "Réinscription soumise. En attente de validation par l'administrateur.",
+      });
     } catch (err: any) {
       console.error("Erreur lors de la réinscription:", err);
       const errorMessage = err.response?.data?.message || "Erreur lors de la réinscription. Veuillez réessayer.";
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "errorMessage",
+        description: errorMessage, // Fixed: Use errorMessage variable
       });
     }
   };
@@ -344,7 +347,7 @@ const FormationPersonnel: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {formations.map((formation) => (
                   <div
-                    key={formation.id}
+                    key={`${formation.id}-${formation.programId}`}
                     className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
                   >
                     <div className="p-6">
@@ -390,15 +393,13 @@ const FormationPersonnel: React.FC = () => {
                             Réessayer l'inscription
                           </button>
                         ) : formation.registrationStatus === "accepted" ? (
-                          <>
-                            <button
-                              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-2 px-4 rounded-lg font-medium hover:shadow-lg transition-all duration-300"
-                              aria-label="Continuer la formation"
-                              onClick={() => openFormationDetail(formation)}
-                            >
-                              Continuer
-                            </button>
-                          </>
+                          <button
+                            className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-2 px-4 rounded-lg font-medium hover:shadow-lg transition-all duration-300"
+                            aria-label="Continuer la formation"
+                            onClick={() => openFormationDetail(formation)}
+                          >
+                            Continuer
+                          </button>
                         ) : (
                           <button
                             className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium cursor-not-allowed"
@@ -460,12 +461,12 @@ const FormationPersonnel: React.FC = () => {
                         <span className="text-gray-600">Statut de l'inscription</span>
                         <span
                           className={`font-medium ${selectedFormation.registrationStatus === "accepted"
-                            ? "text-green-600"
-                            : selectedFormation.registrationStatus === "pending"
-                              ? "text-yellow-600"
-                              : selectedFormation.registrationStatus === "rejected"
-                                ? "text-red-600"
-                                : "text-gray-600"
+                              ? "text-green-600"
+                              : selectedFormation.registrationStatus === "pending"
+                                ? "text-yellow-600"
+                                : selectedFormation.registrationStatus === "rejected"
+                                  ? "text-red-600"
+                                  : "text-gray-600"
                             }`}
                         >
                           {selectedFormation.registrationStatus
@@ -520,7 +521,10 @@ const FormationPersonnel: React.FC = () => {
                       {selectedFormation.photosLinks &&
                         selectedFormation.photosLinks.length > 0 &&
                         selectedFormation.photosLinks.map((photoLink, index) => (
-                          <div key={`photo-${selectedFormation.id}-${index}`} className="flex justify-between border-b pb-2">
+                          <div
+                            key={`photo-${selectedFormation.id}-${selectedFormation.programId}-${index}`}
+                            className="flex justify-between border-b pb-2"
+                          >
                             <span className="text-gray-600">Photo {index + 1}</span>
                             <a
                               href={photoLink}

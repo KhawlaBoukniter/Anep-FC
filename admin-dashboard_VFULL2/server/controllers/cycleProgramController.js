@@ -480,51 +480,46 @@ const getUserEnrolledModules = async (req, res) => {
             order: [[{ model: CycleProgramUserModule, as: 'CycleProgramUserModules' }, 'created_at', 'DESC']],
         });
 
-        // Create a map to deduplicate modules by module_id, prioritizing the latest status
-        const moduleMap = new Map();
-
+        // Collect all module entries without deduplication
+        const moduleEntries = [];
         for (const registration of registrations) {
             const cycleProgram = registration.CycleProgram;
             for (const userModule of registration.CycleProgramUserModules) {
-                const moduleId = userModule.module_id;
-                // Only update if this is the first occurrence or a more recent entry
-                if (!moduleMap.has(moduleId) || new Date(userModule.created_at) > new Date(moduleMap.get(moduleId).created_at)) {
-                    moduleMap.set(moduleId, {
-                        module_id: moduleId,
-                        status: userModule.status,
-                        created_at: userModule.created_at,
-                        cycleProgram: {
-                            id: cycleProgram.id,
-                            title: cycleProgram.title,
-                            type: cycleProgram.type,
-                            description: cycleProgram.description,
-                            start_date: cycleProgram.start_date,
-                            end_date: cycleProgram.end_date,
-                            evaluation_url: cycleProgram.evaluation_url,
-                        },
-                    });
-                }
+                moduleEntries.push({
+                    module_id: userModule.module_id,
+                    status: userModule.status,
+                    created_at: userModule.created_at,
+                    cycleProgram: {
+                        id: cycleProgram.id,
+                        title: cycleProgram.title,
+                        type: cycleProgram.type,
+                        description: cycleProgram.description,
+                        start_date: cycleProgram.start_date,
+                        end_date: cycleProgram.end_date,
+                        evaluation_url: cycleProgram.evaluation_url,
+                    },
+                });
             }
         }
 
         // Fetch module details from MongoDB
-        const validModuleIds = Array.from(moduleMap.keys())
-            .map((id) => {
+        const validModuleIds = moduleEntries
+            .map((entry) => {
                 try {
-                    return new mongoose.Types.ObjectId(id);
+                    return new mongoose.Types.ObjectId(entry.module_id);
                 } catch (err) {
-                    console.warn(`Invalid ObjectId: ${id}`);
+                    console.warn(`Invalid ObjectId: ${entry.module_id}`);
                     return null;
                 }
             })
             .filter((id) => id !== null);
 
         const modules = validModuleIds.length > 0
-            ? await Course.find({ _id: { $in: validModuleIds } })
+            ? await Course.find({ _id: { $in: [...new Set(validModuleIds)] } }) // Use Set to avoid duplicate queries
             : [];
 
         // Combine module details with status and cycleProgram info
-        const enrolledModules = Array.from(moduleMap.values()).map((entry) => {
+        const enrolledModules = moduleEntries.map((entry) => {
             const module = modules.find((m) => m._id.toString() === entry.module_id) || {};
             return {
                 module: {
