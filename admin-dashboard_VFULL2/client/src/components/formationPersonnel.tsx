@@ -3,6 +3,7 @@
 import type React from "react";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { toast } from "../hooks/use-toast.ts";
 import Header from "./header.tsx";
 import Footer from "./footer.tsx";
 
@@ -16,7 +17,7 @@ interface EnrolledFormation {
   color: string;
   enrollmentDate: string;
   progress: number;
-  status: "en_cours" | "termine" | "non_commence";
+  registrationStatus: "accepted" | "pending" | "rejected" | null;
   completedModules: number;
   totalModules: number;
   certificateAvailable: boolean;
@@ -26,6 +27,7 @@ interface EnrolledFormation {
   supportLink?: string;
   evaluationLink?: string;
   photosLinks?: string[];
+  programId: string;
 }
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
@@ -50,9 +52,7 @@ const FormationPersonnel: React.FC = () => {
         }
 
         const response = await axios.get(`${API_BASE_URL}/api/employees/verify-session`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         setUserId(response.data.id.toString());
@@ -73,76 +73,85 @@ const FormationPersonnel: React.FC = () => {
     const fetchEnrolledModules = async () => {
       try {
         setLoading(true);
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setError("Session invalide. Veuillez vous reconnecter.");
+          return;
+        }
+
         const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/user/${userId}/modules`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
         const enrolledData = response.data;
 
-        const formattedFormations: EnrolledFormation[] = enrolledData.flatMap((program: any) =>
-          program.modules.map((module: any) => {
-            let duration = "Durée inconnue";
-            let startDate = "";
-            let endDate = "";
-            if (module.times && module.times.length > 0) {
-              const dateRanges = module.times.flatMap((session: any) => session.dateRanges);
-              if (dateRanges.length > 0) {
-                const validDateRanges = dateRanges.filter(
-                  (range: any) => range.startTime && range.endTime && !isNaN(new Date(range.startTime).getTime()) && !isNaN(new Date(range.endTime).getTime())
-                );
-                if (validDateRanges.length > 0) {
-                  const startTimes = validDateRanges.map((range: any) => new Date(range.startTime));
-                  const endTimes = validDateRanges.map((range: any) => new Date(range.endTime));
-                  const minDate = new Date(Math.min(...startTimes.map((date: Date) => date.getTime())));
-                  const maxDate = new Date(Math.max(...endTimes.map((date: Date) => date.getTime())));
-                  const diffDays = Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24));
-                  duration = `${diffDays} jour${diffDays !== 1 ? "s" : ""}`;
-                  startDate = minDate.toLocaleDateString("fr-FR");
-                  endDate = maxDate.toLocaleDateString("fr-FR");
-                }
+        const formattedFormations: EnrolledFormation[] = enrolledData.map((entry: any) => {
+          const module = entry.module;
+          const cycleProgram = entry.cycleProgram;
+
+          let duration = "Durée inconnue";
+          let startDate = "";
+          let endDate = "";
+          if (module.times && module.times.length > 0) {
+            const dateRanges = module.times.flatMap((session: any) => session.dateRanges);
+            if (dateRanges.length > 0) {
+              const validDateRanges = dateRanges.filter(
+                (range: any) =>
+                  range.startTime &&
+                  range.endTime &&
+                  !isNaN(new Date(range.startTime).getTime()) &&
+                  !isNaN(new Date(range.endTime).getTime())
+              );
+              if (validDateRanges.length > 0) {
+                const startTimes = validDateRanges.map((range: any) => new Date(range.startTime));
+                const endTimes = validDateRanges.map((range: any) => new Date(range.endTime));
+                const minDate = new Date(Math.min(...startTimes.map((date: Date) => date.getTime())));
+                const maxDate = new Date(Math.max(...endTimes.map((date: Date) => date.getTime())));
+                const diffDays = Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24));
+                duration = `${diffDays} jour${diffDays !== 1 ? "s" : ""}`;
+                startDate = minDate.toLocaleDateString("fr-FR");
+                endDate = maxDate.toLocaleDateString("fr-FR");
               }
             }
+          }
 
-            const instructor =
-              module.times?.[0]?.instructorName ||
-              module.times?.[0]?.externalInstructorDetails?.position ||
-              "Instructeur inconnu";
+          const instructor =
+            module.times?.[0]?.instructorName ||
+            module.times?.[0]?.externalInstructorDetails?.position ||
+            "Instructeur inconnu";
 
-            const supportLink = module.support?.type === "link" ? module.support.value : null;
-            const evaluationLink = program.cycleProgram.evaluation_url || null;
-            const photosLinks = module.photos
-              ?.filter((photo: any) => photo.type === "link")
-              ?.map((photo: any) => photo.value) || [];
-
-            return {
-              id: module._id,
-              title: module.title || "Module sans titre",
-              description: module.description || "Aucune description disponible",
-              duration,
-              instructor,
-              category: program.cycleProgram.type || "Non catégorisé",
-              color: "from-blue-600 to-indigo-700",
-              enrollmentDate: program.cycleProgram.created_at || new Date().toISOString(),
-              progress: module.progress || 0,
-              status: module.status || "non_commence",
-              completedModules: module.completedModules || 0,
-              totalModules: module.totalModules || 1,
-              certificateAvailable: module.certificateAvailable || false,
-              lastAccessed: module.lastAccessed || "Jamais",
-              startDate,
-              endDate,
-              supportLink,
-              evaluationLink,
-              photosLinks,
-            };
-          })
-        );
+          return {
+            id: module.id,
+            title: module.title,
+            description: module.description,
+            duration,
+            instructor,
+            category: cycleProgram.type || "Non catégorisé",
+            color: "from-blue-600 to-indigo-700",
+            enrollmentDate: cycleProgram.created_at || new Date().toISOString(),
+            progress: module.progress || 0,
+            registrationStatus: entry.status || null,
+            completedModules: module.completedModules || 0,
+            totalModules: module.totalModules || 1,
+            certificateAvailable: module.certificateAvailable || false,
+            lastAccessed: module.lastAccessed || "Jamais",
+            startDate,
+            endDate,
+            supportLink: module.support?.type === "link" ? module.support.value : null,
+            evaluationLink: cycleProgram.evaluation_url || null,
+            photosLinks: module.photos || [],
+            programId: cycleProgram.id.toString(),
+          };
+        });
 
         setFormations(formattedFormations);
       } catch (err: any) {
+        console.error("Erreur lors de la récupération des modules:", err);
         setError("Erreur lors de la récupération des modules");
-        console.error(err);
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Erreur lors de la récupération des modules",
+        });
       } finally {
         setLoading(false);
       }
@@ -174,8 +183,87 @@ const FormationPersonnel: React.FC = () => {
   };
 
   const totalFormations = formations.length;
-  const completedFormations = formations.filter((f) => f.status === "termine").length;
-  const inProgressFormations = formations.filter((f) => f.status === "en_cours").length;
+  const acceptedFormations = formations.filter((f) => f.registrationStatus === "accepted").length;
+  const pendingFormations = formations.filter((f) => f.registrationStatus === "pending").length;
+
+  const getStatusBadge = (registrationStatus: string | null) => {
+    if (!registrationStatus) {
+      return (
+        <span
+          className="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded-full"
+          aria-label="Statut : Non défini"
+        >
+          Non défini
+        </span>
+      );
+    }
+    return (
+      <span
+        className={`px-3 py-1 text-white text-xs font-semibold rounded-full ${registrationStatus === "accepted"
+          ? "bg-green-500"
+          : registrationStatus === "pending"
+            ? "bg-yellow-500"
+            : "bg-red-500"
+          }`}
+        aria-label={`Statut de l'inscription : ${registrationStatus}`}
+      >
+        {registrationStatus === "accepted"
+          ? "✓ Accepté"
+          : registrationStatus === "pending"
+            ? "⏳ En attente"
+            : "❌ Rejeté"}
+      </span>
+    );
+  };
+
+  const handleReenroll = async (moduleId: string, programId: string) => {
+    if (!userId) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Veuillez vous connecter pour vous réinscrire.",
+      });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Session invalide. Veuillez vous reconnecter.",
+        });
+        return;
+      }
+
+      await axios.post(
+        `${API_BASE_URL}/api/cycles-programs/${programId}/register`,
+        {
+          user_id: userId,
+          module_ids: [moduleId],
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setFormations((prev) =>
+        prev.map((f) =>
+          f.id === moduleId ? { ...f, registrationStatus: "pending" } : f
+        )
+      );
+      toast({ title: "Succès", description: "Réinscription soumise. En attente de validation par l'administrateur." });
+    } catch (err: any) {
+      console.error("Erreur lors de la réinscription:", err);
+      const errorMessage = err.response?.data?.message || "Erreur lors de la réinscription. Veuillez réessayer.";
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "errorMessage",
+      });
+    }
+  };
 
   const openFormationDetail = (formation: EnrolledFormation) => {
     setSelectedFormation(formation);
@@ -191,18 +279,20 @@ const FormationPersonnel: React.FC = () => {
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
       <Header />
       <div className="min-h-screen bg-gray-100">
-        {/* Hero Section */}
         <section className="relative py-20 bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-600 text-white">
           <div className="absolute inset-0 bg-black bg-opacity-30"></div>
           <div className="container mx-auto px-6 relative z-10">
-            <div className={`transition-all duration-1000 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}>
+            <div
+              className={`transition-all duration-1000 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
+            >
               <h1 className="text-5xl font-extrabold mb-4 tracking-tight">Mes Formations</h1>
-              <p className="text-xl opacity-90 max-w-2xl">Gérez et suivez votre progression dans vos programmes de formation avec facilité.</p>
+              <p className="text-xl opacity-90 max-w-2xl">
+                Gérez et suivez votre progression dans vos programmes de formation avec facilité.
+              </p>
             </div>
           </div>
         </section>
 
-        {/* Stats Dashboard */}
         <section className="py-10 bg-white">
           <div className="container mx-auto px-6">
             {loading ? (
@@ -213,12 +303,13 @@ const FormationPersonnel: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[
                   { value: totalFormations, label: "Formations Inscrites", color: "bg-blue-600" },
-                  { value: completedFormations, label: "Terminées", color: "bg-green-600" },
-                  { value: inProgressFormations, label: "En cours", color: "bg-orange-600" },
+                  { value: acceptedFormations, label: "Acceptées", color: "bg-green-600" },
+                  { value: pendingFormations, label: "En attente", color: "bg-yellow-600" },
                 ].map((stat, index) => (
                   <div
                     key={index}
                     className={`p-6 ${stat.color} text-white rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300`}
+                    aria-label={`Statistique : ${stat.label} - ${stat.value}`}
                   >
                     <div className="text-4xl font-bold mb-2">{stat.value}</div>
                     <div className="text-sm font-medium opacity-90">{stat.label}</div>
@@ -229,7 +320,6 @@ const FormationPersonnel: React.FC = () => {
           </div>
         </section>
 
-        {/* Formations List */}
         <section className="section section--formation-list py-12 bg-gray-100">
           <div className="container mx-auto px-6">
             {loading ? (
@@ -243,7 +333,10 @@ const FormationPersonnel: React.FC = () => {
                 <p className="text-gray-600 mb-8">
                   Vous n'êtes inscrit à aucune formation pour le moment.
                 </p>
-                <button className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-300">
+                <button
+                  className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-300"
+                  aria-label="Découvrir nos formations"
+                >
                   Découvrir nos formations
                 </button>
               </div>
@@ -257,9 +350,15 @@ const FormationPersonnel: React.FC = () => {
                     <div className="p-6">
                       <div className="flex justify-between items-start mb-4">
                         <h3 className="text-lg font-semibold text-gray-800">{formation.title}</h3>
-                        <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                          {formation.category}
-                        </span>
+                        <div className="flex flex-col gap-2">
+                          <span
+                            className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full"
+                            aria-label={`Catégorie : ${formation.category}`}
+                          >
+                            {formation.category}
+                          </span>
+                          {getStatusBadge(formation.registrationStatus)}
+                        </div>
                       </div>
                       <div className="grid grid-cols-1 gap-4 text-sm mb-4 text-gray-600">
                         <div>
@@ -280,74 +379,38 @@ const FormationPersonnel: React.FC = () => {
                             <span className="font-medium">{formation.endDate || "Non défini"}</span>
                           </div>
                         </div>
-                        {formation.evaluationLink && (
-                          <div>
-                            <span className="block text-xs text-gray-500">Lien d'évaluation</span>
-                            <a
-                              href={formation.evaluationLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-medium text-blue-600 hover:underline"
-                            >
-                              Accéder
-                            </a>
-                          </div>
-                        )}
-                        {formation.photosLinks && formation.photosLinks.length > 0 && (
-                          formation.photosLinks.map((photoLink, index) => (
-                            <div key={`photo-${index}`}>
-                              <span className="block text-xs text-gray-500">Photo {index + 1}</span>
-                              <a
-                                href={photoLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="font-medium text-blue-600 hover:underline"
-                              >
-                                Accéder
-                              </a>
-                            </div>
-                          ))
-                        )}
                       </div>
-                      {formation.certificateAvailable && (
-                        <div className="mb-4">
-                          <span className="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
-                            🏆 Certificat disponible
-                          </span>
-                        </div>
-                      )}
                       <div className="flex gap-3">
-                        {formation.status === "termine" ? (
+                        {formation.registrationStatus === "rejected" ? (
+                          <button
+                            onClick={() => handleReenroll(formation.id, formation.programId)}
+                            className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-2 px-4 rounded-lg font-medium hover:shadow-lg transition-all duration-300"
+                            aria-label="Réessayer l'inscription"
+                          >
+                            Réessayer l'inscription
+                          </button>
+                        ) : formation.registrationStatus === "accepted" ? (
                           <>
-                            <button className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-300 transition-all duration-300">
-                              Revoir le contenu
-                            </button>
-                            {formation.certificateAvailable && (
-                              <button className="flex-1 bg-yellow-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-yellow-600 transition-all duration-300">
-                                Télécharger certificat
-                              </button>
-                            )}
-                          </>
-                        ) : formation.status === "en_cours" ? (
-                          <>
-                            <button className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-2 px-4 rounded-lg font-medium hover:shadow-lg transition-all duration-300">
+                            <button
+                              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-2 px-4 rounded-lg font-medium hover:shadow-lg transition-all duration-300"
+                              aria-label="Continuer la formation"
+                              onClick={() => openFormationDetail(formation)}
+                            >
                               Continuer
-                            </button>
-                            <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-blue-600 hover:text-blue-600 transition-all duration-300">
-                              📋
                             </button>
                           </>
                         ) : (
                           <button
-                            onClick={() => openFormationDetail(formation)}
-                            className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-2 px-4 rounded-lg font-medium hover:shadow-lg transition-all duration-300"
+                            className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium cursor-not-allowed"
+                            disabled
+                            aria-label="Inscription en attente de validation"
+                            aria-disabled="true"
                           >
-                            Commencer la formation
+                            En attente ⏳
                           </button>
                         )}
                       </div>
                     </div>
-                    <div className="h-1 bg-gradient-to-r from-blue-600 to-indigo-700" style={{ width: `${formation.progress}%` }} />
                   </div>
                 ))}
               </div>
@@ -357,7 +420,6 @@ const FormationPersonnel: React.FC = () => {
       </div>
       <Footer />
 
-      {/* Popup de détails de formation */}
       {isDetailModalOpen && selectedFormation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -367,6 +429,7 @@ const FormationPersonnel: React.FC = () => {
                 <button
                   onClick={() => setIsDetailModalOpen(false)}
                   className="text-gray-500 hover:text-gray-700 text-2xl"
+                  aria-label="Fermer la fenêtre des détails"
                 >
                   ×
                 </button>
@@ -394,6 +457,27 @@ const FormationPersonnel: React.FC = () => {
                         <span className="font-medium">{selectedFormation.instructor}</span>
                       </div>
                       <div className="flex justify-between border-b pb-2">
+                        <span className="text-gray-600">Statut de l'inscription</span>
+                        <span
+                          className={`font-medium ${selectedFormation.registrationStatus === "accepted"
+                            ? "text-green-600"
+                            : selectedFormation.registrationStatus === "pending"
+                              ? "text-yellow-600"
+                              : selectedFormation.registrationStatus === "rejected"
+                                ? "text-red-600"
+                                : "text-gray-600"
+                            }`}
+                        >
+                          {selectedFormation.registrationStatus
+                            ? selectedFormation.registrationStatus === "accepted"
+                              ? "Accepté"
+                              : selectedFormation.registrationStatus === "pending"
+                                ? "En attente"
+                                : "Rejeté"
+                            : "Non défini"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between border-b pb-2">
                         <span className="text-gray-600">
                           <i className="fa-regular fa-calendar mr-1"></i> Date de début
                         </span>
@@ -413,6 +497,7 @@ const FormationPersonnel: React.FC = () => {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="font-medium text-blue-600 hover:underline"
+                            aria-label="Accéder au lien de support"
                           >
                             Accéder
                           </a>
@@ -426,35 +511,47 @@ const FormationPersonnel: React.FC = () => {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="font-medium text-blue-600 hover:underline"
+                            aria-label="Accéder au lien d'évaluation"
                           >
                             Accéder
                           </a>
                         </div>
                       )}
-                      {selectedFormation.photosLinks && selectedFormation.photosLinks.length > 0 && (
+                      {selectedFormation.photosLinks &&
+                        selectedFormation.photosLinks.length > 0 &&
                         selectedFormation.photosLinks.map((photoLink, index) => (
-                          <div key={`photo-${index}`} className="flex justify-between border-b pb-2">
+                          <div key={`photo-${selectedFormation.id}-${index}`} className="flex justify-between border-b pb-2">
                             <span className="text-gray-600">Photo {index + 1}</span>
                             <a
                               href={photoLink}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="font-medium text-blue-600 hover:underline"
+                              aria-label={`Accéder à la photo ${index + 1}`}
                             >
                               Accéder
                             </a>
                           </div>
-                        ))
-                      )}
+                        ))}
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="mt-6 flex justify-end space-x-3">
+                {selectedFormation.registrationStatus === "rejected" && (
+                  <button
+                    onClick={() => handleReenroll(selectedFormation.id, selectedFormation.programId)}
+                    className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-300"
+                    aria-label="Réessayer l'inscription"
+                  >
+                    Réessayer l'inscription
+                  </button>
+                )}
                 <button
                   onClick={() => setIsDetailModalOpen(false)}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors duration-300"
+                  aria-label="Fermer la fenêtre des détails"
                 >
                   Fermer
                 </button>

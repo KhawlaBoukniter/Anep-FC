@@ -469,37 +469,79 @@ const getUserEnrolledModules = async (req, res) => {
                 {
                     model: CycleProgramUserModule,
                     as: 'CycleProgramUserModules',
+                    attributes: ['module_id', 'status', 'created_at'],
                 },
                 {
                     model: CycleProgram,
                     as: 'CycleProgram',
+                    attributes: ['id', 'title', 'type', 'description', 'start_date', 'end_date', 'evaluation_url'],
                 },
             ],
+            order: [[{ model: CycleProgramUserModule, as: 'CycleProgramUserModules' }, 'created_at', 'DESC']],
         });
 
-        const enrolledModules = await Promise.all(
-            registrations.map(async (registration) => {
-                const validModuleIds = registration.CycleProgramUserModules
-                    .map((m) => {
-                        try {
-                            return new mongoose.Types.ObjectId(m.module_id);
-                        } catch (err) {
-                            console.warn(`Invalid ObjectId: ${m.module_id}`);
-                            return null;
-                        }
-                    })
-                    .filter((id) => id !== null);
+        // Create a map to deduplicate modules by module_id, prioritizing the latest status
+        const moduleMap = new Map();
 
-                const modules = validModuleIds.length > 0
-                    ? await Course.find({ _id: { $in: validModuleIds } })
-                    : [];
+        for (const registration of registrations) {
+            const cycleProgram = registration.CycleProgram;
+            for (const userModule of registration.CycleProgramUserModules) {
+                const moduleId = userModule.module_id;
+                // Only update if this is the first occurrence or a more recent entry
+                if (!moduleMap.has(moduleId) || new Date(userModule.created_at) > new Date(moduleMap.get(moduleId).created_at)) {
+                    moduleMap.set(moduleId, {
+                        module_id: moduleId,
+                        status: userModule.status,
+                        created_at: userModule.created_at,
+                        cycleProgram: {
+                            id: cycleProgram.id,
+                            title: cycleProgram.title,
+                            type: cycleProgram.type,
+                            description: cycleProgram.description,
+                            start_date: cycleProgram.start_date,
+                            end_date: cycleProgram.end_date,
+                            evaluation_url: cycleProgram.evaluation_url,
+                        },
+                    });
+                }
+            }
+        }
 
-                return {
-                    cycleProgram: registration.CycleProgram,
-                    modules,
-                };
+        // Fetch module details from MongoDB
+        const validModuleIds = Array.from(moduleMap.keys())
+            .map((id) => {
+                try {
+                    return new mongoose.Types.ObjectId(id);
+                } catch (err) {
+                    console.warn(`Invalid ObjectId: ${id}`);
+                    return null;
+                }
             })
-        );
+            .filter((id) => id !== null);
+
+        const modules = validModuleIds.length > 0
+            ? await Course.find({ _id: { $in: validModuleIds } })
+            : [];
+
+        // Combine module details with status and cycleProgram info
+        const enrolledModules = Array.from(moduleMap.values()).map((entry) => {
+            const module = modules.find((m) => m._id.toString() === entry.module_id) || {};
+            return {
+                module: {
+                    id: entry.module_id,
+                    title: module.title || 'Module sans titre',
+                    description: module.description || 'Aucune description disponible',
+                    times: module.times || [],
+                    photos: module.photos || [],
+                    support: module.support || null,
+                    progress: module.progress || 0,
+                    certificateAvailable: module.certificateAvailable || false,
+                    lastAccessed: module.lastAccessed || 'Jamais',
+                },
+                cycleProgram: entry.cycleProgram,
+                status: entry.status,
+            };
+        });
 
         res.status(200).json(enrolledModules);
     } catch (error) {
