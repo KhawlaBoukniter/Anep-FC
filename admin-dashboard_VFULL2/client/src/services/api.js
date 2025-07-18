@@ -121,6 +121,13 @@ export const indisponibiliteService = {
   update: (id, data) => api.put(`/api/indisponibilites/${id}`, data),
   delete: (id) => api.delete(`/api/indisponibilites/${id}`),
 };
+
+export const cycleProgramService = {
+  getModuleEvaluations: (moduleId) => api.get(`/api/cycle-programs/module/${moduleId}/evaluations`),
+  getModulePresence: (moduleId) => api.get(`/api/cycle-programs/module/${moduleId}/presence`),
+  updateModulePresence: (moduleId, presence) => api.post(`/api/cycle-programs/module/${moduleId}/presence`, { presence }),
+};
+
 // Service de santé de l'API
 export const healthService = {
   check: () => api.get("/api/health"),

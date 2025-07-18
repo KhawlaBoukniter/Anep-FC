@@ -1,4 +1,5 @@
-const { CycleProgram, CycleProgramModule, CycleProgramRegistration, CycleProgramUserModule } = require('../models');
+const { CycleProgram, CycleProgramModule, CycleProgramRegistration, CycleProgramUserModule, CycleProgramUserModulePresence } = require('../models');
+const { calculateModuleDuration } = require('../controllers/courseController');
 const Course = require('../models/Course');
 const XLSX = require('xlsx');
 const mongoose = require('mongoose');
@@ -297,7 +298,6 @@ const deleteCycleProgram = async (req, res) => {
     }
 };
 
-
 const registerUserToCycleProgram = async (req, res) => {
     const { id } = req.params;
     const { user_id, module_ids } = req.body;
@@ -330,7 +330,6 @@ const registerUserToCycleProgram = async (req, res) => {
 
             let userModules = [];
             if (cycleProgram.type === 'cycle') {
-                // For cycles, automatically include all modules with pending status
                 const moduleIds = cycleProgram.CycleProgramModules.map((m) => m.module_id);
                 userModules = moduleIds.map((moduleId) => ({
                     registration_id: registration.id,
@@ -343,7 +342,6 @@ const registerUserToCycleProgram = async (req, res) => {
                     await transaction.rollback();
                     return res.status(400).json({ message: 'module_ids doit être un tableau valide' });
                 }
-                // Validate module IDs
                 const validModules = await Course.find({ _id: { $in: moduleIdsArray } });
                 if (validModules.length !== moduleIdsArray.length) {
                     await transaction.rollback();
@@ -377,11 +375,10 @@ const downloadRegistrations = async (req, res) => {
     const { id } = req.params;
 
     try {
-        // Fetch only accepted registrations
         const registrations = await CycleProgramRegistration.findAll({
             where: {
                 cycle_program_id: id,
-                status: 'accepted' // Only include accepted registrations
+                status: 'accepted'
             },
             include: [
                 { model: CycleProgramUserModule, as: 'CycleProgramUserModules' },
@@ -389,10 +386,8 @@ const downloadRegistrations = async (req, res) => {
             ],
         });
 
-        // Fetch user and module details for accepted registrations
         const usersData = await Promise.all(
             registrations.map(async (reg) => {
-                // Fetch user details from the employe table
                 const [user] = await db.sequelize.query(
                     `SELECT id_employe AS id, nom_complet AS name, email FROM employe WHERE id_employe = :userId`,
                     {
@@ -401,9 +396,8 @@ const downloadRegistrations = async (req, res) => {
                     }
                 );
 
-                // Fetch module details
                 const moduleIds = reg.CycleProgramUserModules
-                    .filter(m => m.status === 'accepted') // Only include accepted modules
+                    .filter(m => m.status === 'accepted')
                     .map(m => m.module_id);
 
                 const modules = moduleIds.length > 0
@@ -411,7 +405,6 @@ const downloadRegistrations = async (req, res) => {
                     : [];
 
                 return {
-                    // UserID: user?.id || reg.user_id,
                     Name: user?.name || 'Unknown',
                     Email: user?.email || 'Unknown',
                     ProgramTitle: reg.CycleProgram.title,
@@ -422,7 +415,6 @@ const downloadRegistrations = async (req, res) => {
             })
         );
 
-        // If no accepted registrations, return an empty file with headers
         if (usersData.length === 0) {
             usersData.push({
                 Name: '',
@@ -438,7 +430,6 @@ const downloadRegistrations = async (req, res) => {
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'AcceptedRegistrations');
 
-        // Customize column headers
         XLSX.utils.sheet_add_aoa(worksheet, [[
             'Nom Complet',
             'Email',
@@ -480,7 +471,6 @@ const getUserEnrolledModules = async (req, res) => {
             order: [[{ model: CycleProgramUserModule, as: 'CycleProgramUserModules' }, 'created_at', 'DESC']],
         });
 
-        // Collect all module entries without deduplication
         const moduleEntries = [];
         for (const registration of registrations) {
             const cycleProgram = registration.CycleProgram;
@@ -502,23 +492,21 @@ const getUserEnrolledModules = async (req, res) => {
             }
         }
 
-        // Fetch module details from MongoDB
         const validModuleIds = moduleEntries
             .map((entry) => {
                 try {
                     return new mongoose.Types.ObjectId(entry.module_id);
                 } catch (err) {
-                    console.warn(`Invalid ObjectId: ${entry.module_id}`);
+                    console.warn(`Invalid Object அவர்: ${entry.module_id}`);
                     return null;
                 }
             })
             .filter((id) => id !== null);
 
         const modules = validModuleIds.length > 0
-            ? await Course.find({ _id: { $in: [...new Set(validModuleIds)] } }) // Use Set to avoid duplicate queries
+            ? await Course.find({ _id: { $in: [...new Set(validModuleIds)] } })
             : [];
 
-        // Combine module details with status and cycleProgram info
         const enrolledModules = moduleEntries.map((entry) => {
             const module = modules.find((m) => m._id.toString() === entry.module_id) || {};
             return {
@@ -590,7 +578,6 @@ const getRegistrationsByProgramId = async (req, res) => {
             ],
         });
 
-        // Transformer les données pour inclure un mapping module_id -> status
         const moduleStatuses = registrations.reduce((acc, reg) => {
             reg.CycleProgramUserModules.forEach((module) => {
                 acc[module.module_id] = module.status;
@@ -611,7 +598,6 @@ const getRegistrationsByProgramId = async (req, res) => {
 
 const getPendingRegistrations = async (req, res) => {
     try {
-        // Fetch registrations with pending status or pending modules
         const registrations = await CycleProgramRegistration.findAll({
             where: {
                 [Sequelize.Op.or]: [
@@ -631,10 +617,8 @@ const getPendingRegistrations = async (req, res) => {
             ],
         });
 
-        // Fetch user details and module details
         const enrichedRegistrations = await Promise.all(
             registrations.map(async (reg) => {
-                // Fetch user details from the employe table
                 const [user] = await db.sequelize.query(
                     `SELECT id_employe AS id, nom_complet AS name, email FROM employe WHERE id_employe = :userId`,
                     {
@@ -649,7 +633,7 @@ const getPendingRegistrations = async (req, res) => {
 
                 return {
                     ...reg.toJSON(),
-                    user: user || { id: reg.user_id, name: 'Unknown', email: 'Unknown' }, // Fallback if user not found
+                    user: user || { id: reg.user_id, name: 'Unknown', email: 'Unknown' },
                     modules: modules.map((m) => ({
                         id: m._id.toString(),
                         title: m.title,
@@ -659,7 +643,6 @@ const getPendingRegistrations = async (req, res) => {
             })
         );
 
-        // Filter out registrations with no pending modules for programs if registration status is not pending
         const filteredRegistrations = enrichedRegistrations.filter((reg) => {
             if (reg.status === 'pending') return true;
             if (reg.CycleProgram.type === 'program') {
@@ -695,7 +678,6 @@ const updateRegistrationStatus = async (req, res) => {
             let finalStatus = status;
 
             if (registration.CycleProgram.type === 'program' && moduleStatuses && Array.isArray(moduleStatuses)) {
-                // Update individual module statuses
                 for (const { module_id, status: moduleStatus } of moduleStatuses) {
                     await CycleProgramUserModule.update(
                         { status: moduleStatus },
@@ -703,7 +685,6 @@ const updateRegistrationStatus = async (req, res) => {
                     );
                 }
 
-                // Determine program status based on module statuses
                 const updatedModules = await CycleProgramUserModule.findAll({
                     where: { registration_id: id },
                     transaction,
@@ -714,14 +695,12 @@ const updateRegistrationStatus = async (req, res) => {
 
                 finalStatus = allAccepted ? 'accepted' : allRejected ? 'rejected' : 'pending';
             } else {
-                // For cycles or direct registration status updates, update all modules to match
                 await CycleProgramUserModule.update(
                     { status: finalStatus },
                     { where: { registration_id: id }, transaction }
                 );
             }
 
-            // Update registration status
             await registration.update({ status: finalStatus }, { transaction });
 
             await transaction.commit();
@@ -732,6 +711,262 @@ const updateRegistrationStatus = async (req, res) => {
         }
     } catch (error) {
         console.error('Error updating registration status:', error);
+        res.status(500).json({ message: 'Erreur serveur', details: error.message });
+    }
+};
+
+const getModuleEvaluations = async (req, res) => {
+    const { module_id } = req.params;
+
+    try {
+        const registrations = await CycleProgramRegistration.findAll({
+            include: [
+                {
+                    model: CycleProgramUserModule,
+                    as: 'CycleProgramUserModules',
+                    where: { module_id, status: 'accepted' },
+                },
+                { model: CycleProgram, as: 'CycleProgram', attributes: ['id', 'title'] },
+            ],
+        });
+
+        if (registrations.length === 0) {
+            return res.status(200).json({ message: 'Aucun employé inscrit', evaluations: [] });
+        }
+
+        const evaluationsData = await Promise.all(
+            registrations.map(async (reg) => {
+                const [user] = await db.sequelize.query(
+                    `SELECT id_employe AS id, nom_complet AS name, email FROM employe WHERE id_employe = :userId`,
+                    {
+                        replacements: { userId: reg.user_id },
+                        type: db.sequelize.QueryTypes.SELECT,
+                    }
+                );
+
+                const module = await Course.findById(module_id);
+                const evaluation = module.evaluations.find((e) => e.user_id.toString() === reg.user_id.toString());
+
+                return {
+                    user: user || { id: reg.user_id, name: 'Unknown', email: 'Unknown' },
+                    evaluation: evaluation ? evaluation.score : 'Pas encore soumise',
+                    program: reg.CycleProgram.title,
+                };
+            })
+        );
+
+        res.status(200).json({ evaluations: evaluationsData });
+    } catch (error) {
+        console.error('Error fetching module evaluations:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const getModulePresence = async (req, res) => {
+    const { module_id } = req.params;
+
+    try {
+        // Validate module_id
+        if (!mongoose.Types.ObjectId.isValid(module_id)) {
+            return res.status(400).json({ message: 'Invalid module_id format' });
+        }
+
+        const module = await Course.findById(module_id);
+        if (!module) {
+            return res.status(404).json({ message: 'Module non trouvé' });
+        }
+
+        const registrations = await CycleProgramRegistration.findAll({
+            include: [
+                {
+                    model: CycleProgramUserModule,
+                    as: 'CycleProgramUserModules',
+                    where: { module_id, status: 'accepted' },
+                    include: [{ model: CycleProgramUserModulePresence, as: 'CycleProgramUserModulePresence' }],
+                },
+                { model: CycleProgram, as: 'CycleProgram', attributes: ['id', 'title'] },
+            ],
+        });
+
+        if (registrations.length === 0) {
+            return res.status(200).json({ message: 'Aucun employé inscrit', presence: [], durationDays: 1 });
+        }
+
+        // Calculate unique dates and duration using calculateModuleDuration
+        let uniqueDates = [];
+        let durationDays = 1;
+
+        if (module.times && module.times.length > 0) {
+            try {
+                durationDays = calculateModuleDuration(module.times);
+                // Recompute unique dates to ensure consistency
+                const dateSet = new Set();
+                for (const session of module.times) {
+                    for (const dateRange of session.dateRanges || []) {
+                        const start = new Date(dateRange.startTime);
+                        const end = new Date(dateRange.endTime);
+
+                        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                            console.error('Invalid date in dateRanges:', {
+                                startTime: dateRange.startTime,
+                                endTime: dateRange.endTime,
+                            });
+                            continue; // Skip invalid date ranges
+                        }
+
+                        const currentDate = new Date(start.toDateString());
+                        while (currentDate <= end) {
+                            dateSet.add(currentDate.toISOString().split('T')[0]);
+                            currentDate.setDate(currentDate.getDate() + 1);
+                        }
+                    }
+                }
+                uniqueDates = Array.from(dateSet).sort(); // Sort dates chronologically
+            } catch (error) {
+                console.error('Error calculating module duration:', error);
+                // Fallback to a single day if calculation fails
+                uniqueDates = [new Date(module.created_at || Date.now()).toISOString().split('T')[0]];
+                durationDays = 1;
+            }
+        } else {
+            // Fallback to created_at or current date
+            const fallbackDate = module.created_at ? new Date(module.created_at) : new Date();
+            if (isNaN(fallbackDate.getTime())) {
+                console.error('Invalid created_at date:', module.created_at);
+                uniqueDates = [new Date().toISOString().split('T')[0]];
+            } else {
+                uniqueDates = [fallbackDate.toISOString().split('T')[0]];
+            }
+        }
+
+        const presenceData = await Promise.all(
+            registrations.map(async (reg) => {
+                const [user] = await db.sequelize.query(
+                    `SELECT id_employe AS id, nom_complet AS name, email FROM employe WHERE id_employe = :userId`,
+                    {
+                        replacements: { userId: reg.user_id },
+                        type: db.sequelize.QueryTypes.SELECT,
+                    }
+                );
+
+                const userModule = reg.CycleProgramUserModules[0];
+                const presenceRecords = userModule.CycleProgramUserModulePresence || [];
+
+                const presenceByDay = uniqueDates.map((date) => {
+                    const record = presenceRecords.find(
+                        (p) => new Date(p.date).toDateString() === new Date(date).toDateString()
+                    );
+                    return {
+                        date,
+                        status: record ? record.status : 'absent',
+                    };
+                });
+
+                return {
+                    user: user || { id: reg.user_id, name: 'Unknown', email: 'Unknown' },
+                    presence: presenceByDay,
+                    program: reg.CycleProgram.title,
+                };
+            })
+        );
+
+        res.status(200).json({ presence: presenceData, durationDays });
+    } catch (error) {
+        console.error('Error fetching module presence:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const updateModulePresence = async (req, res) => {
+    const { module_id } = req.params;
+    const { presence } = req.body; // Array of { user_id, date, status }
+
+    try {
+        // Validate module_id
+        if (!mongoose.Types.ObjectId.isValid(module_id)) {
+            return res.status(400).json({ message: 'Invalid module_id format' });
+        }
+
+        const module = await Course.findById(module_id);
+        if (!module) {
+            return res.status(404).json({ message: 'Module non trouvé' });
+        }
+
+        // Validate presence array
+        if (!Array.isArray(presence) || presence.length === 0) {
+            return res.status(400).json({ message: 'Presence array is required and must not be empty' });
+        }
+
+        for (const entry of presence) {
+            if (!entry.user_id || !entry.date || !entry.status) {
+                console.error('Invalid presence entry:', entry);
+                return res.status(400).json({ message: `Invalid presence entry: user_id, date, and status are required`, invalidEntry: entry });
+            }
+            if (!['present', 'absent'].includes(entry.status)) {
+                return res.status(400).json({ message: `Invalid status in presence entry: ${entry.status}. Must be 'present' or 'absent'` });
+            }
+        }
+
+        const transaction = await db.sequelize.transaction();
+        try {
+            for (const { user_id, date, status } of presence) {
+                const parsedUserId = parseInt(user_id, 10);
+                if (isNaN(parsedUserId)) {
+                    await transaction.rollback();
+                    return res.status(400).json({ message: `Invalid user_id: ${user_id}` });
+                }
+
+                const userModule = await CycleProgramUserModule.findOne({
+                    include: [
+                        {
+                            model: CycleProgramRegistration,
+                            as: 'CycleProgramRegistration',
+                            where: { user_id: parsedUserId },
+                        },
+                        {
+                            model: CycleProgramUserModulePresence,
+                            as: 'CycleProgramUserModulePresence',
+                            where: { date },
+                            required: false,
+                        },
+                    ],
+                    where: { module_id, status: 'accepted' },
+                });
+
+                if (!userModule) {
+                    await transaction.rollback();
+                    return res.status(404).json({ message: `Inscription non trouvée pour l'utilisateur ${user_id} dans le module ${module_id}` });
+                }
+
+                const existingPresence = userModule.CycleProgramUserModulePresence.find(
+                    (p) => new Date(p.date).toDateString() === new Date(date).toDateString()
+                );
+
+                if (existingPresence) {
+                    await CycleProgramUserModulePresence.update(
+                        { status },
+                        { where: { id: existingPresence.id }, transaction }
+                    );
+                } else {
+                    await CycleProgramUserModulePresence.create(
+                        {
+                            user_module_id: userModule.id,
+                            date,
+                            status,
+                        },
+                        { transaction }
+                    );
+                }
+            }
+
+            await transaction.commit();
+            res.status(200).json({ message: 'Présence mise à jour avec succès' });
+        } catch (innerError) {
+            await transaction.rollback();
+            throw innerError;
+        }
+    } catch (error) {
+        console.error('Error updating module presence:', error);
         res.status(500).json({ message: 'Erreur serveur', details: error.message });
     }
 };
@@ -750,4 +985,7 @@ module.exports = {
     getRegistrationsByProgramId,
     getPendingRegistrations,
     updateRegistrationStatus,
+    getModuleEvaluations,
+    getModulePresence,
+    updateModulePresence,
 };

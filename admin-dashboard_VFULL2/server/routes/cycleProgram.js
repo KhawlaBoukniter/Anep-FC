@@ -16,7 +16,10 @@ const {
     getUserEnrolledModules,
     getRegistrationsByProgramId,
     getPendingRegistrations,
-    updateRegistrationStatus
+    updateRegistrationStatus,
+    getModuleEvaluations,
+    getModulePresence,
+    updateModulePresence
 } = require('../controllers/cycleProgramController');
 const { CycleProgram, CycleProgramRegistration, CycleProgramUserModule } = require('../models');
 
@@ -66,6 +69,9 @@ if (!CycleProgram || !CycleProgramRegistration || !CycleProgramUserModule) {
     });
     throw new Error('Required Sequelize models are not loaded');
 }
+router.get('/module/:module_id/presence', getModulePresence);
+router.post('/module/:module_id/presence', updateModulePresence);
+router.get('/module/:module_id/evaluations', getModuleEvaluations);
 
 router.post('/', upload, createCycleProgram);
 
@@ -107,6 +113,7 @@ router.get('/registrations', authenticateToken, async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur', details: error.message });
     }
 });
+
 router.get('/pending-registrations', authenticateToken, getPendingRegistrations);
 router.put('/registrations/:id/status', authenticateToken, updateRegistrationStatus);
 router.get('/:id/registrations', authenticateToken, getRegistrationsByProgramId);

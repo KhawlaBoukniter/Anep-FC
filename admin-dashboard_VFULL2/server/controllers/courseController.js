@@ -750,36 +750,45 @@ const createEvaluation = async (req, res) => {
 // Download evaluations as an Excel file
 const downloadEvaluations = async (req, res) => {
     try {
-        const course = await Course.findById(req.params.courseId).populate('evaluations.userId');
-        if (!course) {
-            return res.status(404).send('Course not found');
+        const course = await Course.findById(req.params.courseId);
+        if (!course) return res.status(404).send('Course not found');
+        // Fetch registered users for the course
+        const cycleProgramModule = await CycleProgramModule.findOne({
+            where: { module_id: req.params.courseId },
+            include: [{ model: CycleProgram, as: 'CycleProgram' }],
+        });
+        const cycleProgramId = cycleProgramModule ? cycleProgramModule.cycle_program_id : null;
+        let users = [];
+        if (cycleProgramId) {
+            const registrations = await CycleProgramRegistration.findAll({
+                where: { cycle_program_id: cycleProgramId, status: 'accepted' },
+                include: [{ model: CycleProgramUserModule, as: 'CycleProgramUserModules', where: { module_id: req.params.courseId, status: 'accepted' } }],
+            });
+            const userIds = registrations.map((reg) => reg.user_id);
+            const userQuery = await pool.query(
+                `SELECT id_employe AS id, nom_complet AS name, email FROM employe WHERE id_employe = ANY($1)`,
+                [userIds]
+            );
+            users = userQuery.rows;
         }
-
-        // Convert evaluations to a format suitable for Excel
         const evaluations = course.evaluations.map(evaluation => {
-            const evaluationData = evaluation.evaluationData.reduce((acc, item) => {
-                acc[item.name] = item.value;
-                return acc;
-            }, {});
-
+            const user = users.find(u => u.id === evaluation.userId) || {};
             return {
-                userId: evaluation.userId._id.toString(),
-                userName: evaluation.userId.name,
-                ...evaluationData,
+                userId: evaluation.userId,
+                userName: user.name || 'Unknown',
+                email: user.email || 'Unknown',
+                ...evaluation.evaluationData.reduce((acc, item) => {
+                    acc[item.name] = item.value;
+                    return acc;
+                }, {}),
                 aspectsToImprove: evaluation.aspectsToImprove,
                 createdAt: evaluation.createdAt.toISOString()
             };
         });
-
-        // Create a new workbook and add the evaluations data
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.json_to_sheet(evaluations);
         XLSX.utils.book_append_sheet(wb, ws, 'Evaluations');
-
-        // Write the workbook to a buffer
         const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
-
-        // Set headers and send the buffer as a downloadable file
         res.setHeader('Content-Disposition', 'attachment; filename=evaluations.xlsx');
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.status(200).send(buffer);
@@ -872,6 +881,53 @@ const syncAssignedUsersToCycleProgram = async (courseId, assignedUsers, cyclePro
     }
 };
 
+// Get registered users for a course
+const getRegisteredUsers = async (req, res) => {
+    const { id } = req.params;
+    try {
+        // Find the CycleProgramModule entry for this course
+        const cycleProgramModule = await CycleProgramModule.findOne({
+            where: { module_id: id },
+            include: [{ model: CycleProgram, as: 'CycleProgram' }],
+        });
+        if (!cycleProgramModule) {
+            return res.status(404).json({ message: 'Module not associated with any cycle/program' });
+        }
+        const cycleProgramId = cycleProgramModule.cycle_program_id;
+        // Fetch accepted registrations for the cycle/program
+        const registrations = await CycleProgramRegistration.findAll({
+            where: { cycle_program_id: cycleProgramId, status: 'accepted' },
+            include: [{ model: CycleProgramUserModule, as: 'CycleProgramUserModules', where: { module_id: id, status: 'accepted' } }],
+        });
+        // Fetch user details from PostgreSQL employe table
+        const userIds = registrations.map((reg) => reg.user_id);
+        const users = userIds.length > 0
+            ? await pool.query(
+                `SELECT id_employe AS id, nom_complet AS name, email FROM employe WHERE id_employe = ANY($1)`,
+                [userIds]
+            )
+            : { rows: [] };
+        // Fetch presence data from MongoDB
+        const course = await Course.findById(id);
+        if (!course) return res.status(404).json({ message: 'Course not found' });
+        const duration = calculateModuleDuration(course.times);
+        const usersWithPresence = users.rows.map((user) => {
+            const presence = course.presence.find((p) => p.userId === user.id) || {};
+            return {
+                userId: user.id,
+                name: user.name || `Unknown User (${user.id})`,
+                email: user.email || 'Unknown',
+                dailyStatuses: presence.dailyStatuses || Array.from({ length: duration }, (_, i) => ({ day: i + 1, status: 'absent' })),
+                daysPresent: presence.daysPresent || 0,
+            };
+        });
+        res.status(200).json({ users: usersWithPresence, duration });
+    } catch (error) {
+        console.error('Error fetching registered users:', error);
+        res.status(500).json({ message: 'Failed to fetch registered users: ' + error.message });
+    }
+};
+
 module.exports = {
     getAllCourses,
     getCourseById,
@@ -896,6 +952,8 @@ module.exports = {
     userAssignedDownload,
     archiveCourse,
     unarchiveCourse,
-    syncAssignedUsersToCycleProgram
+    syncAssignedUsersToCycleProgram,
+    getRegisteredUsers,
+    calculateModuleDuration
     // getCourseNameById,
 };

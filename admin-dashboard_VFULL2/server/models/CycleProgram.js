@@ -176,6 +176,40 @@ module.exports = (sequelize, DataTypes) => {
         }
     );
 
+    const CycleProgramUserModulePresence = sequelize.define(
+        'CycleProgramUserModulePresence',
+        {
+            id: {
+                type: DataTypes.INTEGER,
+                autoIncrement: true,
+                primaryKey: true,
+            },
+            user_module_id: {
+                type: DataTypes.INTEGER,
+                allowNull: false,
+                references: {
+                    model: CycleProgramUserModule,
+                    key: 'id',
+                },
+            },
+            date: {
+                type: DataTypes.DATEONLY,
+                allowNull: false,
+            },
+            status: {
+                type: DataTypes.ENUM('present', 'absent'),
+                allowNull: false,
+                defaultValue: 'absent',
+            },
+        },
+        {
+            tableName: 'cycle_program_user_module_presence',
+            timestamps: true,
+            createdAt: 'created_at',
+            updatedAt: false,
+        }
+    );
+
     CycleProgram.associate = (models) => {
         CycleProgram.hasMany(models.CycleProgramModule, { as: 'CycleProgramModules', foreignKey: 'cycle_program_id', onDelete: 'CASCADE' });
         CycleProgram.hasMany(models.CycleProgramRegistration, { as: 'CycleProgramRegistrations', foreignKey: 'cycle_program_id', onDelete: 'CASCADE' });
@@ -192,6 +226,11 @@ module.exports = (sequelize, DataTypes) => {
 
     CycleProgramUserModule.associate = (models) => {
         CycleProgramUserModule.belongsTo(models.CycleProgramRegistration, { as: 'CycleProgramRegistration', foreignKey: 'registration_id' });
+        CycleProgramUserModule.hasMany(models.CycleProgramUserModulePresence, { as: 'CycleProgramUserModulePresence', foreignKey: 'user_module_id', onDelete: 'CASCADE' });
+    };
+
+    CycleProgramUserModulePresence.associate = (models) => {
+        CycleProgramUserModulePresence.belongsTo(models.CycleProgramUserModule, { as: 'CycleProgramUserModule', foreignKey: 'user_module_id' });
     };
 
     return {
@@ -199,5 +238,6 @@ module.exports = (sequelize, DataTypes) => {
         CycleProgramModule,
         CycleProgramRegistration,
         CycleProgramUserModule,
+        CycleProgramUserModulePresence,
     };
 };

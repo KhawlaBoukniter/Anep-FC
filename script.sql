@@ -235,7 +235,20 @@ CREATE TYPE registration_status AS ENUM ('accepted', 'rejected', 'pending');
 ALTER TABLE cycle_program_registrations ADD COLUMN status registration_status NOT NULL DEFAULT 'pending';
 ALTER TABLE cycle_program_user_modules ADD COLUMN status registration_status NOT NULL DEFAULT 'pending';
 /********************************/
-	
+
+
+/**************** New ************/
+CREATE TABLE cycle_program_user_module_presence (
+    id SERIAL PRIMARY KEY,
+    user_module_id INTEGER NOT NULL REFERENCES cycle_program_user_modules(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    status ENUM('present', 'absent') NOT NULL DEFAULT 'absent',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_user_module_date UNIQUE (user_module_id, date)
+);
+/********************************/
+
+
 
 \copy emploi(entite, formation, experience, codeemploi, poidsemploi, nom_emploi) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_emploi.csv' DELIMITER ';' CSV HEADER;
 \copy employe(nom_complet, email, telephone1, telephone2, categorie, specialite, experience_employe) FROM 'C:\xampp\htdocs\Anep-FC\csv\tableau_employe1.csv' DELIMITER ';' CSV HEADER;

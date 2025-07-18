@@ -82,6 +82,7 @@ router.get('/statistics', async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch statistics' });
     }
 });
+router.get('/api/courses/:id/registeredUsers', courseController.getRegisteredUsers);
 
 // Apply routes
 const applyRoutes = (routes) => {

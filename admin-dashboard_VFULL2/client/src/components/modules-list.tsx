@@ -1,4 +1,3 @@
-// src/components/ModulesList.tsx
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { io } from "socket.io-client";
@@ -11,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Input } from "./ui/input.tsx";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table.tsx";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip.tsx";
-import { Plus, Edit, Trash, Bell, Users, Download, FileText, Search, Filter, XCircle, Info, X, Archive, ArchiveRestore, Eye } from "lucide-react";
+import { Plus, Edit, Trash, Bell, Users, Download, FileText, Search, Filter, XCircle, X, Archive, ArchiveRestore, Eye } from "lucide-react";
 import useApiAxios from "../config/axios";
 import PropTypes from "prop-types";
 import { AddModuleModal } from "./AddModuleModal.tsx";
@@ -50,9 +49,8 @@ interface Course {
   }[];
   image: File | null;
   assignedUsers: Profile[] | string[];
-  // interestedUsers: Profile[] | string[];
   archived: boolean;
-  cycleProgramTitle?: string
+  cycleProgramTitle?: string;
 }
 
 interface Profile {
@@ -78,13 +76,6 @@ interface Profile {
   updated_at: string;
 }
 
-// interface UserPresence {
-//   _id: string;
-//   name: string;
-//   daysPresent: number;
-//   status?: string;
-// }
-
 interface Filter {
   type: string;
   values: string[];
@@ -101,83 +92,159 @@ interface ChangeDetail {
   changedFields: { field: string; before: string; after: string }[];
 }
 
-// const PresenceDialog = ({
-//   open,
-//   onOpenChange,
-//   userPresence,
-//   handleDaysChange,
-//   handleSavePresence,
-//   courseTitle,
-// }: {
-//   open: boolean;
-//   onOpenChange: (open: boolean) => void;
-//   userPresence: UserPresence[];
-//   handleDaysChange: (userId: string, days: string) => void;
-//   handleSavePresence: () => void;
-//   courseTitle: string;
-// }) => {
-//   return (
-//     <Dialog open={open} onOpenChange={onOpenChange}>
-//       <DialogContent className="max-w-md rounded-2xl bg-white shadow-xl border border-gray-100 animate-in fade-in duration-300">
-//         <DialogHeader className="border-b border-gray-100 p-6">
-//           <DialogTitle className="text-2xl font-semibold text-gray-900">
-//             Gérer la présence pour {courseTitle}
-//           </DialogTitle>
-//         </DialogHeader>
-//         <div className="p-6 space-y-4">
-//           {userPresence.map((user) => (
-//             <div key={user._id} className="flex items-center justify-between">
-//               <span className="text-sm font-medium text-gray-900">{user.name}</span>
-//               <Input
-//                 type="number"
-//                 value={user.daysPresent}
-//                 onChange={(e) => handleDaysChange(user._id, e.target.value)}
-//                 placeholder="Jours présents"
-//                 min="0"
-//                 className="w-24 p-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-//               />
-//             </div>
-//           ))}
-//         </div>
-//         <DialogFooter className="border-t border-gray-100 p-6 flex justify-end gap-4">
-//           <Button
-//             variant="outline"
-//             onClick={() => onOpenChange(false)}
-//             className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2 transition-all duration-200"
-//           >
-//             Annuler
-//           </Button>
-//           <Button
-//             variant="default"
-//             onClick={handleSavePresence}
-//             className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 py-2 shadow-md transition-all duration-200"
-//           >
-//             Sauvegarder
-//           </Button>
-//         </DialogFooter>
-//       </DialogContent>
-//     </Dialog>
-//   );
-// };
+const EvaluationsDialog = ({
+  open,
+  onOpenChange,
+  evaluationsData,
+  courseTitle,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  evaluationsData: { message?: string; evaluations: { user: { id: number; name: string; email: string }; evaluation: string; program: string }[] };
+  courseTitle: string;
+}) => {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg rounded-2xl bg-white shadow-xl border border-gray-100 animate-in fade-in duration-300">
+        <DialogHeader className="border-b border-gray-100 p-6">
+          <DialogTitle className="text-2xl font-semibold text-gray-900">
+            Évaluations pour {courseTitle}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="p-6">
+          {evaluationsData?.message ? (
+            <p className="text-gray-600">{evaluationsData.message}</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-blue-900">Employé</TableHead>
+                  <TableHead className="text-blue-900">Email</TableHead>
+                  <TableHead className="text-blue-900">Programme</TableHead>
+                  <TableHead className="text-blue-900">Évaluation</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {evaluationsData?.evaluations?.map((evaluation) => (
+                  <TableRow key={evaluation.user.id}>
+                    <TableCell>{evaluation.user.name}</TableCell>
+                    <TableCell>{evaluation.user.email}</TableCell>
+                    <TableCell>{evaluation.program}</TableCell>
+                    <TableCell>{evaluation.evaluation}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+        <DialogFooter className="border-t border-gray-100 p-6 flex justify-end">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2 transition-all duration-200"
+          >
+            Fermer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
-// PresenceDialog.propTypes = {
-//   open: PropTypes.bool.isRequired,
-//   onOpenChange: PropTypes.func.isRequired,
-//   userPresence: PropTypes.array.isRequired,
-//   handleDaysChange: PropTypes.func.isRequired,
-//   handleSavePresence: PropTypes.func.isRequired,
-//   courseTitle: PropTypes.string.isRequired,
-// };
+EvaluationsDialog.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onOpenChange: PropTypes.func.isRequired,
+  evaluationsData: PropTypes.object.isRequired,
+  courseTitle: PropTypes.string.isRequired,
+};
+
+const PresenceDialog = ({
+  open,
+  onOpenChange,
+  presenceData,
+  handlePresenceChange,
+  courseTitle,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  presenceData: { message?: string; presence: { user: { id: number; name: string; email: string }; presence: { date: string; status: string }[]; program: string }[]; durationDays: number };
+  handlePresenceChange: (userId: number, date: string, status: string, currentPresence: any[]) => void;
+  courseTitle: string;
+}) => {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl rounded-2xl bg-white shadow-xl border border-gray-100 animate-in fade-in duration-300">
+        <DialogHeader className="border-b border-gray-100 p-6">
+          <DialogTitle className="text-2xl font-semibold text-gray-900">
+            Gestion de la présence pour {courseTitle}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="p-6">
+          {presenceData?.message ? (
+            <p className="text-gray-600">{presenceData.message}</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-blue-900">Employé</TableHead>
+                  {Array.from({ length: presenceData?.durationDays || 1 }, (_, i) => (
+                    <TableHead key={i} className="text-blue-900">Jour {i + 1}</TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {presenceData?.presence?.map((record) => (
+                  <TableRow key={record.user.id}>
+                    <TableCell>{record.user.name}</TableCell>
+                    {record.presence.map((day, index) => (
+                      <TableCell key={index}>
+                        <select
+                          value={day.status}
+                          onChange={(e) => handlePresenceChange(record.user.id, day.date, e.target.value, record.presence)}
+                          className="w-full p-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                        >
+                          <option value="present">Présent</option>
+                          <option value="absent">Absent</option>
+                        </select>
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+        <DialogFooter className="border-t border-gray-100 p-6 flex justify-end">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2 transition-all duration-200"
+          >
+            Fermer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+PresenceDialog.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onOpenChange: PropTypes.func.isRequired,
+  presenceData: PropTypes.object.isRequired,
+  handlePresenceChange: PropTypes.func.isRequired,
+  courseTitle: PropTypes.string.isRequired,
+};
 
 export function ModulesList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<Filter[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  // const [presenceDialogOpen, setPresenceDialogOpen] = useState(false);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [unarchiveDialogOpen, setUnarchiveDialogOpen] = useState(false);
+  const [evaluationsDialogOpen, setEvaluationsDialogOpen] = useState(false);
+  const [presenceDialogOpen, setPresenceDialogOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  // const [userPresence, setUserPresence] = useState<UserPresence[]>([]);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [newFilterType, setNewFilterType] = useState("");
   const [newFilterValues, setNewFilterValues] = useState<string[]>([]);
@@ -201,6 +268,41 @@ export function ModulesList() {
       cacheTime: 10 * 60 * 1000,
       onSuccess: (data) => console.log("Successfully fetched courses:", data),
       onError: (error) => console.error("Error fetching courses:", error),
+    }
+  );
+
+  // React Query: Fetch evaluations
+  const { data: evaluationsData, refetch: refetchEvaluations } = useQuery(
+    ["evaluations", selectedCourse?._id],
+    () => useApiAxios.get(`/cycles-programs/module/${selectedCourse?._id}/evaluations`).then((res) => res.data),
+    {
+      enabled: !!selectedCourse && evaluationsDialogOpen,
+      staleTime: 5 * 60 * 1000,
+    }
+  );
+
+  // React Query: Fetch presence
+  const { data: presenceData, refetch: refetchPresence } = useQuery(
+    ["presence", selectedCourse?._id],
+    () => useApiAxios.get(`/api/cycles-programs/module/${selectedCourse?._id}/presence`).then((res) => res.data),
+    {
+      enabled: !!selectedCourse && presenceDialogOpen,
+      staleTime: 5 * 60 * 1000,
+    }
+  );
+
+  // React Query: Update presence
+  const presenceMutation = useMutation(
+    ({ module_id, presence }: { module_id: string; presence: any[] }) =>
+      useApiAxios.post(`/api/cycles-programs/module/${module_id}/presence`, { presence }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["presence", selectedCourse?._id]);
+        console.log("Présence mise à jour avec succès");
+      },
+      onError: (error: any) => {
+        console.error("Échec de la mise à jour de la présence:", error);
+      },
     }
   );
 
@@ -320,49 +422,31 @@ export function ModulesList() {
     }
   };
 
-  // const handleMenuOpen = async (course: Course) => {
-  //   setSelectedCourse(course);
-  //   try {
-  //     const response = await useApiAxios.get(`/courses/${course._id}/assignedUsers`);
-  //     const usersWithPresence = response.data.map((user: any) => ({
-  //       ...user,
-  //       daysPresent: user.daysPresent || 0,
-  //     }));
-  //     setUserPresence(usersWithPresence);
-  //     setPresenceDialogOpen(true);
-  //   } catch (error) {
-  //     console.error("Échec de la récupération des utilisateurs assignés:", error);
-  //   }
-  // };
+  const handleOpenEvaluations = (course: Course) => {
+    setSelectedCourse(course);
+    setEvaluationsDialogOpen(true);
+    refetchEvaluations();
+  };
 
-  // const handleDaysChange = (userId: string, days: string) => {
-  //   const daysPresent = parseInt(days, 10);
-  //   setUserPresence((prevState) =>
-  //     prevState.map((user) =>
-  //       user._id === userId
-  //         ? { ...user, daysPresent, status: daysPresent > 0 ? "present" : "absent" }
-  //         : user
-  //     )
-  //   );
-  // };
+  const handleOpenPresence = (course: Course) => {
+    setSelectedCourse(course);
+    setPresenceDialogOpen(true);
+    refetchPresence();
+  };
 
-  // const handleSavePresence = async () => {
-  //   const presenceData = userPresence.map((user) => ({
-  //     userId: user._id,
-  //     daysPresent: user.daysPresent,
-  //   }));
+  const handlePresenceChange = (userId: number, date: string, status: string, currentPresence: any[]) => {
+    // Ensure userId is included in every presence object
+    const updatedPresence = currentPresence.map((p: any) => ({
+      user_id: userId, // Always include userId
+      date: p.date,
+      status: p.status,
+    })).filter((p: any) => !(p.date === date && p.user_id === userId)); // Remove old entry for this user and date
 
-  //   try {
-  //     await useApiAxios.post(`/courses/${selectedCourse?._id}/updatePresence`, {
-  //       presence: presenceData,
-  //     });
-  //     console.log("Présence mise à jour avec succès");
-  //     setPresenceDialogOpen(false);
-  //     setSelectedCourse(null);
-  //   } catch (error) {
-  //     console.error("Échec de la mise à jour de la présence:", error);
-  //   }
-  // };
+    // Add new presence entry
+    updatedPresence.push({ user_id: userId, date, status });
+
+    presenceMutation.mutate({ module_id: selectedCourse!._id, presence: updatedPresence });
+  };
 
   const handleDelete = async (id: string) => {
     try {
@@ -381,7 +465,7 @@ export function ModulesList() {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `assigned_users_${courseId}.xlsx`); // Unique filename per course
+      link.setAttribute('download', `assigned_users_${courseId}.xlsx`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -409,24 +493,6 @@ export function ModulesList() {
     }
   };
 
-  // const handleDownloadEvaluations = async (courseId: string) => {
-  //   try {
-  //     const response = await useApiAxios.get(`/evaluations/${courseId}/download`, {
-  //       responseType: "blob",
-  //     });
-  //     const url = window.URL.createObjectURL(new Blob([response.data]));
-  //     const link = document.createElement("a");
-  //     link.href = url;
-  //     link.setAttribute("download", "evaluations.xlsx");
-  //     document.body.appendChild(link);
-  //     link.click();
-  //     document.body.removeChild(link);
-  //     window.URL.revokeObjectURL(url);
-  //   } catch (error) {
-  //     console.error("Échec du téléchargement des évaluations:", error);
-  //   }
-  // };
-
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =
       !searchTerm ||
@@ -449,7 +515,7 @@ export function ModulesList() {
       return true;
     });
 
-    const isArchivedFilterActive = filters.some((f) => f.type === "Archivage" && f.values.includes("Archivés"))
+    const isArchivedFilterActive = filters.some((f) => f.type === "Archivage" && f.values.includes("Archivés"));
     return matchesSearch && matchesFilters && (!course.archived || isArchivedFilterActive);
   });
 
@@ -592,7 +658,7 @@ export function ModulesList() {
                 </div>
                 <div>
                   <p className="text-sm text-purple-700">Modules hybrides</p>
-                  <p className="text-2xl font-bold">{stats.offline}</p>
+                  <p className="text-2xl font-bold">{stats.hybriq}</p>
                 </div>
               </div>
             </CardContent>
@@ -820,7 +886,6 @@ export function ModulesList() {
                       <TableHead className="text-blue-900 text-center">Description</TableHead>
                       <TableHead className="text-blue-900 text-center">Statut</TableHead>
                       <TableHead className="text-blue-900 text-center">Budget</TableHead>
-                      {/* <TableHead className="text-blue-900 text-center">Archivage</TableHead> */}
                       <TableHead className="text-blue-900 text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -841,7 +906,6 @@ export function ModulesList() {
                         </TableCell>
                         <TableCell className="text-center">{course.hidden === "hidden" ? "Caché" : "Visible"}</TableCell>
                         <TableCell className="text-center">{course.budget}</TableCell>
-                        {/* <TableCell className="text-center">{course.archived ? "Archivés" : "Actifs"}</TableCell> */}
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-center">
                             {!course.archived && (
@@ -871,23 +935,36 @@ export function ModulesList() {
                                 </TooltipContent>
                               </Tooltip>
                             )}
-
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8"
-                                  onClick={() => navigate(`/modules/${course._id}/evaluations-presence`)}
+                                  onClick={() => handleOpenEvaluations(course)}
                                 >
-                                  <Eye className="h-4 w-4 text-gray-600" />
+                                  <FileText className="h-4 w-4 text-blue-600" />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Gérer évaluations et présence</p>
+                                <p>Voir les évaluations</p>
                               </TooltipContent>
                             </Tooltip>
-
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => handleOpenPresence(course)}
+                                >
+                                  <Users className="h-4 w-4 text-gray-600" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Gérer la présence</p>
+                              </TooltipContent>
+                            </Tooltip>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -903,36 +980,6 @@ export function ModulesList() {
                                 <p>Quick Notify</p>
                               </TooltipContent>
                             </Tooltip>
-                            {/* <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleMenuOpen(course)}
-                                >
-                                  <Users className="h-4 w-4 text-gray-600" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Gérer la présence</p>
-                              </TooltipContent>
-                            </Tooltip> */}
-                            {/* <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleDownloadEvaluations(course._id)}
-                                >
-                                  <FileText className="h-4 w-4 text-blue-600" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Télécharger les évaluations</p>
-                              </TooltipContent>
-                            </Tooltip> */}
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -1044,16 +1091,23 @@ export function ModulesList() {
           </CardContent>
         </Card>
 
-        {/* {selectedCourse && (
-          <PresenceDialog
-            open={presenceDialogOpen}
-            onOpenChange={setPresenceDialogOpen}
-            userPresence={userPresence}
-            handleDaysChange={handleDaysChange}
-            handleSavePresence={handleSavePresence}
-            courseTitle={selectedCourse.title}
-          />
-        )} */}
+        {selectedCourse && (
+          <>
+            <EvaluationsDialog
+              open={evaluationsDialogOpen}
+              onOpenChange={setEvaluationsDialogOpen}
+              evaluationsData={evaluationsData || { evaluations: [] }}
+              courseTitle={selectedCourse.title}
+            />
+            <PresenceDialog
+              open={presenceDialogOpen}
+              onOpenChange={setPresenceDialogOpen}
+              presenceData={presenceData || { presence: [], durationDays: 1 }}
+              handlePresenceChange={handlePresenceChange}
+              courseTitle={selectedCourse.title}
+            />
+          </>
+        )}
 
         {/* Archive Confirmation Dialog */}
         <Dialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>

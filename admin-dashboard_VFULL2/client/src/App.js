@@ -8,7 +8,6 @@ import ProfilePage from "./pages/profile.tsx";
 import Indisponibilite from "./components/Indisponibilite.tsx";
 import FormationPersonnel from "./components/formationPersonnel.tsx";
 import "./App.css";
-import ModuleEvaluationsPresence from "./components/ModuleEvaluationsPresence.tsx";
 
 // Configuration du client React Query
 const queryClient = new QueryClient({
@@ -38,7 +37,6 @@ function App() {
             <Route path="/formation" element={<FormationPage />} />
             <Route path="/indisponibilite" element={<Indisponibilite />} />
             <Route path="/formationPersonnel" element={<FormationPersonnel />} />
-            <Route path="/modules/:id/evaluations-presence" element={<ModuleEvaluationsPresence />} />
           </Routes>
         </div>
       </Router>
