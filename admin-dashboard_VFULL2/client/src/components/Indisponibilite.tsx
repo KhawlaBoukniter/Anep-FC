@@ -307,41 +307,37 @@ const Indisponibilite: React.FC = () => {
           <div className="flex flex-wrap gap-4 justify-center">
             <Button
               onClick={() => setSelectedTab('toutes')}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                selectedTab === 'toutes'
+              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${selectedTab === 'toutes'
                   ? 'bg-[#06668C] text-white shadow-lg'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               Toutes ({totalSlots})
             </Button>
             <Button
               onClick={() => setSelectedTab('CONGE')}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                selectedTab === 'CONGE'
+              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${selectedTab === 'CONGE'
                   ? 'bg-[#06668C] text-white shadow-lg'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               Congés ({congeSlots})
             </Button>
             <Button
               onClick={() => setSelectedTab('REUNION_HEBDOMADAIRE')}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                selectedTab === 'REUNION_HEBDOMADAIRE'
+              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${selectedTab === 'REUNION_HEBDOMADAIRE'
                   ? 'bg-[#06668C] text-white shadow-lg'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               Réunions ({reunionSlots})
             </Button>
             <Button
               onClick={() => setSelectedTab('AUTRE')}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                selectedTab === 'AUTRE'
+              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${selectedTab === 'AUTRE'
                   ? 'bg-[#06668C] text-white shadow-lg'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               Autres ({autreSlots})
             </Button>
@@ -352,7 +348,7 @@ const Indisponibilite: React.FC = () => {
       {/* Modal for Adding/Editing */}
       {isModalOpen && (
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="max-w-md rounded-xl bg-white shadow-2xl border border-gray-200">
+          <DialogContent className="w-2/5 rounded-xl bg-white shadow-2xl border border-gray-200">
             <DialogHeader>
               <DialogTitle>
                 {editingId ? 'Modifier l\'indisponibilité' : 'Ajouter une indisponibilité'}
@@ -480,13 +476,12 @@ const Indisponibilite: React.FC = () => {
               <p className="text-gray-600 mb-8">
                 {selectedTab === 'toutes'
                   ? 'Vous n\'avez aucune indisponibilité pour le moment.'
-                  : `Aucune indisponibilité de type ${
-                      selectedTab === 'CONGE'
-                        ? 'congé'
-                        : selectedTab === 'REUNION_HEBDOMADAIRE'
-                        ? 'réunion hebdomadaire'
-                        : 'autre'
-                    } trouvée.`}
+                  : `Aucune indisponibilité de type ${selectedTab === 'CONGE'
+                    ? 'congé'
+                    : selectedTab === 'REUNION_HEBDOMADAIRE'
+                      ? 'réunion hebdomadaire'
+                      : 'autre'
+                  } trouvée.`}
               </p>
             </div>
           ) : (
