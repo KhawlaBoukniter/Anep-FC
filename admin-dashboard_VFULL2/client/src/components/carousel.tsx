@@ -110,7 +110,7 @@ const Carousel: React.FC = () => {
                 onClick={goToNext}
                 className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-full transition-all duration-200"
             >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 24 24">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
             </button>
@@ -121,9 +121,8 @@ const Carousel: React.FC = () => {
                     <button
                         key={index}
                         onClick={() => goToSlide(index)}
-                        className={`w-3 h-3 rounded-full transition-all duration-200 ${
-                            index === currentIndex ? "bg-white" : "bg-white bg-opacity-50 hover:bg-opacity-75"
-                        }`}
+                        className={`w-3 h-3 rounded-full transition-all duration-200 ${index === currentIndex ? "bg-white" : "bg-white bg-opacity-50 hover:bg-opacity-75"
+                            }`}
                     />
                 ))}
             </div>
