@@ -256,16 +256,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
         <div className="absolute inset-0 bg-black bg-opacity-20"></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="flex items-center mb-6">
-            <button
-              onClick={onBack}
-              className="flex items-center text-white hover:text-gray-200 transition-colors duration-200 mr-6"
-              aria-label="Retour à la liste des formations"
-            >
-              <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Retour
-            </button>
+           
             <span
               className="px-4 py-2 bg-green-600 bg-opacity-80 rounded-full text-sm font-semibold"
               aria-label="Programme spécialisé"
@@ -348,6 +339,16 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
 
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
+           <button
+              onClick={onBack}
+              className="flex items-center text-black font-bold bg-blue-600 w-24 border-2 border-blue-300 rounded-xl h-10 hover:text-gray-200 transition-colors duration-200 mr-6"
+              aria-label="Retour à la liste des formations"
+            >
+              <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Retour
+            </button>
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-[#06668C] mb-4">Modules de ce programme spécialisé</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
