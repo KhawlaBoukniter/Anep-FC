@@ -323,7 +323,7 @@ const FormationPersonnel: React.FC = () => {
               className={`transition-all duration-1000 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
             >
               <h1 className="text-5xl font-extrabold mb-4 tracking-tight">Mes Formations</h1>
-              <p className="text-xl opacity-90 max-w-2xl">
+              <p className="text-xl opacity-90 ">
                 Gérez et suivez votre progression dans vos programmes de formation avec facilité.
               </p>
             </div>

@@ -6,6 +6,7 @@ import { useLocation, useNavigate } from "react-router-dom"
 import axios from "axios"
 import { toast } from "../hooks/use-toast.ts"
 import jsPDF from "jspdf"
+import Header from "./header.tsx"
 
 interface EvaluationData {
   [key: string]: number
@@ -277,6 +278,7 @@ const EvaluationPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Header />
       {/* Hero Section */}
       <section className="relative py-16 bg-gradient-to-br from-[#06668C] via-blue-700 to-green-600 text-white overflow-hidden">
         <div className="absolute inset-0 bg-black bg-opacity-20"></div>
