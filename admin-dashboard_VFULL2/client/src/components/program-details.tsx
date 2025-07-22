@@ -424,7 +424,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                       aria-label={`Statut du module : ${formation.registrationStatus}`}
                     >
                       {formation.registrationStatus === "accepted"
-                        ? "✓ Accepté"
+                        ? "✓ Retenue"
                         : formation.registrationStatus === "pending"
                         ? "⏳ En attente"
                         : "❌ Rejeté"}
