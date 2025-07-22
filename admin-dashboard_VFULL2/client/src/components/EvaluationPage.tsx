@@ -45,6 +45,7 @@ const EvaluationPage: React.FC = () => {
   const [cycleProgramId, setCycleProgramId] = useState<string | null>(null)
   const [registrationId, setRegistrationId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [hasExistingEvaluation, setHasExistingEvaluation] = useState(false)
 
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search)
@@ -80,6 +81,7 @@ const EvaluationPage: React.FC = () => {
           return
         }
 
+        // Fetch registration details
         const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/${cycleProgramIdParam}/registrations`, {
           headers: { Authorization: `Bearer ${token}` },
           params: { user_id: userIdParam },
@@ -101,13 +103,31 @@ const EvaluationPage: React.FC = () => {
         }
 
         setRegistrationId(registration.id.toString())
+
+        // Check for existing evaluation
+        const evaluationsResponse = await axios.get(`${API_BASE_URL}/api/evaluations/registration/${registration.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+
+        const evaluations = evaluationsResponse.data
+        const existingEvaluation = evaluations.some((evaluation: any) => evaluation.module_id === moduleIdParam)
+        setHasExistingEvaluation(existingEvaluation)
+
+        if (existingEvaluation) {
+          toast({
+            variant: "destructive",
+            title: "Information",
+            description: "Une évaluation existe déjà pour ce module. Vous ne pouvez pas soumettre une nouvelle évaluation.",
+          })
+        }
+
         setLoading(false)
       } catch (error) {
-        console.error("Erreur lors de la récupération de l'inscription:", error)
+        console.error("Erreur lors de la récupération de l'inscription ou des évaluations:", error)
         toast({
           variant: "destructive",
           title: "Erreur",
-          description: "Erreur lors de la récupération de l'inscription.",
+          description: "Erreur lors de la récupération des données.",
         })
         setLoading(false)
       }
@@ -234,6 +254,7 @@ const EvaluationPage: React.FC = () => {
         title: "Succès",
         description: "Évaluation envoyée avec succès! Merci pour votre participation.",
       })
+      setHasExistingEvaluation(true) // Update state to disable button after successful submission
     } catch (error: any) {
       console.error("Erreur lors de l'envoi de l'évaluation:", error)
       toast({
@@ -431,8 +452,8 @@ const EvaluationPage: React.FC = () => {
                               key={level}
                               onClick={() => handleAxisClick(axis.id, level)}
                               className={`w-10 h-10 rounded-full border-2 font-semibold transition-all duration-200 ${evaluationData[axis.id] === level
-                                  ? "text-white border-transparent"
-                                  : "text-gray-600 border-gray-300 hover:border-gray-400"
+                                ? "text-white border-transparent"
+                                : "text-gray-600 border-gray-300 hover:border-gray-400"
                                 }`}
                               style={{
                                 backgroundColor: evaluationData[axis.id] === level ? axis.color : "transparent",
@@ -481,7 +502,12 @@ const EvaluationPage: React.FC = () => {
 
                   <button
                     onClick={handleSendResults}
-                    className="flex-1 bg-gradient-to-r from-[#06668C] to-green-600 hover:shadow-lg text-white py-4 px-6 rounded-lg font-semibold transition-all duration-200 transform hover:-translate-y-1 flex items-center justify-center"
+                    disabled={hasExistingEvaluation}
+                    className={`flex-1 py-4 px-6 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center ${hasExistingEvaluation
+                      ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                      : "bg-gradient-to-r from-[#06668C] to-green-600 hover:shadow-lg text-white transform hover:-translate-y-1"
+                      }`}
+                    title={hasExistingEvaluation ? "Une évaluation existe déjà pour ce module." : ""}
                   >
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
