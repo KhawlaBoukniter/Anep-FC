@@ -230,7 +230,7 @@ const FormationPersonnel: React.FC = () => {
         aria-label={`Statut de l'inscription : ${registrationStatus}`}
       >
         {registrationStatus === "accepted"
-          ? "✓ Accepté"
+          ? "✓ Retenue"
           : registrationStatus === "pending"
             ? "⏳ En attente"
             : "❌ Rejeté"}
