@@ -14,29 +14,29 @@ interface CarouselItem {
 const carouselItems: CarouselItem[] = [
     {
         id: 1,
-        title: "Service Premium",
-        description: "Découvrez nos services de qualité supérieure pour votre entreprise",
+        title: "",
+        description: "",
         image: "/images/img5.jpeg",
         color: "#06668C",
     },
     {
         id: 2,
-        title: "Innovation Continue",
-        description: "Nous innovons constamment pour vous offrir les meilleures solutions",
+        title: "",
+        description: "",
         image: "/images/img4.jpeg",
         color: "#16a34a", // Equivalent to bg-green-600
     },
     {
         id: 3,
-        title: "Expertise Reconnue",
-        description: "Plus de 10 ans d'expérience dans notre domaine d'activité",
+        title: "",
+        description: "",
         image: "/images/img2.jpeg",
         color: "#06668C",
     },
     {
         id: 4,
-        title: "Expertise Reconnue",
-        description: "Plus de 10 ans d'expérience dans notre domaine d'activité",
+        title: "",
+        description: "",
         image: "/images/img1.jpeg",
         color: "#06668C",
     },

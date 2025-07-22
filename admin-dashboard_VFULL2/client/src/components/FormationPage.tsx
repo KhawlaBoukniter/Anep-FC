@@ -447,7 +447,7 @@ const FormationPage: React.FC = () => {
                         aria-label={`Statut de l'inscription : ${program.registrationStatus}`}
                       >
                         {program.registrationStatus === "accepted"
-                          ? "✓ Accepté"
+                          ? "✓ Retenue"
                           : program.registrationStatus === "pending"
                           ? "⏳ En attente"
                           : "❌ Rejeté"}
@@ -516,12 +516,12 @@ const FormationPage: React.FC = () => {
                         }
                         aria-label={
                           program.registrationStatus === "accepted"
-                            ? "Inscription acceptée"
+                            ? "Inscription retenue"
                             : program.registrationStatus === "pending"
                             ? "Inscription en attente"
                             : program.registrationStatus === "rejected"
                             ? "Réessayer l'inscription"
-                            : "S'inscrire"
+                            : "Candidater"
                         }
                         className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-all duration-300 ${
                           !userId ||
@@ -532,12 +532,12 @@ const FormationPage: React.FC = () => {
                         }`}
                       >
                         {program.registrationStatus === "accepted"
-                          ? "Accepté ✓"
+                          ? "Retenue ✓"
                           : program.registrationStatus === "pending"
                           ? "En attente ⏳"
                           : program.registrationStatus === "rejected"
                           ? "Réessayer l'inscription"
-                          : "S'inscrire"}
+                          : "Candidater"}
                       </button>
                     )}
                   </div>

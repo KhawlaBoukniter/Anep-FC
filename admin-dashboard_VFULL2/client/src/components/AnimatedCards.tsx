@@ -14,38 +14,30 @@ interface Card {
 
 const cardsData: Card[] = [
   {
-    id: 1,
-    title: "Expertise Technique",
-    description:
-      "Notre équipe d'experts maîtrise les dernières technologies pour vous offrir des solutions innovantes.",
-    icon: "⚡",
-    color: "from-[#06668C] to-blue-700",
-    delay: 0,
+   id: 1,
+  title: "Formation à l’ANEP",
+  description:
+    "Un levier stratégique de développement des compétences. À l’ANEP, la formation continue n’est pas seulement une obligation institutionnelle, c’est un véritable outil de développement des compétences au service de la performance individuelle et collective. Dès votre intégration, vous serez invité(e) à vous inscrire dans une dynamique d’apprentissage continu, à travers des parcours structurés, des modules spécialisés et des dispositifs innovants adaptés à l’évolution des métiers de l’Agence. Une offre variée et en constante évolution. L’ANEP propose plusieurs cycles de formation actuellement en cours, couvrant des domaines techniques, managériaux et réglementaires. Ces formations s’adressent à l’ensemble des collaborateurs, en fonction de leurs missions et de leurs besoins professionnels.",
+  icon: "⚡",
+  color: "from-[#06668C] to-blue-700",
+  delay: 0,
   },
   {
     id: 2,
-    title: "Support Client",
-    description: "Un accompagnement personnalisé 24h/24 et 7j/7 pour répondre à tous vos besoins.",
+    title: "Un accompagnement logistique complet pour favoriser l’accès à la formation",
+    description: "Consciente que le développement des compétences passe aussi par la levée des freins logistiques, l’ANEP prend intégralement en charge les frais liés à la participation aux formations. Hébergement, restauration : chaque aspect est pris en compte afin de permettre aux collaborateurs de se concentrer pleinement sur leur apprentissage. Ce soutien logistique reflète la volonté de l’Agence de faire de la formation continue un levier stratégique, accessible à tous.",
     icon: "🎯",
     color: "from-green-600 to-green-700",
     delay: 200,
   },
   {
     id: 3,
-    title: "Sécurité Garantie",
-    description: "Vos données sont protégées par les plus hauts standards de sécurité du marché.",
+    title: "Vous êtes acteur de votre développement professionnel :",
+    description: "À l’ANEP, chaque collaborateur est invité à être un véritable acteur de sa montée en compétences. Cette dynamique repose sur une implication personnelle forte, notamment par l’autoformation, ainsi que sur un accompagnement personnalisé assuré par les managers. Les collaborateurs sont ainsi encouragés à consulter régulièrement l’offre de formation, à exprimer leurs besoins spécifiques et à s’engager activement dans l’évolution de leur parcours.",
     icon: "🛡️",
     color: "from-gray-800 to-black",
     delay: 400,
-  },
-  {
-    id: 4,
-    title: "Performance Optimale",
-    description: "Des solutions rapides et efficaces pour maximiser votre productivité au quotidien.",
-    icon: "🚀",
-    color: "from-[#06668C] to-green-600",
-    delay: 600,
-  },
+  }
 ]
 
 const AnimatedCards: React.FC = () => {
@@ -89,15 +81,11 @@ const AnimatedCards: React.FC = () => {
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
           }`}
         >
-          <h2 className="text-4xl md:text-5xl font-bold text-[#06668C] mb-4">Nos Avantages</h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Découvrez pourquoi des milliers de clients nous font confiance pour leurs projets
-          </p>
           <div className="w-24 h-1 bg-gradient-to-r from-[#06668C] to-green-600 mx-auto mt-4 rounded-full"></div>
         </div>
 
         {/* Grille des cartes */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 w-[60%] m-auto md:grid-cols-1 lg:grid-cols-1 gap-6 text-left">
           {cardsData.map((card, index) => (
             <div
               key={card.id}
@@ -116,18 +104,19 @@ const AnimatedCards: React.FC = () => {
               {/* Contenu de la carte */}
               <div className="relative p-6 h-full flex flex-col">
                 {/* Icône */}
-                <div className="mb-4">
+                <div className="mb-4 flex justify-left gap-4">
                   <div
                     className={`w-16 h-16 bg-gradient-to-br ${card.color} rounded-full flex items-center justify-center text-white text-2xl shadow-lg group-hover:scale-110 transition-transform duration-300`}
                   >
                     {card.icon}
                   </div>
-                </div>
-
-                {/* Titre */}
-                <h3 className="text-xl font-bold text-gray-800 mb-3 group-hover:text-[#06668C] transition-colors duration-300">
+                  {/* Titre */}
+                <h3 className="text-xl font-bold text-gray-800 mt-3 group-hover:text-[#06668C] transition-colors duration-300">
                   {card.title}
                 </h3>
+                </div>
+
+                
 
                 {/* Description */}
                 <p className="text-gray-600 leading-relaxed flex-grow group-hover:text-gray-700 transition-colors duration-300">
@@ -146,29 +135,7 @@ const AnimatedCards: React.FC = () => {
           ))}
         </div>
 
-        {/* Statistiques en bas */}
-        <div
-          className={`mt-16 grid grid-cols-2 md:grid-cols-4 gap-6 transition-all duration-1000 delay-800 ${
-            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-          }`}
-        >
-          <div className="text-center">
-            <div className="text-3xl font-bold text-[#06668C] mb-2">1000+</div>
-            <div className="text-gray-600">Clients Satisfaits</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-600 mb-2">500+</div>
-            <div className="text-gray-600">Projets Réalisés</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-[#06668C] mb-2">24/7</div>
-            <div className="text-gray-600">Support Client</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-600 mb-2">10+</div>
-            <div className="text-gray-600">Années d'Expérience</div>
-          </div>
-        </div>
+       
       </div>
     </section>
   )
