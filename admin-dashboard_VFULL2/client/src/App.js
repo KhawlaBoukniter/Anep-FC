@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "react-query";
 import Dashboard from "./pages/Dashboard.tsx";
 import Home from "./pages/Home.tsx";
-import AboutPage from "./components/AboutPage.tsx";
 import FormationPage from "./components/FormationPage.tsx";
 import ProfilePage from "./pages/profile.tsx";
 import Indisponibilite from "./components/Indisponibilite.tsx";
@@ -34,7 +33,6 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile/:employeeId" element={<ProfilePage />} />
-            <Route path="/about" element={<AboutPage />} />
             <Route path="/formation" element={<FormationPage />} />
             <Route path="/indisponibilite" element={<Indisponibilite />} />
             <Route path="/formationPersonnel" element={<FormationPersonnel />} />

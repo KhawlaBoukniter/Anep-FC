@@ -17,27 +17,7 @@ const Footer: React.FC = () => {
             </p>
           </div>
 
-          {/* Liens rapides */}
-          <div>
-            <h3 className="text-lg font-bold mb-4 text-white">Liens rapides</h3>
-            <ul className="space-y-2">
-              <li>
-                <a href="#home" className="text-gray-300 hover:text-green-400 transition-colors">
-                  Accueil
-                </a>
-              </li>
-              <li>
-                <a href="#about" className="text-gray-300 hover:text-green-400 transition-colors">
-                  À propos
-                </a>
-              </li>
-              <li>
-                <a href="#services" className="text-gray-300 hover:text-green-400 transition-colors">
-                  Services
-                </a>
-              </li>
-            </ul>
-          </div>
+        
 
           {/* Contact */}
           <div>
@@ -45,7 +25,6 @@ const Footer: React.FC = () => {
             <div className="space-y-2 text-gray-300">
               <p className="font-medium">Email: contact@example.com</p>
               <p className="font-medium">Tél: +33 1 23 45 67 89</p>
-              <p className="font-medium">Adresse: 123 Rue Example, Paris</p>
             </div>
           </div>
         </div>
