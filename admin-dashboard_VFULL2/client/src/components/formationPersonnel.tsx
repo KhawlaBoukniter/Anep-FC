@@ -340,7 +340,7 @@ const FormationPersonnel: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
                   { value: totalFormations, label: "Total", color: "bg-blue-600" },
-                  { value: acceptedFormations, label: "Acceptées", color: "bg-green-600" },
+                  { value: acceptedFormations, label: "Retenues", color: "bg-green-600" },
                   { value: pendingFormations, label: "En attente", color: "bg-yellow-600" },
                   { value: rejectedFormations, label: "Rejetées", color: "bg-red-600" },
                 ].map((stat, index) => (
@@ -380,7 +380,7 @@ const FormationPersonnel: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tous les statuts</SelectItem>
-                  <SelectItem value="accepted">Accepté</SelectItem>
+                  <SelectItem value="accepted">Retenue</SelectItem>
                   <SelectItem value="pending">En attente</SelectItem>
                   <SelectItem value="rejected">Rejeté</SelectItem>
                 </SelectContent>
