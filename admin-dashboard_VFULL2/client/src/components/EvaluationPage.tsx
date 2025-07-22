@@ -528,52 +528,7 @@ const EvaluationPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Conseils d'amélioration */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold text-[#06668C] mb-8 text-center">Conseils d'Amélioration</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {axisConfig.map((axis) => {
-                const score = evaluationData[axis.id] || 0
-                let advice = ""
-                let bgColor = ""
-
-                if (score === 0) {
-                  advice = "Commencez par évaluer cette compétence"
-                  bgColor = "bg-gray-100"
-                } else if (score <= 2) {
-                  advice = "Beaucoup de marge de progression - considérez une formation"
-                  bgColor = "bg-red-50"
-                } else if (score <= 3) {
-                  advice = "Bon niveau - continuez à vous améliorer"
-                  bgColor = "bg-yellow-50"
-                } else if (score <= 4) {
-                  advice = "Très bon niveau - quelques ajustements possibles"
-                  bgColor = "bg-blue-50"
-                } else {
-                  advice = "Excellence - partagez votre expertise !"
-                  bgColor = "bg-green-50"
-                }
-
-                return (
-                  <div key={axis.id} className={`${bgColor} rounded-xl p-6 border`}>
-                    <div className="flex items-center mb-3">
-                      <div className="w-4 h-4 rounded-full mr-3" style={{ backgroundColor: axis.color }}></div>
-                      <h3 className="font-bold text-gray-800">{axis.title}</h3>
-                    </div>
-                    <div className="text-2xl font-bold mb-2" style={{ color: axis.color }}>
-                      {score}/5
-                    </div>
-                    <p className="text-sm text-gray-600">{advice}</p>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      </section>
+      
     </div>
   )
 }
