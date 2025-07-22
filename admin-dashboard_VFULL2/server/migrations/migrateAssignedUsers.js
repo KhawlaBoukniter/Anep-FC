@@ -3,12 +3,12 @@ require('dotenv').config({ path: __dirname + '/.env' });
 
 const mongoose = require('mongoose');
 const { Sequelize } = require('sequelize');
-const Course = require('./models/Course'); // Verify this path
-const { CycleProgram, CycleProgramRegistration, CycleProgramUserModule, CycleProgramModule } = require('./models');
-const { syncAssignedUsersToCycleProgram } = require('./controllers/courseController');
+const Course = require('../models/Course'); // Verify this path
+const { CycleProgram, CycleProgramRegistration, CycleProgramUserModule, CycleProgramModule } = require('../models');
+const { syncAssignedUsersToCycleProgram } = require('../controllers/courseController');
 
 // Import the preconfigured Sequelize instance
-const sequelize = require('./sequelize-config');
+const sequelize = require('../sequelize-config');
 
 // Debug: Log the DATABASE_URL and Course to verify it’s loaded
 console.log('Loaded DATABASE_URL in migrateAssignedUsers.js:', process.env.DATABASE_URL);
