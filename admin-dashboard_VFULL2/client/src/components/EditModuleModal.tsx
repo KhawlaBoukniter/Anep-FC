@@ -215,7 +215,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
           //     }
           //   return id;
           // }).filter((user): user is Profile => !!user);
-          
+
           return mappedUsers;
         };
         // const assigned = mapUsers(module.assignedUsers);
@@ -293,34 +293,34 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     accept: { 'image/jpeg': [], 'image/png': [], 'image/gif': [] },
   });
 
-    const onDropSupport = useCallback((acceptedFiles) => {
-      const file = acceptedFiles[0];
-      if (file) {
-        // Validate file size (e.g., max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-          toast({
-            variant: "destructive",
-            title: "Erreur",
-            description: "Le fichier de support ne doit pas dépasser 5 Mo.",
-          });
-          return;
-        }
-        // Validate file type (e.g., PDF, Word, images)
-        if (!['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
-          toast({
-            variant: "destructive",
-            title: "Erreur",
-            description: "Seuls les formats PDF, Word, JPEG, PNG et GIF sont acceptés pour le support.",
-          });
-          return;
-        }
-        handleSupportChange("file", Object.assign(file, {
-          preview: URL.createObjectURL(file),
-        }));
+  const onDropSupport = useCallback((acceptedFiles) => {
+    const file = acceptedFiles[0];
+    if (file) {
+      // Validate file size (e.g., max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Le fichier de support ne doit pas dépasser 5 Mo.",
+        });
+        return;
       }
-    }, [toast]);
-  
-    const { getRootProps: getSupportRootProps, getInputProps: getSupportInputProps, isDragActive: isSupportDragActive } = useDropzone({ onDrop: onDropSupport });
+      // Validate file type (e.g., PDF, Word, images)
+      if (!['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Seuls les formats PDF, Word, JPEG, PNG et GIF sont acceptés pour le support.",
+        });
+        return;
+      }
+      handleSupportChange("file", Object.assign(file, {
+        preview: URL.createObjectURL(file),
+      }));
+    }
+  }, [toast]);
+
+  const { getRootProps: getSupportRootProps, getInputProps: getSupportInputProps, isDragActive: isSupportDragActive } = useDropzone({ onDrop: onDropSupport });
 
   const handleRemovePhoto = (index: number) => {
     setCourse((prev) => ({
@@ -329,13 +329,13 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     }));
   };
 
-    const handleSupportChange = (type, value) => {
+  const handleSupportChange = (type, value) => {
     setCourse((prev) => ({
-        ...prev,
-        support: {
-            type,
-            value
-        }
+      ...prev,
+      support: {
+        type,
+        value
+      }
     }));
   };
 
@@ -453,12 +453,12 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
         field === "fonction"
           ? profile["LIBELLE FONCTION"]
           : field === "localite"
-          ? profile["LIBELLE LOC"]
-          : field === "gradeAssimile"
-          ? profile["GRADE ASSIMILE"]
-          : field === "region"
-          ? profile["LIBELLE REGION"]
-          : null;
+            ? profile["LIBELLE LOC"]
+            : field === "gradeAssimile"
+              ? profile["GRADE ASSIMILE"]
+              : field === "region"
+                ? profile["LIBELLE REGION"]
+                : null;
 
       if (rawValue && !uniqueSet.has(rawValue)) {
         uniqueSet.add(rawValue);
@@ -554,12 +554,12 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
       return;
     }
     if (course.support?.type === "link" && course.support.value && !/^https?:\/\/[^\s$.?#].[^\s]*$/.test(course.support.value)) {
-        toast({
-            variant: "destructive",
-            title: "Erreur",
-            description: "Lien de support invalide.",
-        });
-        return;
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Lien de support invalide.",
+      });
+      return;
     }
     for (const time of course.times || []) {
       if (!time.instructorName) {
@@ -637,21 +637,21 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
           headers: { "Content-Type": "multipart/form-data" },
         });
 
-          // Update courseData with uploaded file URLs
-          courseData.photos = [...(course.photos || []), ...(imageUploadResponse.data.photoUrls || [])];
-          courseData.support = {
-            type: course.support?.type || "link",
-            value: imageUploadResponse.data.supportUrl || course.support?.value || "",
-          };
-          courseData.times = course.times.map((session, index) => ({
-            ...session,
-            externalInstructorDetails: {
-              ...session.externalInstructorDetails,
-              cv: imageUploadResponse.data.cvUrls && imageUploadResponse.data.cvUrls[index]
-                ? imageUploadResponse.data.cvUrls[index]
-                : session.externalInstructorDetails.cv,
-            },
-          }));
+        // Update courseData with uploaded file URLs
+        courseData.photos = [...(course.photos || []), ...(imageUploadResponse.data.photoUrls || [])];
+        courseData.support = {
+          type: course.support?.type || "link",
+          value: imageUploadResponse.data.supportUrl || course.support?.value || "",
+        };
+        courseData.times = course.times.map((session, index) => ({
+          ...session,
+          externalInstructorDetails: {
+            ...session.externalInstructorDetails,
+            cv: imageUploadResponse.data.cvUrls && imageUploadResponse.data.cvUrls[index]
+              ? imageUploadResponse.data.cvUrls[index]
+              : session.externalInstructorDetails.cv,
+          },
+        }));
       }
 
       // Handle conflicts for assigned users
@@ -758,7 +758,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
           <Edit className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white">
+      <DialogContent className="max-w-2xl w-4/6 max-h-[90vh] overflow-y-auto bg-white">
         <DialogHeader className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Edit className="h-6 w-6 text-blue-600" />
@@ -767,9 +767,8 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
           <div className="flex items-center justify-center gap-4">
             <div className="justify-items-center">
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  currentStep === 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
-                }`}
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
+                  }`}
               >
                 1
               </div>
@@ -778,9 +777,8 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
             <div className="w-16 h-0.5 bg-gray-200"></div>
             <div className="justify-items-center">
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  currentStep === 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
-                }`}
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
+                  }`}
               >
                 2
               </div>
@@ -789,9 +787,8 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
             <div className="w-16 h-0.5 bg-gray-200"></div>
             <div className="justify-items-center">
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  currentStep === 3 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
-                }`}
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 3 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
+                  }`}
               >
                 3
               </div>
@@ -875,9 +872,8 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                 <Label>Photos (Photos prises du module)</Label>
                 <div
                   {...getPhotosRootProps()}
-                  className={`border-2 border-dashed p-4 text-center ${
-                    isPhotosDragActive ? "border-blue-600 bg-blue-50" : "border-gray-300"
-                  }`}
+                  className={`border-2 border-dashed p-4 text-center ${isPhotosDragActive ? "border-blue-600 bg-blue-50" : "border-gray-300"
+                    }`}
                 >
                   <input {...getPhotosInputProps()} accept="image/jpeg,image/png,image/gif" />
                   <p className="text-gray-600">
@@ -989,53 +985,52 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                 />
               </div>
               <div className="space-y-2">
-                                <Label htmlFor="support-type">Type de support</Label>
-                                <Select
-                                    value={course.support?.type}
-                                    onValueChange={(value) => handleSupportChange(value, "")}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Sélectionner le type de support" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="link">Lien</SelectItem>
-                                        <SelectItem value="file">Fichier</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                              </div>
-                              {course.support?.type === "link" ? (
-                                <div className="space-y-2">
-                                    <Label htmlFor="support-link">Lien du support</Label>
-                                    <Input
-                                        id="support-link"
-                                        placeholder="Entrez le lien (https://...)"
-                                        value={course.support.value}
-                                        onChange={(e) => handleSupportChange("link", e.target.value)}
-                                    />
-                                </div>
-                              ) : (
-                                <div className="space-y-2">
-                                  <Label>Fichier de support</Label>
-                                  <div
-                                      {...getSupportRootProps()}
-                                      className={`border-2 border-dashed p-4 text-center ${
-                                          isSupportDragActive ? "border-blue-600 bg-blue-50" : "border-gray-300"
-                                      }`}
-                                  >
-                                      <input {...getSupportInputProps()} accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/gif" />
-                                      <p className="text-gray-600">
-                                          {isSupportDragActive
-                                              ? "Déposez le fichier ici..."
-                                              : "Glissez-déposez un fichier ici, ou cliquez pour sélectionner (PDF, Word, JPEG, PNG, GIF, max 5 Mo)"}
-                                      </p>
-                                  </div>
-                                  {course.support?.value && course.support.type === "file" && (
-                                      <p className="mt-2 text-sm text-gray-600">
-                                          Fichier sélectionné : {course.support.value.name}
-                                      </p>
-                                  )}
-                                </div>
-                              )}
+                <Label htmlFor="support-type">Type de support</Label>
+                <Select
+                  value={course.support?.type}
+                  onValueChange={(value) => handleSupportChange(value, "")}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner le type de support" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="link">Lien</SelectItem>
+                    <SelectItem value="file">Fichier</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {course.support?.type === "link" ? (
+                <div className="space-y-2">
+                  <Label htmlFor="support-link">Lien du support</Label>
+                  <Input
+                    id="support-link"
+                    placeholder="Entrez le lien (https://...)"
+                    value={course.support.value}
+                    onChange={(e) => handleSupportChange("link", e.target.value)}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Fichier de support</Label>
+                  <div
+                    {...getSupportRootProps()}
+                    className={`border-2 border-dashed p-4 text-center ${isSupportDragActive ? "border-blue-600 bg-blue-50" : "border-gray-300"
+                      }`}
+                  >
+                    <input {...getSupportInputProps()} accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/gif" />
+                    <p className="text-gray-600">
+                      {isSupportDragActive
+                        ? "Déposez le fichier ici..."
+                        : "Glissez-déposez un fichier ici, ou cliquez pour sélectionner (PDF, Word, JPEG, PNG, GIF, max 5 Mo)"}
+                    </p>
+                  </div>
+                  {course.support?.value && course.support.type === "file" && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      Fichier sélectionné : {course.support.value.name}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
           {currentStep === 2 && (
@@ -1133,11 +1128,10 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                                     }
                                   >
                                     <Check
-                                      className={`mr-2 h-4 w-4 ${
-                                        session.instructor === instructor.id.toString()
-                                          ? "opacity-100"
-                                          : "opacity-0"
-                                      }`}
+                                      className={`mr-2 h-4 w-4 ${session.instructor === instructor.id.toString()
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                        }`}
                                     />
                                     {instructor.label}
                                   </CommandItem>
@@ -1275,9 +1269,8 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                                   className="text-sm hover:bg-gray-100"
                                 >
                                   <Check
-                                    className={`mr-2 h-4 w-4 ${
-                                      filter[field]?.label === option.label ? "opacity-100" : "opacity-0"
-                                    }`}
+                                    className={`mr-2 h-4 w-4 ${filter[field]?.label === option.label ? "opacity-100" : "opacity-0"
+                                      }`}
                                   />
                                   {option.label}
                                 </CommandItem>
@@ -1352,7 +1345,7 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
                       key={user.id_profile}
                       className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium"
                     >
-                      {user.name|| `Unknown User (${user.id_profile})`}
+                      {user.name || `Unknown User (${user.id_profile})`}
                       <Button
                         variant="ghost"
                         size="icon"

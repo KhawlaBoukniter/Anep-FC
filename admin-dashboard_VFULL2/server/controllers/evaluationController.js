@@ -1,4 +1,5 @@
 const evaluationModel = require("../models/Evaluation");
+const { CycleProgramRegistration, CycleProgramUserModule } = require("../models");
 
 const createEvaluation = async (req, res) => {
   try {
@@ -27,10 +28,30 @@ const createEvaluation = async (req, res) => {
       return res.status(400).json({ error: "Données d'évaluation invalides" });
     }
 
-    // Vérification si une évaluation existe déjà
+    // Vérifier si la registration_id est valide et associée au module_id
+    const registration = await CycleProgramRegistration.findOne({
+      where: { id: evaluationData.registration_id },
+      include: [
+        {
+          model: CycleProgramUserModule,
+          as: "CycleProgramUserModules",
+          where: { module_id: evaluationData.module_id },
+        },
+      ],
+    });
+
+    if (!registration) {
+      return res.status(404).json({
+        error: "Aucune inscription trouvée pour ce module et ce cycle/programme",
+      });
+    }
+
+    // Vérification si une évaluation existe déjà pour cette combinaison
     const existingEvaluations = await evaluationModel.getByRegistrationId(evaluationData.registration_id);
     if (existingEvaluations.some((eval) => eval.module_id === evaluationData.module_id)) {
-      return res.status(409).json({ error: "Une évaluation existe déjà pour ce module et cette inscription" });
+      return res.status(409).json({
+        error: "Une évaluation existe déjà pour ce module et cette inscription",
+      });
     }
 
     const evaluation = await evaluationModel.create(evaluationData);

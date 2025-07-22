@@ -308,8 +308,8 @@ const Indisponibilite: React.FC = () => {
             <Button
               onClick={() => setSelectedTab('toutes')}
               className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${selectedTab === 'toutes'
-                  ? 'bg-[#06668C] text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-[#06668C] text-white shadow-lg'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
             >
               Toutes ({totalSlots})
@@ -317,8 +317,8 @@ const Indisponibilite: React.FC = () => {
             <Button
               onClick={() => setSelectedTab('CONGE')}
               className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${selectedTab === 'CONGE'
-                  ? 'bg-[#06668C] text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-[#06668C] text-white shadow-lg'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
             >
               Congés ({congeSlots})
@@ -326,8 +326,8 @@ const Indisponibilite: React.FC = () => {
             <Button
               onClick={() => setSelectedTab('REUNION_HEBDOMADAIRE')}
               className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${selectedTab === 'REUNION_HEBDOMADAIRE'
-                  ? 'bg-[#06668C] text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-[#06668C] text-white shadow-lg'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
             >
               Réunions ({reunionSlots})
@@ -335,8 +335,8 @@ const Indisponibilite: React.FC = () => {
             <Button
               onClick={() => setSelectedTab('AUTRE')}
               className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${selectedTab === 'AUTRE'
-                  ? 'bg-[#06668C] text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-[#06668C] text-white shadow-lg'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
             >
               Autres ({autreSlots})
@@ -348,7 +348,7 @@ const Indisponibilite: React.FC = () => {
       {/* Modal for Adding/Editing */}
       {isModalOpen && (
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="w-2/5 rounded-xl bg-white shadow-2xl border border-gray-200">
+          <DialogContent className="max-w-2xl w-4/6 max-h-[90vh] rounded-xl bg-white shadow-2xl border border-gray-200">
             <DialogHeader>
               <DialogTitle>
                 {editingId ? 'Modifier l\'indisponibilité' : 'Ajouter une indisponibilité'}

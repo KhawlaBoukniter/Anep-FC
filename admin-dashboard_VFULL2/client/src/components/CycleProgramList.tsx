@@ -499,7 +499,7 @@ export const CycleProgramList = () => {
                                                                         <Eye className="h-4 w-4 text-green-600" />
                                                                     </Button>
                                                                 </DialogTrigger>
-                                                                <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+                                                                <DialogContent className="max-w-xl w-2/5 max-h-[90vh] overflow-y-auto">
                                                                     <DialogHeader>
                                                                         <DialogTitle>Modules de {cp.title}</DialogTitle>
                                                                     </DialogHeader>

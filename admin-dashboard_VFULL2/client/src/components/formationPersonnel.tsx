@@ -9,7 +9,7 @@ import Footer from "./footer.tsx";
 import { Input } from "./ui/input.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.tsx";
 import { Search } from "lucide-react";
-import { useNavigate } from "react-router-dom"; // Import ajouté
+import { useNavigate } from "react-router-dom";
 
 interface EnrolledFormation {
   id: string;
@@ -37,7 +37,7 @@ interface EnrolledFormation {
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const FormationPersonnel: React.FC = () => {
-  const navigate = useNavigate(); // Hook ajouté
+  const navigate = useNavigate();
   const [formations, setFormations] = useState<EnrolledFormation[]>([]);
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -290,8 +290,7 @@ const FormationPersonnel: React.FC = () => {
     }
   };
 
-  // Nouvelle fonction pour naviguer vers la page d'évaluation
-  const navigateToEvaluation = (moduleId: string) => {
+  const navigateToEvaluation = (moduleId: string, programId: string) => {
     if (!userId) {
       toast({
         variant: "destructive",
@@ -300,7 +299,7 @@ const FormationPersonnel: React.FC = () => {
       });
       return;
     }
-    navigate(`/evaluation?userId=${userId}&moduleId=${moduleId}`);
+    navigate(`/evaluation?userId=${userId}&moduleId=${moduleId}&cycleProgramId=${programId}`);
   };
 
   const openFormationDetail = (formation: EnrolledFormation) => {
@@ -571,17 +570,18 @@ const FormationPersonnel: React.FC = () => {
                           </a>
                         </div>
                       )}
-                      {/* Nouveau lien d'évaluation */}
-                      <div className="flex justify-between border-b pb-2">
-                        <span className="text-gray-600">Évaluation du module</span>
-                        <button
-                          onClick={() => navigateToEvaluation(selectedFormation.id)}
-                          className="font-medium text-blue-600 hover:underline"
-                          aria-label="Accéder à l'évaluation"
-                        >
-                          Évaluer ce module
-                        </button>
-                      </div>
+                      {selectedFormation.registrationStatus === "accepted" && (
+                        <div className="flex justify-between border-b pb-2">
+                          <span className="text-gray-600">Évaluation du module</span>
+                          <button
+                            onClick={() => navigateToEvaluation(selectedFormation.id, selectedFormation.programId)}
+                            className="font-medium text-blue-600 hover:underline"
+                            aria-label="Accéder à l'évaluation"
+                          >
+                            Évaluer ce module
+                          </button>
+                        </div>
+                      )}
                       {selectedFormation.photosLinks &&
                         selectedFormation.photosLinks.length > 0 &&
                         selectedFormation.photosLinks.map((photoLink, index) => (

@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { useLocation } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
 import axios from "axios"
 import { toast } from "../hooks/use-toast.ts"
 import jsPDF from "jspdf"
@@ -30,6 +30,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000"
 
 const EvaluationPage: React.FC = () => {
   const location = useLocation()
+  const navigate = useNavigate()
   const [evaluationData, setEvaluationData] = useState<EvaluationData>({
     apports: 0,
     reponse: 0,
@@ -41,6 +42,7 @@ const EvaluationPage: React.FC = () => {
   const [hoveredAxis, setHoveredAxis] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [moduleId, setModuleId] = useState<string | null>(null)
+  const [cycleProgramId, setCycleProgramId] = useState<string | null>(null)
   const [registrationId, setRegistrationId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -48,16 +50,18 @@ const EvaluationPage: React.FC = () => {
     const queryParams = new URLSearchParams(location.search)
     const userIdParam = queryParams.get('userId')
     const moduleIdParam = queryParams.get('moduleId')
-    
+    const cycleProgramIdParam = queryParams.get('cycleProgramId')
+
     if (userIdParam) setUserId(userIdParam)
     if (moduleIdParam) setModuleId(moduleIdParam)
+    if (cycleProgramIdParam) setCycleProgramId(cycleProgramIdParam)
 
     const fetchRegistrationId = async () => {
-      if (!userIdParam || !moduleIdParam) {
+      if (!userIdParam || !moduleIdParam || !cycleProgramIdParam) {
         toast({
           variant: "destructive",
           title: "Erreur",
-          description: "ID utilisateur ou module manquant.",
+          description: "ID utilisateur, module ou cycle/programme manquant.",
         })
         setLoading(false)
         return
@@ -71,25 +75,26 @@ const EvaluationPage: React.FC = () => {
             title: "Erreur",
             description: "Session invalide. Veuillez vous reconnecter.",
           })
+          navigate("/")
           setLoading(false)
           return
         }
 
-        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/registrations`, {
+        const response = await axios.get(`${API_BASE_URL}/api/cycles-programs/${cycleProgramIdParam}/registrations`, {
           headers: { Authorization: `Bearer ${token}` },
           params: { user_id: userIdParam },
         })
 
-        const registrations = response.data
+        const registrations = response.data.registrations
         const registration = registrations.find((reg: any) =>
-          reg.CycleProgramUserModules.some((mod: any) => mod.module_id === moduleIdParam)
+          reg.CycleProgramUserModules.some((mod: any) => mod.module_id === moduleIdParam && mod.status === 'accepted')
         )
 
         if (!registration) {
           toast({
             variant: "destructive",
             title: "Erreur",
-            description: "Aucune inscription trouvée pour ce module.",
+            description: "Aucune inscription acceptée trouvée pour ce module dans ce cycle/programme.",
           })
           setLoading(false)
           return
@@ -109,7 +114,7 @@ const EvaluationPage: React.FC = () => {
     }
 
     fetchRegistrationId()
-  }, [location])
+  }, [location, navigate])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -234,7 +239,7 @@ const EvaluationPage: React.FC = () => {
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: error.response?.data?.message || "Une erreur est survenue lors de l'envoi de l'évaluation.",
+        description: error.response?.data?.error || "Une erreur est survenue lors de l'envoi de l'évaluation.",
       })
     }
   }
@@ -425,11 +430,10 @@ const EvaluationPage: React.FC = () => {
                             <button
                               key={level}
                               onClick={() => handleAxisClick(axis.id, level)}
-                              className={`w-10 h-10 rounded-full border-2 font-semibold transition-all duration-200 ${
-                                evaluationData[axis.id] === level
+                              className={`w-10 h-10 rounded-full border-2 font-semibold transition-all duration-200 ${evaluationData[axis.id] === level
                                   ? "text-white border-transparent"
                                   : "text-gray-600 border-gray-300 hover:border-gray-400"
-                              }`}
+                                }`}
                               style={{
                                 backgroundColor: evaluationData[axis.id] === level ? axis.color : "transparent",
                               }}
@@ -462,7 +466,7 @@ const EvaluationPage: React.FC = () => {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button
                     onClick={handleDownloadPDF}
-                    className="flex-1 bg-gray-800 hover:bg-gray-900 text-white py-4 px-6 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center"
+                    className="flex-1 bg-gray-800 hover:bg-gray-900 text-white py-4 px-6 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center"
                   >
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
@@ -477,7 +481,7 @@ const EvaluationPage: React.FC = () => {
 
                   <button
                     onClick={handleSendResults}
-                    className="flex-1 bg-gradient-to-r from-[#06668C] to-green-600 hover:shadow-lg text-white py-4 px-6 rounded-lg font-semibold transition-all duration-300 transform hover:-translate-y-1 flex items-center justify-center"
+                    className="flex-1 bg-gradient-to-r from-[#06668C] to-green-600 hover:shadow-lg text-white py-4 px-6 rounded-lg font-semibold transition-all duration-200 transform hover:-translate-y-1 flex items-center justify-center"
                   >
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path

@@ -51,8 +51,8 @@ export function AddModuleModal({ onCourseCreated }) {
     ],
     // image: null,
     support: {
-        type: "link",
-        value: ""
+      type: "link",
+      value: ""
     }
   });
 
@@ -304,11 +304,11 @@ export function AddModuleModal({ onCourseCreated }) {
 
   const handleSupportChange = (type, value) => {
     setCourse((prev) => ({
-        ...prev,
-        support: {
-            type,
-            value
-        }
+      ...prev,
+      support: {
+        type,
+        value
+      }
     }));
   };
 
@@ -340,13 +340,13 @@ export function AddModuleModal({ onCourseCreated }) {
       return;
     }
     if (course.support.type === "link" && course.support.value && !/^https?:\/\/[^\s$.?#].[^\s]*$/.test(course.support.value)) {
-        toast({
-            variant: "destructive",
-            title: "Erreur",
-            description: "Lien de support invalide.",
-        });
-        setIsSubmitting(false);
-        return;
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Lien de support invalide.",
+      });
+      setIsSubmitting(false);
+      return;
     }
     for (const session of course.times) {
       if (!session.instructorName) {
@@ -420,60 +420,60 @@ export function AddModuleModal({ onCourseCreated }) {
       //   const { imageUrl, cvUrls, supportUrl } = imageUploadResponse.data;
       //   console.log("Image uploaded successfully, imageUrl:", imageUrl, "cvUrls:", cvUrls, "supportUrl:", supportUrl);
 
-        const finalCourseData = {
-          ...course,
-          // imageUrl,
-          category: course.category ? course.category.id : null,
-          support: {
-            type: course.support.type,
-            value: course.support.type === "file" && supportUrl ? supportUrl : course.support.value
+      const finalCourseData = {
+        ...course,
+        // imageUrl,
+        category: course.category ? course.category.id : null,
+        support: {
+          type: course.support.type,
+          value: course.support.type === "file" && supportUrl ? supportUrl : course.support.value
+        },
+        times: course.times.map((session, index) => ({
+          ...session,
+          instructor: session.instructor || undefined,
+          externalInstructorDetails: {
+            ...session.externalInstructorDetails,
+            cv: session.externalInstructorDetails.cv ? session.externalInstructorDetails.cv : undefined,
           },
-          times: course.times.map((session, index) => ({
-            ...session,
-            instructor: session.instructor || undefined,
-            externalInstructorDetails: {
-              ...session.externalInstructorDetails,
-              cv: session.externalInstructorDetails.cv ? session.externalInstructorDetails.cv : undefined,
+        })),
+        assignedUsers: [],
+        // interestedUsers: [],
+      };
+
+      console.log("Submitting course data:", finalCourseData);
+      const response = await useApiAxios.post("/courses", finalCourseData);
+
+      if (response.status === 201) {
+        toast({ title: "Succès", description: "Cours créé avec succès." });
+        setOpen(false);
+        setCourse({
+          title: "",
+          location: "",
+          category: null,
+          offline: "",
+          description: "",
+          hidden: "",
+          budget: "",
+          times: [
+            {
+              dateRanges: [{ startTime: "", endTime: "" }],
+              instructor: "",
+              instructorName: "",
+              instructorType: "intern",
+              externalInstructorDetails: { phone: "", position: "", cv: null },
             },
-          })),
-          assignedUsers: [],
-          // interestedUsers: [],
-        };
-
-        console.log("Submitting course data:", finalCourseData);
-        const response = await useApiAxios.post("/courses", finalCourseData);
-
-        if (response.status === 201) {
-          toast({ title: "Succès", description: "Cours créé avec succès." });
-          setOpen(false);
-          setCourse({
-            title: "",
-            location: "",
-            category: null,
-            offline: "",
-            description: "",
-            hidden: "",
-            budget: "",
-            times: [
-              {
-                dateRanges: [{ startTime: "", endTime: "" }],
-                instructor: "",
-                instructorName: "",
-                instructorType: "intern",
-                externalInstructorDetails: { phone: "", position: "", cv: null },
-              },
-            ],
-            // image: null,
-            support: {
-                        type: "link",
-                        value: ""
-                    }
-          });
-          setCurrentStep(1);
-          if (onCourseCreated) onCourseCreated();
-        } else {
-          throw new Error(`Course creation failed with status: ${response.status}`);
-        }
+          ],
+          // image: null,
+          support: {
+            type: "link",
+            value: ""
+          }
+        });
+        setCurrentStep(1);
+        if (onCourseCreated) onCourseCreated();
+      } else {
+        throw new Error(`Course creation failed with status: ${response.status}`);
+      }
     } catch (error) {
       console.error("Erreur lors de la création du cours:", error);
       toast({
@@ -540,7 +540,7 @@ export function AddModuleModal({ onCourseCreated }) {
           <Plus className="h-5 w-5" /> Créer Module
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-4/6 max-w-2xl rounded-2xl bg-white overflow-y-auto max-h-[90vh]">
+      <DialogContent className=" max-w-2xl w-4/6 rounded-2xl bg-white overflow-y-auto max-h-[90vh]">
         <DialogHeader className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <BookMarked className="h-6 w-6 text-blue-600" />
@@ -550,9 +550,8 @@ export function AddModuleModal({ onCourseCreated }) {
             <div className="flex items-center justify-center gap-4">
               <div className="text-center justify-items-center">
                 <div
-                  className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                    currentStep === 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
-                  }`}
+                  className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
+                    }`}
                 >
                   1
                 </div>
@@ -561,9 +560,8 @@ export function AddModuleModal({ onCourseCreated }) {
               <div className="w-16 h-0.5 bg-gray-200"></div>
               <div className="text-center justify-items-center">
                 <div
-                  className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                    currentStep === 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
-                  }`}
+                  className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
+                    }`}
                 >
                   2
                 </div>
@@ -632,9 +630,8 @@ export function AddModuleModal({ onCourseCreated }) {
                               >
                                 <div className="flex items-center">
                                   <Checkbox
-                                    className={`mr-2 h-4 w-4 ${
-                                      course.category?.id === category.id ? "opacity-100" : "opacity-0"
-                                    }`}
+                                    className={`mr-2 h-4 w-4 ${course.category?.id === category.id ? "opacity-100" : "opacity-0"
+                                      }`}
                                   />
                                   {category.name}
                                 </div>
@@ -743,48 +740,47 @@ export function AddModuleModal({ onCourseCreated }) {
                 <div className="space-y-2">
                   <Label htmlFor="support-type">Type de support</Label>
                   <Select
-                      value={course.support.type}
-                      onValueChange={(value) => handleSupportChange(value, "")}
+                    value={course.support.type}
+                    onValueChange={(value) => handleSupportChange(value, "")}
                   >
-                      <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner le type de support" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          <SelectItem value="link">Lien</SelectItem>
-                          <SelectItem value="file">Fichier</SelectItem>
-                      </SelectContent>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner le type de support" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="link">Lien</SelectItem>
+                      <SelectItem value="file">Fichier</SelectItem>
+                    </SelectContent>
                   </Select>
                 </div>
                 {course.support.type === "link" ? (
                   <div className="space-y-2">
-                      <Label htmlFor="support-link">Lien du support</Label>
-                      <Input
-                          id="support-link"
-                          placeholder="Entrez le lien (https://...)"
-                          value={course.support.value}
-                          onChange={(e) => handleSupportChange("link", e.target.value)}
-                      />
+                    <Label htmlFor="support-link">Lien du support</Label>
+                    <Input
+                      id="support-link"
+                      placeholder="Entrez le lien (https://...)"
+                      value={course.support.value}
+                      onChange={(e) => handleSupportChange("link", e.target.value)}
+                    />
                   </div>
                 ) : (
                   <div className="space-y-2">
                     <Label>Fichier de support</Label>
                     <div
-                        {...getSupportRootProps()}
-                        className={`border-2 border-dashed p-4 text-center ${
-                            isSupportDragActive ? "border-blue-600 bg-blue-50" : "border-gray-300"
+                      {...getSupportRootProps()}
+                      className={`border-2 border-dashed p-4 text-center ${isSupportDragActive ? "border-blue-600 bg-blue-50" : "border-gray-300"
                         }`}
                     >
-                        <input {...getSupportInputProps()} accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/gif" />
-                        <p className="text-gray-600">
-                            {isSupportDragActive
-                                ? "Déposez le fichier ici..."
-                                : "Glissez-déposez un fichier ici, ou cliquez pour sélectionner (PDF, Word, JPEG, PNG, GIF, max 5 Mo)"}
-                        </p>
+                      <input {...getSupportInputProps()} accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/gif" />
+                      <p className="text-gray-600">
+                        {isSupportDragActive
+                          ? "Déposez le fichier ici..."
+                          : "Glissez-déposez un fichier ici, ou cliquez pour sélectionner (PDF, Word, JPEG, PNG, GIF, max 5 Mo)"}
+                      </p>
                     </div>
                     {course.support.value && course.support.type === "file" && (
-                        <p className="mt-2 text-sm text-gray-600">
-                            Fichier sélectionné : {course.support.value.name}
-                        </p>
+                      <p className="mt-2 text-sm text-gray-600">
+                        Fichier sélectionné : {course.support.value.name}
+                      </p>
                     )}
                   </div>
                 )}
@@ -810,7 +806,7 @@ export function AddModuleModal({ onCourseCreated }) {
                             required
                           />
                         </div>
-                      <div className="space-y-2">
+                        <div className="space-y-2">
                           <Label htmlFor={`endTime-${index}-${dateRangeIndex}`}>Heure de fin</Label>
                           <Input
                             id={`endTime-${index}-${dateRangeIndex}`}
@@ -885,11 +881,10 @@ export function AddModuleModal({ onCourseCreated }) {
                                       }
                                     >
                                       <Checkbox
-                                        className={`mr-2 h-4 w-4 ${
-                                          session.instructor === instructor.id
-                                            ? "opacity-100"
-                                            : "opacity-0"
-                                        }`}
+                                        className={`mr-2 h-4 w-4 ${session.instructor === instructor.id
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                          }`}
                                       />
                                       {instructor.label}
                                     </CommandItem>
@@ -994,7 +989,7 @@ export function AddModuleModal({ onCourseCreated }) {
                 <Button
                   variant="outline"
                   onClick={handleNextStep}
-                  // disabled={!course.title || !course.location || !course.category || !course.offline || !course.hidden || !course.budget || !course.image}
+                // disabled={!course.title || !course.location || !course.category || !course.offline || !course.hidden || !course.budget || !course.image}
                 >
                   Suivant
                   <ChevronRight className="h-4 w-4 ml-2" />

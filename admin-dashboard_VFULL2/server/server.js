@@ -8,7 +8,6 @@ const path = require('path');
 const dotenv = require('dotenv');
 
 const envPath = path.resolve(__dirname, '.env.production')
-// : path.resolve(__dirname, '.env.development');
 
 dotenv.config({ path: envPath });
 console.log(`✅ Chargement config depuis: ${envPath}`);

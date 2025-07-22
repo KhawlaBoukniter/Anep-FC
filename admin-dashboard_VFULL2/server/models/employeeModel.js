@@ -297,10 +297,7 @@ async function createEmployee(employeeData) {
     const client = await pool.connect();
     try {
         await client.query("BEGIN");
-        console.log("Creating employee with data:", employeeData);
-
         const { profile, emplois, competences, ...employeeFields } = employeeData;
-
         const insertProfileQuery = `
       INSERT INTO profile (
         "NOM PRENOM", "ADRESSE", "DATE NAISS", "DAT_REC", "CIN", 
@@ -328,11 +325,8 @@ async function createEmployee(employeeData) {
             profile.LIBELLE_LOC || null,
             profile.LIBELLE_REGION || null,
         ];
-        console.log("Profile query values:", profileValues);
-
         const profileResult = await client.query(insertProfileQuery, profileValues);
         const profileId = profileResult.rows[0].id_profile;
-
         const insertEmployeeQuery = `
       INSERT INTO employe (
         nom_complet, email, telephone1, telephone2, categorie, 
@@ -353,14 +347,10 @@ async function createEmployee(employeeData) {
             profileId,
             employeeFields.cin || null,
         ];
-        console.log("Employee query values:", employeeValues);
-
         const employeeResult = await client.query(insertEmployeeQuery, employeeValues);
         const newEmployee = employeeResult.rows[0];
-
         if (emplois && emplois.length > 0) {
             for (const job of emplois) {
-                console.log("Inserting job:", job);
                 await client.query(
                     "INSERT INTO emploi_employe (id_emploi, id_employe) VALUES ($1, $2) ON CONFLICT DO NOTHING",
                     [job.id_emploi, newEmployee.id_employe]
@@ -370,7 +360,6 @@ async function createEmployee(employeeData) {
 
         if (competences && competences.length > 0) {
             for (const skill of competences) {
-                console.log("Inserting skill:", skill);
                 await client.query(
                     "INSERT INTO employe_competencea (id_employe, id_competencea, niveaua) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
                     [newEmployee.id_employe, skill.id_competencea, skill.niveaua]
