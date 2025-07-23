@@ -26,12 +26,10 @@ const { CycleProgram, CycleProgramRegistration, CycleProgramUserModule } = requi
 const authenticateToken = (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
-        console.log('No token provided');
         return res.status(401).json({ message: 'Token requis' });
     }
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-        console.log('Decoded token:', decoded);
         req.user = decoded;
         next();
     } catch (error) {
@@ -81,7 +79,6 @@ router.get('/registrations', authenticateToken, async (req, res) => {
         return res.status(400).json({ message: 'user_id est requis' });
     }
     if (!req.user || user_id !== req.user.id.toString()) {
-        console.log('Access denied: user_id:', user_id, 'req.user:', req.user);
         return res.status(403).json({ message: 'Accès non autorisé' });
     }
 

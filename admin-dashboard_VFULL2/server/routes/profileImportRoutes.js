@@ -6,9 +6,6 @@ const { importProfiles, undoLastImport } = require("../controllers/profileImport
 const upload = multer({ dest: "uploads/" });
 
 router.post("/import", upload.single("file"), (req, res, next) => {
-    console.log("✅ Route /api/profiles/import bien appelée");
-    console.log("Fichier reçu :", req.file);
-    console.log("Corps de la requête :", req.body);
     next();
 }, importProfiles);
 

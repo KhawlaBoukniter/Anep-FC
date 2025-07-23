@@ -32,10 +32,10 @@ export function AddEmployeeModal() {
     DATE_NAISS: null,
     DAT_REC: null,
     CIN: null,
-    DETACHE: null, 
-    SEXE: null, 
-    SIT_F_AG: null, 
-    STATUT: null, 
+    DETACHE: null,
+    SEXE: null,
+    SIT_F_AG: null,
+    STATUT: null,
     DAT_POS: null,
     LIBELLE_GRADE: null,
     GRADE_ASSIMILE: null,
@@ -110,26 +110,15 @@ export function AddEmployeeModal() {
   }, [profileData["NOM PRENOM"]]);
 
   const emailExists = async (email) => {
-  try {
-    console.log("Sending request to check email:", {
-      url: `/employees/check-email`,
-      params: { email },
-    });
-    const response = await api.get(`/employees/check-email`, {
-      params: { email },
-    });
-    console.log("API response:", response.data);
-    return response.data.exists;
-  } catch (error) {
-    console.error("Error during email verification:", {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status,
-      config: error.config,
-    });
-    return false;
-  }
-};
+    try {
+      const response = await api.get(`/employees/check-email`, {
+        params: { email },
+      });
+      return response.data.exists;
+    } catch (error) {
+      return false;
+    }
+  };
 
   // const validatePersonalInfo = async () => {
   //   if (!profileData["NOM PRENOM"]?.trim() || profileData["NOM PRENOM"].length <= 2) {
@@ -158,7 +147,7 @@ export function AddEmployeeModal() {
   //     toast({ variant: "destructive", title: "Erreur", description: "Le CIN doit suivre le format valide (1-2 lettres suivies de 6-8 chiffres)." });
   //     return false;
   //   }
-    
+
   //   if (!profileData.SEXE) {
   //     toast({ variant: "destructive", title: "Erreur", description: "Le sexe est requis." });
   //     return false;
@@ -167,7 +156,6 @@ export function AddEmployeeModal() {
   // };
 
   // const validateProfessionalInfo = async () => {
-  //   console.log("Validating professional info:", { formData, selectedJobs });
   //   if (!formData.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
   //     toast({ variant: "destructive", title: "Erreur", description: "Un email valide est requis." });
   //     return false;
@@ -295,11 +283,9 @@ export function AddEmployeeModal() {
         code_competencea: `COMP_${skillName.slice(0, 3).toUpperCase()}_${Date.now()}`,
         competencea: skillName,
       };
-      console.log("Attempting to create skill:", newSkill);
       const response = await new Promise((resolve, reject) => {
         createSkill(newSkill, {
           onSuccess: (data) => {
-            console.log("Skill created successfully:", data);
             resolve(data);
           },
           onError: (error) => {
@@ -390,7 +376,6 @@ export function AddEmployeeModal() {
       },
     };
 
-    console.log("Final data to send:", finalData);
 
     createEmployee(finalData, {
       onSuccess: () => {
@@ -511,9 +496,8 @@ export function AddEmployeeModal() {
           <div className="flex items-center justify-center gap-4">
             <div className="justify-items-center">
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  currentStep === 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
-                }`}
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
+                  }`}
               >
                 1
               </div>
@@ -522,9 +506,8 @@ export function AddEmployeeModal() {
             <div className="w-16 h-0.5 bg-gray-200"></div>
             <div className="justify-items-center">
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  currentStep === 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
-                }`}
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
+                  }`}
               >
                 2
               </div>
@@ -533,9 +516,8 @@ export function AddEmployeeModal() {
             <div className="w-16 h-0.5 bg-gray-200"></div>
             <div className="justify-items-center">
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  currentStep === 3 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
-                }`}
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 3 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
+                  }`}
               >
                 3
               </div>
@@ -828,11 +810,10 @@ export function AddEmployeeModal() {
                               onSelect={() => handleJobToggle(job)}
                             >
                               <Check
-                                className={`mr-2 h-4 w-4 ${
-                                  formData.emplois?.some((j) => j.id_emploi === job.id_emploi)
+                                className={`mr-2 h-4 w-4 ${formData.emplois?.some((j) => j.id_emploi === job.id_emploi)
                                     ? "opacity-100"
                                     : "opacity-0"
-                                }`}
+                                  }`}
                               />
                               <div className="w-full">
                                 <span className="font-bold">{job.codeemploi} :</span> {job.nom_emploi}
@@ -920,11 +901,10 @@ export function AddEmployeeModal() {
                                     onSelect={() => !isListed && addAdditionalJobSkill(skill.id_competencea)}
                                   >
                                     <Check
-                                      className={`mr-2 h-4 w-4 ${
-                                        additionalJobSkills.some((s) => s.id_competencea === skill.id_competencea)
+                                      className={`mr-2 h-4 w-4 ${additionalJobSkills.some((s) => s.id_competencea === skill.id_competencea)
                                           ? "opacity-100"
                                           : "opacity-0"
-                                      }`}
+                                        }`}
                                     />
                                     <span>{skill.competencea}</span>
                                   </CommandItem>
@@ -939,7 +919,7 @@ export function AddEmployeeModal() {
                 {/* Compétences requises pour l'emploi */}
                 {requiredSkills.length > 0 && (
                   <div className="space-y-3">
-                    <h4 
+                    <h4
                       className="text-md font-semibold text-green-700 bg-green-100 p-2 rounded flex justify-between items-center cursor-pointer"
                       onClick={() => toggleSkillSection('required')}
                     >
@@ -980,7 +960,7 @@ export function AddEmployeeModal() {
                 {/* Compétences supplémentaires des emplois */}
                 {additionalJobSkills.length > 0 && (
                   <div className="space-y-3">
-                    <h4 
+                    <h4
                       className="text-md font-semibold text-blue-700 bg-blue-100 p-2 rounded flex justify-between items-center cursor-pointer"
                       onClick={() => toggleSkillSection('additional')}
                     >
@@ -1029,7 +1009,7 @@ export function AddEmployeeModal() {
                 {/* Compétences complémentaires */}
                 {complementarySkills.length > 0 && (
                   <div className="space-y-3">
-                    <h4 
+                    <h4
                       className="text-md font-semibold text-purple-700 bg-purple-100 p-2 rounded flex justify-between items-center cursor-pointer"
                       onClick={() => toggleSkillSection('complementary')}
                     >

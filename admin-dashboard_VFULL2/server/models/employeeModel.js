@@ -82,9 +82,7 @@ async function getAllEmployees({ search, role, archived }) {
     query += ` GROUP BY e.id_employe, p.id_profile ORDER BY e.created_at`;
 
     try {
-        console.log("Executing query:", query, "with params:", params);
         const result = await pool.query(query, params);
-        console.log("Query result rows:", result.rows);
         return result.rows.map(row => ({
             id_employe: row.id_employe.toString(),
             nom_complet: row.nom_complet,
@@ -394,8 +392,6 @@ async function updateEmployee(id, employeeData) {
             RETURNING *
         `;
 
-        console.log("🔥 SQL updateEmployee executing for ID:", id);
-
         const employeeValues = [
             data.nom_complet || null,
             data.email || null,
@@ -417,7 +413,6 @@ async function updateEmployee(id, employeeData) {
         }
 
         if (profile) {
-            console.log(profile);
 
             if (data.profile_id) {
                 const updateProfileQuery = `
@@ -448,7 +443,6 @@ async function updateEmployee(id, employeeData) {
                     data.profile_id,
                 ];
                 await client.query(updateProfileQuery, profileValues);
-                console.log("📅 Updating DAT_POS with value:", profile.DAT_POS);
             } else {
                 const checkProfileQuery = `
                     SELECT id_profile FROM profile WHERE id_profile = (SELECT profile_id FROM employe WHERE id_employe = $1)
@@ -606,9 +600,7 @@ async function checkEmailExists(email) {
         (SELECT password IS NOT NULL FROM employe WHERE email = $1 AND archived = false) AS has_password
     `;
     try {
-        console.log("Executing query with email:", email);
         const result = await pool.query(query, [email]);
-        console.log("Database response:", result.rows[0]);
         return {
             exists: result.rows[0].exists,
             hasPassword: result.rows[0].has_password

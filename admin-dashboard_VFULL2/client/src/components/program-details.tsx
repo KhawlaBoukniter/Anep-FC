@@ -184,11 +184,6 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
         return;
       }
 
-      // console.log('Sending enrollment request:', {
-      //   user_id: userId,
-      //   module_ids: JSON.stringify(selectedModules),
-      // });
-
       const response = await axios.post(
         `${API_BASE_URL}/api/cycles-programs/${program.id}/register`,
         {
@@ -256,7 +251,7 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
         <div className="absolute inset-0 bg-black bg-opacity-20"></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="flex items-center mb-6">
-           
+
             <span
               className="px-4 py-2 bg-green-600 bg-opacity-80 rounded-full text-sm font-semibold"
               aria-label="Programme spécialisé"
@@ -276,55 +271,55 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
             {enrolledFormations.length > 0 && (
               // <div className="mt-6 p-4 bg-green-100 border-2 border-green-300 rounded-xl inline-block">
               //   <span className="text-green-800 font-semibold" aria-label="Statut de l'inscription">
-                <>
-                  {(() => {
-                    const acceptedCount = formationsWithStatus.filter(f => f.registrationStatus === "accepted").length;
-                    const pendingCount = formationsWithStatus.filter(f => f.registrationStatus === "pending").length;
-                    const rejectedCount = formationsWithStatus.filter(f => f.registrationStatus === "rejected").length;
-                    const totalEnrolled = acceptedCount + pendingCount + rejectedCount;
+              <>
+                {(() => {
+                  const acceptedCount = formationsWithStatus.filter(f => f.registrationStatus === "accepted").length;
+                  const pendingCount = formationsWithStatus.filter(f => f.registrationStatus === "pending").length;
+                  const rejectedCount = formationsWithStatus.filter(f => f.registrationStatus === "rejected").length;
+                  const totalEnrolled = acceptedCount + pendingCount + rejectedCount;
 
-                    const messages: React.ReactNode[] = [];
+                  const messages: React.ReactNode[] = [];
 
-                    if (acceptedCount > 0) {
-                      messages.push(
-                        <div className="mt-6 p-4 bg-green-100 border-2 border-green-300 rounded-xl inline-block">
-                          <span className="text-green-800 font-semibold" aria-label="Statut de l'inscription">
-                            ✅ Vous êtes inscrit à {acceptedCount} module(s) sur {program.formations.length} dans {program.title}.
-                          </span>
-                        </div>
-                      );
-                    } 
-                    if (pendingCount > 0) {
-                      messages.push(
-                        <div className="mt-6 p-4 bg-yellow-100 border-2 border-yellow-300 rounded-xl inline-block">
-                          <span className="text-yellow-800 font-semibold" aria-label="Statut de l'inscription">
-                            ⏳ Vous avez {pendingCount} module(s) en attente sur {program.formations.length} dans {program.title}.
-                          </span>
-                        </div>
-                      );
-                    } 
-                    if (rejectedCount > 0) {
-                      messages.push(
-                        <div className="mt-6 p-4 bg-red-100 border-2 border-red-300 rounded-xl inline-block">
-                          <span className="text-red-800 font-semibold" aria-label="Statut de l'inscription">
-                            ❌ Vous avez {rejectedCount} module(s) rejeté(s) sur {program.formations.length} dans {program.title}.
-                          </span>
-                        </div>
-                      );
-                    }
-                    if (messages.length === 0) {
-                      messages.push(
-                        <div className="mt-6 p-4 bg-green-100 border-2 border-green-300 rounded-xl inline-block">
-                          <span className="text-green-800 font-semibold" aria-label="Statut de l'inscription">
-                            ✅ Vous êtes inscrit à {totalEnrolled} module(s) sur {program.formations.length} dans {program.title}.
-                          </span>
-                        </div>
-                      );
-                    }
+                  if (acceptedCount > 0) {
+                    messages.push(
+                      <div className="mt-6 p-4 bg-green-100 border-2 border-green-300 rounded-xl inline-block">
+                        <span className="text-green-800 font-semibold" aria-label="Statut de l'inscription">
+                          ✅ Vous êtes inscrit à {acceptedCount} module(s) sur {program.formations.length} dans {program.title}.
+                        </span>
+                      </div>
+                    );
+                  }
+                  if (pendingCount > 0) {
+                    messages.push(
+                      <div className="mt-6 p-4 bg-yellow-100 border-2 border-yellow-300 rounded-xl inline-block">
+                        <span className="text-yellow-800 font-semibold" aria-label="Statut de l'inscription">
+                          ⏳ Vous avez {pendingCount} module(s) en attente sur {program.formations.length} dans {program.title}.
+                        </span>
+                      </div>
+                    );
+                  }
+                  if (rejectedCount > 0) {
+                    messages.push(
+                      <div className="mt-6 p-4 bg-red-100 border-2 border-red-300 rounded-xl inline-block">
+                        <span className="text-red-800 font-semibold" aria-label="Statut de l'inscription">
+                          ❌ Vous avez {rejectedCount} module(s) rejeté(s) sur {program.formations.length} dans {program.title}.
+                        </span>
+                      </div>
+                    );
+                  }
+                  if (messages.length === 0) {
+                    messages.push(
+                      <div className="mt-6 p-4 bg-green-100 border-2 border-green-300 rounded-xl inline-block">
+                        <span className="text-green-800 font-semibold" aria-label="Statut de l'inscription">
+                          ✅ Vous êtes inscrit à {totalEnrolled} module(s) sur {program.formations.length} dans {program.title}.
+                        </span>
+                      </div>
+                    );
+                  }
 
-                    return messages;
-                  })()}
-                </>
+                  return messages;
+                })()}
+              </>
               //   </span>
               // </div>
             )}
@@ -339,16 +334,16 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
 
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
-           <button
-              onClick={onBack}
-              className="flex items-center text-black font-bold bg-blue-600 w-24 border-2 border-blue-300 rounded-xl h-10 hover:text-gray-200 transition-colors duration-200 mr-6"
-              aria-label="Retour à la liste des formations"
-            >
-              <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Retour
-            </button>
+          <button
+            onClick={onBack}
+            className="flex items-center text-black font-bold bg-blue-600 w-24 border-2 border-blue-300 rounded-xl h-10 hover:text-gray-200 transition-colors duration-200 mr-6"
+            aria-label="Retour à la liste des formations"
+          >
+            <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Retour
+          </button>
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-[#06668C] mb-4">Modules de ce programme spécialisé</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -370,11 +365,10 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                 <button
                   onClick={handleEnrollProgram}
                   disabled={selectedModules.length === 0 || !userId}
-                  className={`py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${
-                    selectedModules.length === 0 || !userId
+                  className={`py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${selectedModules.length === 0 || !userId
                       ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                       : `bg-gradient-to-r ${program.color} text-white hover:shadow-lg transform hover:-translate-y-1`
-                  }`}
+                    }`}
                   aria-label={`S'inscrire à ${selectedModules.length} module(s)`}
                   aria-disabled={selectedModules.length === 0 || !userId ? "true" : "false"}
                 >
@@ -414,20 +408,19 @@ const ProgramDetails: React.FC<ProgramDetailsProps> = ({ program, onBack, enroll
                   </button>
                   {formation.registrationStatus ? (
                     <span
-                      className={`px-3 py-1 text-white text-xs font-semibold rounded-full ${
-                        formation.registrationStatus === "accepted"
+                      className={`px-3 py-1 text-white text-xs font-semibold rounded-full ${formation.registrationStatus === "accepted"
                           ? "bg-green-500"
                           : formation.registrationStatus === "pending"
-                          ? "bg-yellow-500"
-                          : "bg-red-500"
-                      }`}
+                            ? "bg-yellow-500"
+                            : "bg-red-500"
+                        }`}
                       aria-label={`Statut du module : ${formation.registrationStatus}`}
                     >
                       {formation.registrationStatus === "accepted"
                         ? "✓ Retenue"
                         : formation.registrationStatus === "pending"
-                        ? "⏳ En attente"
-                        : "❌ Rejeté"}
+                          ? "⏳ En attente"
+                          : "❌ Rejeté"}
                     </span>
                   ) : (
                     <input

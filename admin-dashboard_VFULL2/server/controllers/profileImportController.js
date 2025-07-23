@@ -11,8 +11,6 @@ function normalizeDate(dateStr) {
         ? `${dateStr.getFullYear()}-${String(dateStr.getMonth() + 1).padStart(2, '0')}-${String(dateStr.getDate()).padStart(2, '0')}`
         : dateStr.toString().trim();
 
-    console.log(`normalizeDate input: ${dateStr} -> ${dateString}`);
-
     const ddMmYyyy = dateString.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
     if (ddMmYyyy) {
         const [, day, month, year] = ddMmYyyy;
@@ -30,7 +28,6 @@ function normalizeDate(dateStr) {
         return dateString;
     }
 
-    console.log(`Date non reconnue, conservée comme chaîne : ${dateString}`);
     return dateString;
 }
 
@@ -44,10 +41,8 @@ function isDateOneDayApart(date1, date2) {
 }
 
 async function importProfiles(req, res) {
-    console.log("📦 Début de l'importation des profils");
 
     if (!req.file) {
-        console.log("📂 Aucun fichier reçu");
         return res.status(400).json({ message: "Fichier manquant" });
     }
 
@@ -64,7 +59,6 @@ async function importProfiles(req, res) {
             fs.createReadStream(filePath)
                 .pipe(parse({ columns: true, delimiter: ";" }))
                 .on("data", (data) => {
-                    console.log("Données CSV brutes :", data);
                     results.push(data);
                 })
                 .on("error", (err) => {
@@ -72,7 +66,6 @@ async function importProfiles(req, res) {
                     throw err;
                 })
                 .on("end", () => {
-                    console.log("⏹️ Fin du parsing CSV, lignes lues :", results.length);
                     processData();
                 });
         } else if (fileExtension === ".xlsx" || fileExtension === ".xls") {
@@ -80,16 +73,12 @@ async function importProfiles(req, res) {
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
             results.push(...xlsx.utils.sheet_to_json(worksheet, { raw: true, cellDates: false }));
-            console.log("Données Excel brutes (première ligne) :", results[0]);
-            console.log("⏹️ Fin du parsing Excel, lignes lues :", results.length);
             processData();
         } else {
             return res.status(400).json({ message: "Format de fichier non pris en charge. Utilisez .csv, .xlsx ou .xls" });
         }
 
         async function processData() {
-            console.log("=== DÉBUT MISE À JOUR DES PROFILS ===");
-
             for (const row of results) {
                 const CIN = row["CIN"]?.trim();
                 const nomPrenom = row["NOM PRENOM"]?.trim();
@@ -134,7 +123,6 @@ async function importProfiles(req, res) {
                         [CIN || nomPrenom, JSON.stringify(formatted)]
                     );
                     inserted++;
-                    console.log("✅ Nouveau profil ajouté :", CIN || nomPrenom);
                 } else {
                     let hasChanged = false;
                     const before = { ...current };
@@ -152,7 +140,6 @@ async function importProfiles(req, res) {
                         const afterValue = (after[key] || "").toString().trim();
                         if (beforeValue !== afterValue && beforeValue !== "" && afterValue !== "") {
                             if (key.match(/DATE|DAT/) && isDateOneDayApart(beforeValue, afterValue)) {
-                                console.log(`Décalage d'un jour toléré pour ${key}: ${beforeValue} -> ${afterValue}`);
                                 continue;
                             }
                             hasChanged = true;
@@ -161,7 +148,6 @@ async function importProfiles(req, res) {
                     }
 
                     if (hasChanged) {
-                        console.log(`Modification détectée pour ${CIN || nomPrenom}:`, changedFields);
                         await db.query(
                             `UPDATE profile SET ${Object.keys(formatted).map((k, i) => `"${k}" = $${i + 1}`).join(", ")} 
                              WHERE "CIN" = $${Object.keys(formatted).length + 1} OR "NOM PRENOM" = $${Object.keys(formatted).length + 2}`,
@@ -174,16 +160,13 @@ async function importProfiles(req, res) {
                         );
                         updates.push({ identifier: CIN || nomPrenom, before, after, changedFields });
                         updated++;
-                        console.log("🟡 Profil modifié :", CIN || nomPrenom, "Champs modifiés :", changedFields.map(c => c.field).join(", "));
                     } else {
                         unchanged++;
-                        console.log("➖ Profil inchangé :", CIN || nomPrenom);
                     }
                 }
             }
 
             fs.unlinkSync(filePath);
-            console.log("=== MISE À JOUR TERMINÉE ===");
             res.status(200).json({ inserted, updated, unchanged, updates });
         }
     } catch (err) {

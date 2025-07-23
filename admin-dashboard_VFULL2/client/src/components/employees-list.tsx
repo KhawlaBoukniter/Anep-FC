@@ -74,11 +74,9 @@ export function EmployeesList() {
 
   const handleImportProfiles = async () => {
     if (!fileToUpload) {
-      console.log("Aucun fichier sélectionné");
       return;
     }
 
-    console.log("Fichier sélectionné :", fileToUpload.name, fileToUpload.size);
 
     const formData = new FormData();
     formData.append("file", fileToUpload);
@@ -89,9 +87,7 @@ export function EmployeesList() {
         credentials: 'include',
         body: formData,
       });
-      console.log("Réponse serveur :", res.status, res.statusText);
       const data = await res.json();
-      console.log("Données reçues :", data);
       setChangeDetails(data.updates || []);
       const summary = `Import terminé. ${data.inserted} ajouté(s), ${data.updated} modifié(s), ${data.unchanged} inchangé(s).`;
       setSyncStatus(summary);
@@ -114,7 +110,6 @@ export function EmployeesList() {
         },
       });
       const data = await response.json();
-      console.log("Sync response:", data);
       if (response.ok) {
         setSyncStatus(
           `Synchronisation terminée à ${new Date().toLocaleTimeString("fr-FR", {
