@@ -101,6 +101,10 @@ app.post('/messages', async (req, res) => {
   }
 });
 
+app.get('/ping', (req, res) => {
+  res.status(200).send('pong');
+});
+
 // Test route
 app.get('/api/health', (req, res) => {
   res.json({ status: "OK", timestamp: new Date().toISOString(), environment: process.env.NODE_ENV });
