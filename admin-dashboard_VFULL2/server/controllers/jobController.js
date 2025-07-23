@@ -97,7 +97,6 @@ exports.deleteJob = async (req, res) => {
 
 exports.archiveJob = async (req, res) => {
   try {
-    console.log("Archive job request for id:", req.params.id);
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "ID invalide." });
 
@@ -114,7 +113,6 @@ exports.archiveJob = async (req, res) => {
 
 exports.unarchiveJob = async (req, res) => {
   try {
-    console.log("Unarchive job request for id:", req.params.id);
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "ID invalide." });
 

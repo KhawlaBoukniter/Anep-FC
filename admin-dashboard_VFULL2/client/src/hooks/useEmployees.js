@@ -5,7 +5,6 @@ import { employeeService } from "../services/api";
 export const useEmployees = (filters = {}) => {
   return useQuery(["employees", filters], () => employeeService.getAll(filters), {
     select: (response) => {
-      console.log("Raw response from API:", response);
       return response.data.map((employee) => ({
         ...employee,
         profile: employee.profile || null,
@@ -13,8 +12,6 @@ export const useEmployees = (filters = {}) => {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes
-    onSuccess: (data) => console.log("Successfully fetched employees:", data),
-    onError: (error) => console.error("Error fetching employees:", error),
   });
 };
 
@@ -35,7 +32,6 @@ export const useCreateEmployee = () => {
 
   return useMutation({
     mutationFn: async (data) => {
-      console.log("Mutation data received:", data);
       const existingSkills = data.competences
         .filter((skill) => skill.id_competencea >= 0)
         .map((skill) => ({
@@ -65,7 +61,6 @@ export const useCreateEmployee = () => {
           LIBELLE_REGION: data.profile.LIBELLE_REGION || null,
         },
       };
-      console.log("Mutation final data received:", finalData);
 
       return employeeService.create(finalData);
     },

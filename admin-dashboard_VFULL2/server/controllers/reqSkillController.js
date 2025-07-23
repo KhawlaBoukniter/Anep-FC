@@ -24,7 +24,6 @@ async function getSkills(req, res) {
   try {
     const { search, archived } = req.query;
     const archivedBool = archived === "true" || archived === true; // Convert to boolean
-    console.log("getSkills called with:", { search, archived, archivedBool }); // Debug log
     const skills = await skillModel.getAllSkills({ search, archived: archivedBool });
     res.json(skills);
   } catch (error) {
@@ -134,7 +133,6 @@ async function unarchiveSkill(req, res) {
 async function getRequiredSkills(req, res) {
   try {
     const { jobIds } = req.query;
-    console.log("jobids reçu:", jobIds);
 
     if (!jobIds) {
       return res.status(400).json({ error: "Les IDs des emplois sont requis." });

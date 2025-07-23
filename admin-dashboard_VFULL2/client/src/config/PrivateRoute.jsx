@@ -6,11 +6,9 @@ import PropTypes from "prop-types";
 const PrivateRoute = ({ children }) => {
   const [currentUser] = useContext(UserContext);
 
-  // console.log("Current user in PrivateRoute:", currentUser);
 
   if (!currentUser) {
-    console.log("Redirecting to /Auth");
-    return <Navigate to="/Auth" />;
+    return <Navigate to="/" />;
   }
 
   return children;

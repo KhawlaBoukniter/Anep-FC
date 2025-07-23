@@ -7,14 +7,12 @@ const SECRET_KEY = process.env.JWT_SECRET || "your-secret-key";
 
 async function getEmployees(req, res) {
     try {
-        console.log("Get employees request:", req.query);
         const { search, role, archived = false } = req.query;
         const employees = await employeeModel.getAllEmployees({
             search,
             role,
             archived: archived === "true",
         });
-        console.log("Employees fetched:", employees);
         res.json(employees);
     } catch (error) {
         console.error("Controller error in getEmployees:", error.stack);
@@ -24,7 +22,6 @@ async function getEmployees(req, res) {
 
 async function getEmployee(req, res) {
     try {
-        console.log("Get employee request for id:", req.params.id);
         const id = parseInt(req.params.id);
         if (isNaN(id)) return res.status(400).json({ message: "ID invalide." });
 
@@ -32,16 +29,9 @@ async function getEmployee(req, res) {
         if (!token) return res.status(401).json({ message: "Token requis." });
 
         const decoded = jwt.verify(token, SECRET_KEY);
-        console.log("Decoded token:", decoded);
         const user = await employeeModel.getEmployeeById(decoded.id);
-        console.log("Authenticated user:", user);
-
-        // if (decoded.id !== id && decoded.role !== "admin") {
-        //     return res.status(403).json({ message: "Accès non autorisé." });
-        // }
 
         const employee = await employeeModel.getEmployeeById(id);
-        console.log("Employee fetched:", employee);
         if (!employee) return res.status(404).json({ message: "Employé non trouvé." });
 
         res.json(employee);
@@ -53,15 +43,12 @@ async function getEmployee(req, res) {
 
 async function createEmployee(req, res) {
     try {
-        console.log("Create employee request:", req.body);
         const { error, value } = employeeSchema.validate(req.body, { abortEarly: false });
         if (error) {
-            console.log("Validation errors:", error.details.map((e) => e.message));
             return res.status(400).json({ errors: error.details.map((e) => e.message) });
         }
 
         const newEmployee = await employeeModel.createEmployee(value);
-        console.log("Employee created:", newEmployee);
         res.status(201).json(newEmployee);
     } catch (error) {
         console.error("Controller error in createEmployee:", error.stack);
@@ -73,9 +60,7 @@ async function createEmployee(req, res) {
 }
 
 async function updateEmployee(req, res) {
-    console.log("🔥🔥🔥 API CALL: updateEmployee REACHED");
     try {
-        console.log("Update employee request for id:", req.params.id, "with data:", req.body);
         const id = parseInt(req.params.id);
         if (isNaN(id)) return res.status(400).json({ message: "ID invalide." });
 
@@ -88,7 +73,6 @@ async function updateEmployee(req, res) {
         };
 
         if (profile) {
-            console.log(profile);
 
             const profileFields = {
                 "NOM PRENOM": profile["NOM PRENOM"] || null,
@@ -116,12 +100,10 @@ async function updateEmployee(req, res) {
 
         const { error, value } = employeeSchema.validate(filteredData, { abortEarly: false });
         if (error) {
-            console.log("Validation errors:", error.details.map((e) => e.message));
             return res.status(400).json({ errors: error.details.map((e) => e.message) });
         }
 
         const updatedEmployee = await employeeModel.updateEmployee(id, value);
-        console.log("Employee updated:", updatedEmployee);
         if (!updatedEmployee) {
             return res.status(404).json({ message: "Employé non trouvé." });
         }
@@ -137,7 +119,6 @@ async function updateEmployee(req, res) {
 
 async function archiveEmployee(req, res) {
     try {
-        console.log("Archive employee request for id:", req.params.id);
         const id = parseInt(req.params.id);
         if (isNaN(id)) return res.status(400).json({ message: "ID invalide." });
 
@@ -154,7 +135,6 @@ async function archiveEmployee(req, res) {
 
 async function unarchiveEmployee(req, res) {
     try {
-        console.log("Unarchive employee request for id:", req.params.id);
         const id = parseInt(req.params.id);
         if (isNaN(id)) return res.status(400).json({ message: "ID invalide." });
 
@@ -171,7 +151,6 @@ async function unarchiveEmployee(req, res) {
 
 async function deleteEmployee(req, res) {
     try {
-        console.log("Delete employee request for id:", req.params.id);
         const id = parseInt(req.params.id);
         if (isNaN(id)) return res.status(400).json({ message: "ID invalide." });
 
@@ -188,15 +167,11 @@ async function deleteEmployee(req, res) {
 
 async function checkEmail(req, res) {
     try {
-        console.log("Received check email request:", req.query);
         const { email } = req.query;
         if (!email) {
-            console.log("Email parameter is missing or empty");
             return res.status(400).json({ message: "Email requis." });
         }
-        console.log("Checking existence of email:", email);
         const { exists, hasPassword } = await employeeModel.checkEmailExists(email);
-        console.log("Email check result:", { exists, hasPassword });
         res.json({ exists, hasPassword });
     } catch (error) {
         console.error("Controller error in checkEmail:", error.stack);
@@ -206,7 +181,6 @@ async function checkEmail(req, res) {
 
 async function login(req, res) {
     try {
-        console.log("Received login request:", req.body);
         const { email, password } = req.body;
         if (!email || !password) {
             return res.status(400).json({ message: "Email et mot de passe requis." });
@@ -216,10 +190,8 @@ async function login(req, res) {
             return res.status(401).json({ message: "Email ou mot de passe incorrect." });
         }
         const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, SECRET_KEY, { expiresIn: "1h" });
-        console.log("Login successful, token generated for:", email);
 
         const redirectUrl = user.role === 'admin' ? '/dashboard' : '/formation';
-        console.log(redirectUrl);
 
         res.json({
             token,
@@ -252,7 +224,6 @@ async function verifySession(req, res) {
 
 async function savePassword(req, res) {
     try {
-        console.log("Received save password request:", req.body);
         const { email, password, confirmPassword } = req.body;
         if (!email || !password || !confirmPassword) {
             return res.status(400).json({ message: "Email et mots de passe requis." });
@@ -266,7 +237,6 @@ async function savePassword(req, res) {
         }
         const user = await employeeModel.getEmployeeByEmail(email);
         const token = jwt.sign({ id: user.id, email: user.email }, SECRET_KEY, { expiresIn: "1h" });
-        console.log("Password saved, token generated for:", email);
         res.json({ isSaved: true, token, user: { id: user.id, email: user.email } });
     } catch (error) {
         console.error("Controller error in savePassword:", error.stack);

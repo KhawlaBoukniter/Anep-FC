@@ -255,7 +255,6 @@ export function AddModuleModal({ onCourseCreated }) {
     updatedTimes[sessionIndex].dateRanges.push({ startTime: "", endTime: "" });
     setCourse((prev) => {
       const newCourse = { ...prev, times: updatedTimes };
-      console.log("After adding date range:", newCourse.times[sessionIndex].dateRanges);
       return newCourse;
     });
   };
@@ -405,20 +404,12 @@ export function AddModuleModal({ onCourseCreated }) {
         formData.append("support", course.support.value);
       }
 
-      // Debug: Log FormData contents
-      console.log("FormData contents:");
-      for (let [key, value] of formData.entries()) {
-        console.log(`${key}: ${value.name || value}`);
-      }
-
-      console.log("Uploading CVs & support...");
       // const imageUploadResponse = await useApiAxios.post("/courses/uploadImage", formData, {
       //   headers: { "Content-Type": "multipart/form-data" },
       // });
 
       // if (imageUploadResponse.status === 200) {
       //   const { imageUrl, cvUrls, supportUrl } = imageUploadResponse.data;
-      //   console.log("Image uploaded successfully, imageUrl:", imageUrl, "cvUrls:", cvUrls, "supportUrl:", supportUrl);
 
       const finalCourseData = {
         ...course,
@@ -440,7 +431,6 @@ export function AddModuleModal({ onCourseCreated }) {
         // interestedUsers: [],
       };
 
-      console.log("Submitting course data:", finalCourseData);
       const response = await useApiAxios.post("/courses", finalCourseData);
 
       if (response.status === 201) {

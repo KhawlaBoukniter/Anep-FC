@@ -302,8 +302,6 @@ const registerUserToCycleProgram = async (req, res) => {
     const { id } = req.params;
     const { user_id, module_ids } = req.body;
 
-    console.log(`Registering user ${user_id} to cycle_program ${id} with modules:`, module_ids);
-
     try {
         const parsedProgramId = parseInt(id, 10);
         const parsedUserId = parseInt(user_id, 10);
@@ -359,7 +357,6 @@ const registerUserToCycleProgram = async (req, res) => {
             }
 
             await transaction.commit();
-            console.log(`Registration created with id: ${registration.id}`);
             res.status(200).json({ message: 'Inscription en attente de validation', registrationId: registration.id });
         } catch (innerError) {
             await transaction.rollback();
@@ -537,13 +534,11 @@ const getRegistrationsByProgramId = async (req, res) => {
     const { id } = req.params;
     const { user_id } = req.query;
 
-    console.log(`Fetching registrations for cycle_program_id: ${id}, user_id: ${user_id}`);
 
     if (!user_id) {
         return res.status(400).json({ message: 'user_id est requis' });
     }
     if (!req.user || user_id !== req.user.id.toString()) {
-        console.log('Access denied: user_id:', user_id, 'req.user:', req.user);
         return res.status(403).json({ message: 'Accès non autorisé' });
     }
 
@@ -585,7 +580,6 @@ const getRegistrationsByProgramId = async (req, res) => {
             return acc;
         }, {});
 
-        console.log(`Registrations fetched for program ${id}:`, registrations.length);
         res.status(200).json({
             registrations,
             moduleStatuses,

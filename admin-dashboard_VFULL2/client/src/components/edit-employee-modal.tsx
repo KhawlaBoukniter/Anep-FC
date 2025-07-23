@@ -149,17 +149,11 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
     initializeRequiredSkills();
   }, [formData.emplois, employee.competences, toast]);
 
-  useEffect(() => {
-    console.log("formData.emplois:", formData.emplois);
-  }, [formData.emplois]);
 
   useEffect(() => {
     setFormData((prev) => ({ ...prev, nom_complet: profileData["NOM PRENOM"] || "" }));
   }, [profileData["NOM PRENOM"]]);
 
-  useEffect(() => {
-    console.log("Formatted DAT_POS value:", profileData.DAT_POS);
-  }, [profileData.DAT_POS]);
 
   const emailExists = async (email: string) => {
     try {
@@ -369,8 +363,8 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
       const existing = acc.find((s) => Number(s.id_competencea) === Number(skill.id_competencea));
       return existing
         ? acc.map((s) =>
-            Number(s.id_competencea) === Number(skill.id_competencea) ? { ...s, niveaua: skill.niveaua } : s
-          )
+          Number(s.id_competencea) === Number(skill.id_competencea) ? { ...s, niveaua: skill.niveaua } : s
+        )
         : [...acc, { id_competencea: skill.id_competencea, niveaua: skill.niveaua }];
     }, [] as { id_competencea: number; niveaua: number }[]);
 
@@ -491,9 +485,8 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
           <div className="flex items-center justify-center gap-4">
             <div className="justify-items-center">
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  currentStep === 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
-                }`}
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
+                  }`}
               >
                 1
               </div>
@@ -502,9 +495,8 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
             <div className="w-16 h-0.5 bg-gray-200"></div>
             <div className="justify-items-center">
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  currentStep === 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
-                }`}
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
+                  }`}
               >
                 2
               </div>
@@ -513,9 +505,8 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
             <div className="w-16 h-0.5 bg-gray-200"></div>
             <div className="justify-items-center">
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  currentStep === 3 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
-                }`}
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 3 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
+                  }`}
               >
                 3
               </div>
@@ -633,7 +624,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                 <Input
                   id="dat_rec"
                   type="date"
-                  value={profileData.DAT_REC ? new Date(profileData.DAT_REC).toISOString().split("T")[0] : profileData.DAT_REC || "" }
+                  value={profileData.DAT_REC ? new Date(profileData.DAT_REC).toISOString().split("T")[0] : profileData.DAT_REC || ""}
                   onChange={(e) => handleProfileInputChange("DAT_REC", e.target.value)}
                 />
               </div>
@@ -732,7 +723,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                     />
                   </div>
                 </div>
-                  <div className="space-y-2">
+                <div className="space-y-2">
                   <Label htmlFor="dat_fct">Date de fonction</Label>
                   <Input
                     id="dat_fct"
@@ -769,7 +760,7 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                   onChange={(e) => handleProfileInputChange("LIBELLE_FONCTION", e.target.value)}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="libelle_loc">Localisation</Label>
                 <Input
@@ -817,11 +808,10 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                               onSelect={() => handleJobToggle(job)}
                             >
                               <Check
-                                className={`mr-2 h-4 w-4 ${
-                                  formData.emplois?.some((j) => j.id_emploi === job.id_emploi)
+                                className={`mr-2 h-4 w-4 ${formData.emplois?.some((j) => j.id_emploi === job.id_emploi)
                                     ? "opacity-100"
                                     : "opacity-0"
-                                }`}
+                                  }`}
                               />
                               <div className="w-full">
                                 <span className="font-bold">{job.codeemploi} :</span> {job.nom_emploi}
@@ -908,11 +898,10 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                                     onSelect={() => !isListed && addAdditionalJobSkill(skill.id_competencea)}
                                   >
                                     <Check
-                                      className={`mr-2 h-4 w-4 ${
-                                        additionalJobSkills.some((s) => s.id_competencea === skill.id_competencea)
+                                      className={`mr-2 h-4 w-4 ${additionalJobSkills.some((s) => s.id_competencea === skill.id_competencea)
                                           ? "opacity-100"
                                           : "opacity-0"
-                                      }`}
+                                        }`}
                                     />
                                     <span>{skill.competencea}</span>
                                   </CommandItem>

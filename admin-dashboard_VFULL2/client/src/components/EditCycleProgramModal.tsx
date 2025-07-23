@@ -56,7 +56,6 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
         return `${year}-${month}-${day}T${hours}:${minutes}`;
     };
 
-    console.log("cycleProgram.start_date:", cycleProgram.start_date);
     const [formData, setFormData] = useState<CycleProgram>({
         id: cycleProgram.id,
         title: cycleProgram.title,
@@ -199,7 +198,6 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
 
         const startDateStr = formData.start_date || "";
         const endDateStr = formData.end_date || "";
-        console.log("formData.start_date:", formData.start_date);
         const startDate = startDateStr ? new Date(startDateStr) : null;
         const endDate = endDateStr ? new Date(endDateStr) : null;
 
@@ -224,7 +222,6 @@ export function EditCycleProgramModal({ cycleProgram, onCycleProgramUpdated }: E
         formDataToSend.append("end_date", endDate.toISOString());
 
         // Append budget with fallback
-        console.log("formData.budget:", formData.budget);
         formDataToSend.append("budget", (formData.budget ?? 0).toString());
         formDataToSend.append("module_ids", JSON.stringify(formData.module_ids));
 

@@ -466,7 +466,7 @@ const Indisponibilite: React.FC = () => {
               onClick={() => setIsModalOpen(true)}
               className="bg-[#06668C] text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-300"
             >
-              Ajouter un créneau
+              Ajouter une indisponibilité
             </Button>
           </div>
           {getFilteredIndisponibilites().length === 0 ? (

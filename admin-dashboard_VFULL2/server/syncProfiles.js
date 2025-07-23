@@ -23,10 +23,8 @@ mongoose.connect(process.env.MONGO_URI, {
 async function syncProfiles() {
     try {
         const result = await pool.query('SELECT id_profile, "NOM PRENOM" FROM profile');
-        console.log(`Found ${result.rowCount} profiles to sync`);
 
         for (const profile of result.rows) {
-            console.log(`Syncing profile: id_profile=${profile.id_profile}, name=${profile["NOM PRENOM"]}`);
             // Generate a unique email if not provided (e.g., based on id_profile)
             const email = `user_${profile.id_profile}@anep.local`; // Temporary unique email
             await User.findOneAndUpdate(
@@ -36,13 +34,11 @@ async function syncProfiles() {
             );
         }
 
-        console.log("Sync completed");
     } catch (error) {
         console.error('Sync error:', error);
     } finally {
         await pool.end();
         mongoose.connection.close();
-        console.log('Database connections closed');
     }
 }
 

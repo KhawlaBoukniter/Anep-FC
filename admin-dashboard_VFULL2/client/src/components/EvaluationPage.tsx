@@ -250,7 +250,6 @@ const EvaluationPage: React.FC = () => {
         ...evaluationData,
       })
 
-      console.log("Réponse du serveur:", response.data)
       toast({
         title: "Succès",
         description: "Évaluation envoyée avec succès! Merci pour votre participation.",
@@ -528,7 +527,7 @@ const EvaluationPage: React.FC = () => {
         </div>
       </section>
 
-      
+
     </div>
   )
 }

@@ -147,7 +147,6 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
   }, [toast]);
 
   useEffect(() => {
-    console.log("Profiles data:", profiles);
     if (profiles.length) {
       setUsers(profiles);
       setInternalInstructors(
@@ -666,7 +665,6 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
         }
       }
 
-      console.log("Sending courseData to update:", courseData);
       await useApiAxios.put(`/courses/${module._id}`, courseData);
       toast({ title: "Succès", description: "Module mis à jour avec succès." });
       setCurrentStep(1);

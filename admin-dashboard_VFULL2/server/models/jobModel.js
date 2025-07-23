@@ -34,7 +34,6 @@ exports.updateEmploiWeights = async () => {
 
   try {
     await pool.query(updateQuery);
-    console.log("Mise à jour des poids des emplois réussie.");
   } catch (error) {
     console.error("Erreur lors de la mise à jour des poids des emplois :", error);
     throw error;
@@ -84,7 +83,7 @@ exports.getAllJobs = async (search, archived = false) => {
   query += ` GROUP BY j.id_emploi ORDER BY CAST(SUBSTRING(j.codeemploi FROM '\\d+') AS INTEGER)`;
 
   const result = await pool.query(query, params);
-  
+
   return result.rows.map(row => ({
     ...row,
     id_emploi: row.id_emploi.toString(),
@@ -279,7 +278,7 @@ exports.saveCommonFile = async (filePath) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    
+
     // Supprimer l'ancien fichier physique s'il existe
     const oldFile = await client.query("SELECT file_path FROM common_files LIMIT 1");
     if (oldFile.rows[0]?.file_path) {
@@ -292,10 +291,10 @@ exports.saveCommonFile = async (filePath) => {
 
     // Supprimer l'ancienne entrée en base
     await client.query("DELETE FROM common_files");
-    
+
     // Insérer le nouveau fichier
     await client.query("INSERT INTO common_files (file_path) VALUES ($1)", [filePath]);
-    
+
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");

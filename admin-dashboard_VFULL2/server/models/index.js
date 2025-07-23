@@ -21,7 +21,6 @@ sequelizeModelFiles.forEach(file => {
       if (models && typeof models === 'object') {
         Object.keys(models).forEach(modelName => {
           db[modelName] = models[modelName];
-          console.log(`Loaded model: ${modelName}`);
         });
       } else {
         console.warn(`Skipping file ${file}: does not return an object of models`);
@@ -43,7 +42,5 @@ Object.keys(db).forEach(modelName => {
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
-
-console.log('Loaded models:', Object.keys(db)); // Debug: List loaded models
 
 module.exports = db;

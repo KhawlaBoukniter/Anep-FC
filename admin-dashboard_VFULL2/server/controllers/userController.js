@@ -4,7 +4,6 @@ const User = require('../models/User');
 const getAllUsers = async (req, res) => {
     try {
         const users = await User.find();
-        console.log("Fetched users:", users);
         res.send(users);
     } catch (error) {
         console.error("Error fetching users:", error);
@@ -153,13 +152,11 @@ const importUsersFromExcel = async (req, res) => {
         const users = req.body; // Assume the request body contains the array of users
 
         // Log the incoming data for debugging
-        console.log('Incoming users data:', users);
 
         const results = await Promise.all(users.map(async (user) => {
             // Check if the user already exists by email
             const existingUser = await User.findOne({ email: user.email });
             if (existingUser) {
-                console.log(`User with email ${user.email} already exists. Updating.`);
                 // Update the user, excluding the password field
                 const updateData = { ...user };
                 delete updateData.password; // Ensure the password is not updated
