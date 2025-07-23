@@ -54,6 +54,10 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+app.get('/ping-test', (req, res) => {
+  res.send('pong test');
+});
+
 // Routes MongoDB
 app.use('/users', require('./routes/users'));
 app.use('/courses', require('./routes/courses'));
