@@ -197,8 +197,23 @@ export function JobsList() {
     }
   };
 
-  const handleViewFile = (filePath: string) => {
-    window.open(filePath, "_blank");
+  const handleViewFile = async (filePath: string) => {
+    try {
+      const response = await fetch(filePath);
+      if (!response.ok) throw new Error("Erreur lors de la récupération du fichier");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filePath.split("/").pop() || "document"; // Extracts filename or defaults to "document"
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url); // Clean up the URL
+    } catch (error) {
+      console.error("Erreur lors du téléchargement du fichier:", error);
+      alert("Impossible de télécharger le fichier. Vérifiez l'URL ou les permissions.");
+    }
   };
 
   const clearFilter = (filterType: string, value?: string) => {

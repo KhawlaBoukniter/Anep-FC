@@ -198,7 +198,7 @@ export function EditJobModal({ job }: EditJobModalProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50">
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
           <Edit className="h-4 w-4" />
         </Button>
       </DialogTrigger>
@@ -320,8 +320,8 @@ export function EditJobModal({ job }: EditJobModalProps) {
                                 >
                                   <Check
                                     className={`mr-2 h-4 w-4 ${selectedCompetences.some((s) => s.id_competencer === skill.id_competencer)
-                                        ? "opacity-100"
-                                        : "opacity-0"
+                                      ? "opacity-100"
+                                      : "opacity-0"
                                       }`}
                                   />
                                   <span>{skill.competencer}</span>

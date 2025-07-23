@@ -2,7 +2,7 @@
 
 import { useParams, useNavigate } from "react-router-dom";
 import { useEmployee } from "../hooks/useEmployees.js";
-import { useJobs } from "../hooks/useJobs.js"; 
+import { useJobs } from "../hooks/useJobs.js";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card.tsx";
 import { Badge } from "../components/ui/badge.tsx";
 import { Button } from "../components/ui/button.tsx";
@@ -131,8 +131,23 @@ export default function ProfilePage() {
         checkAuth();
     }, [navigate]);
 
-    const handleViewFile = (filePath: string) => {
-        window.open(filePath, "_blank");
+    const handleViewFile = async (filePath: string) => {
+        try {
+            const response = await fetch(filePath);
+            if (!response.ok) throw new Error("Erreur lors de la récupération du fichier");
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = filePath.split("/").pop() || "document"; // Extracts filename or defaults to "document"
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url); // Clean up the URL
+        } catch (error) {
+            console.error("Erreur lors du téléchargement du fichier:", error);
+            alert("Impossible de télécharger le fichier. Vérifiez l'URL ou les permissions.");
+        }
     };
 
     if (isLoading) {
@@ -179,23 +194,23 @@ export default function ProfilePage() {
                 <Header />
                 <main className="flex-grow px-4 py-8 md:px-8 md:py-12 bg-gray-100">
                     <header className="flex items-center justify-between mb-8">
-                        
-                            <Button
-                                variant="outline"
-                                onClick={() => {
-                                    if (isAdmin && isOwnProfile) {
+
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                if (isAdmin && isOwnProfile) {
                                     navigate("/dashboard");
-                                    } else {
+                                } else {
                                     navigate(-1);
-                                    }
-                                }}
-                                className="border-indigo-300 text-white hover:bg-indigo-50 transition-colors duration-200"
-                                style={{ backgroundColor: "#0066cc" }}
-                                >
-                                <ArrowLeft className="mr-2 h-4 w-4" />{" "}
-                                {isAdmin && isOwnProfile ? "Retour au tableau de bord" : "Retour à la liste"}
-                            </Button>
-                        <div className="flex items-center gap-2">    
+                                }
+                            }}
+                            className="border-indigo-300 text-white hover:bg-indigo-50 transition-colors duration-200"
+                            style={{ backgroundColor: "#0066cc" }}
+                        >
+                            <ArrowLeft className="mr-2 h-4 w-4" />{" "}
+                            {isAdmin && isOwnProfile ? "Retour au tableau de bord" : "Retour à la liste"}
+                        </Button>
+                        <div className="flex items-center gap-2">
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button
@@ -213,13 +228,13 @@ export default function ProfilePage() {
                                     <p>Voir le fichier commun</p>
                                 </TooltipContent>
                             </Tooltip>
-                        
-                        <Badge
-                            variant={employee.archived ? "destructive" : "secondary"}
-                            className={`text-sm font-bold px-3 py-1 transition-colors duration-200 ${employee.archived ? "bg-red-100 text-red-800 hover:bg-red-200 shadow-lg shadow-red-900 " : "bg-blue-100 text-blue-800 hover:bg-blue-200 shadow-lg shadow-blue-900 "}`}
-                        >
-                            {employee.archived ? "Archivé" : "Actif"}
-                        </Badge>
+
+                            <Badge
+                                variant={employee.archived ? "destructive" : "secondary"}
+                                className={`text-sm font-bold px-3 py-1 transition-colors duration-200 ${employee.archived ? "bg-red-100 text-red-800 hover:bg-red-200 shadow-lg shadow-red-900 " : "bg-blue-100 text-blue-800 hover:bg-blue-200 shadow-lg shadow-blue-900 "}`}
+                            >
+                                {employee.archived ? "Archivé" : "Actif"}
+                            </Badge>
                         </div>
                     </header>
 
