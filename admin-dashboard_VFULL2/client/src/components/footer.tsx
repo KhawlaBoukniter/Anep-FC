@@ -12,19 +12,19 @@ const Footer: React.FC = () => {
                 <img src="/images/logo1.png" alt="Description" />
               </div>
             </div>
-            <p className="text-gray-300 mb-4">
-              Votre description d'entreprise ici. Nous offrons des services de qualité pour répondre à tous vos besoins.
-            </p>
+            <p className="text-gray-300 mb-4 text-left ml-20">
+             L’Agence Nationale des Équipements Publics (ANEP) est un établissement public chargé de la maîtrise d’ouvrage déléguée pour la réalisation d’équipements publics. Elle œuvre aussi pour le développement des compétences à travers des actions de formation continue destinées à ses collaborateurs.            </p>
           </div>
 
         
 
           {/* Contact */}
           <div>
-            <h3 className="text-lg font-bold mb-4 text-white">Contact</h3>
-            <div className="space-y-2 text-gray-300">
-              <p className="font-medium">Email: contact@example.com</p>
-              <p className="font-medium">Tél: +33 1 23 45 67 89</p>
+            <h3 className="text-lg font-bold text-white mt-4">Contact</h3>
+            <div className="space-y-2 text-gray-300 mt-6 text-left ml-20 ">
+              <p className="font-medium">Email: N.elasri@anep.ma</p>
+              <p className="font-medium">Tél: +212 772-000605 </p>
+              <p className="font-medium">WhatsApp: +212 664-431935 </p>
             </div>
           </div>
         </div>
