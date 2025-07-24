@@ -135,15 +135,29 @@ export default function ProfilePage() {
     const fullPath = filePath.startsWith("http")
       ? filePath
       : `${process.env.REACT_APP_API_URL}${filePath}`;
+    console.log(process.env.REACT_APP_API_URL);
+
 
     try {
-      const response = await fetch(fullPath);
+      const response = await fetch(fullPath, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+        },
+      });
+
       if (!response.ok) throw new Error("Erreur lors de la récupération du fichier");
+
       const blob = await response.blob();
+      const contentDisposition = response.headers.get("Content-Disposition");
+      const fileName =
+        contentDisposition && contentDisposition.includes("filename=")
+          ? contentDisposition.split("filename=")[1].replace(/"/g, "")
+          : fullPath.split("/").pop() || "document.xlsx";
+
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = fullPath.split("/").pop() || "document";
+      link.download = fileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -153,6 +167,7 @@ export default function ProfilePage() {
       alert("Impossible de télécharger le fichier. Vérifiez l'URL ou les permissions.");
     }
   };
+
 
 
   if (isLoading) {
