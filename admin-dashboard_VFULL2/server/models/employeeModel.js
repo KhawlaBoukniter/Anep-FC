@@ -595,7 +595,7 @@ async function deleteEmployee(id) {
 async function checkEmailExists(email) {
     const query = `
         SELECT EXISTS (
-            SELECT 1 FROM employe WHERE email = $1 AND archived = false
+            SELECT 1 FROM employe WHERE LOWER(email) = LOWER($1) AND archived = false
         ) AS exists,
         (SELECT password IS NOT NULL FROM employe WHERE email = $1 AND archived = false) AS has_password
     `;
