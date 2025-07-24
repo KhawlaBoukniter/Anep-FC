@@ -102,17 +102,22 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
           // Identifier les compétences requises actuelles (uniquement celles de l'emploi actuel)
           const currentRequiredSkillIds = new Set(newRequiredSkills.map((s) => Number(s.id_competencea)));
           const mergedRequiredSkills = [
-            ...allExistingSkills.filter((skill) =>
-              currentRequiredSkillIds.has(Number(skill.id_competencea))
-            ),
-            ...newRequiredSkills.filter(
-              (newSkill) =>
-                !allExistingSkills.some((s) => Number(s.id_competencea) === Number(newSkill.id_competencea))
-            ),
-          ].map((skill) => ({
-            ...skill,
-            niveaua: allExistingSkills.find((s) => Number(s.id_competencea) === Number(skill.id_competencea))?.niveaua || skill.niveaua,
-          }));
+            ...allExistingSkills
+              .filter((skill) => currentRequiredSkillIds.has(Number(skill.id_competencea)))
+              .map((skill) => ({ ...skill, isNew: false })),
+
+            ...newRequiredSkills
+              .filter(
+                (newSkill) =>
+                  !allExistingSkills.some((s) => Number(s.id_competencea) === Number(newSkill.id_competencea))
+              )
+              .map((skill) => ({
+                ...skill,
+                niveaua: 0,
+                isNew: true,
+              })),
+          ];
+
 
           // Déplacer toutes les compétences existantes non requises vers additionalJobSkills
           const nonRequiredSkills = allExistingSkills.filter(
@@ -809,8 +814,8 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                             >
                               <Check
                                 className={`mr-2 h-4 w-4 ${formData.emplois?.some((j) => j.id_emploi === job.id_emploi)
-                                    ? "opacity-100"
-                                    : "opacity-0"
+                                  ? "opacity-100"
+                                  : "opacity-0"
                                   }`}
                               />
                               <div className="w-full">
@@ -899,8 +904,8 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                                   >
                                     <Check
                                       className={`mr-2 h-4 w-4 ${additionalJobSkills.some((s) => s.id_competencea === skill.id_competencea)
-                                          ? "opacity-100"
-                                          : "opacity-0"
+                                        ? "opacity-100"
+                                        : "opacity-0"
                                         }`}
                                     />
                                     <span>{skill.competencea}</span>
@@ -925,29 +930,35 @@ export function EditEmployeeModal({ employee }: EditEmployeeModalProps) {
                     {skillSectionsOpen.required && requiredSkills.map((skill) => (
                       <div
                         key={skill.id_competencea}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                        className={`flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 ${skill.isNew ? "border-green-500 bg-green-50" : ""
+                          }`}
                       >
                         <div className="flex items-center gap-2">
-                          <span className="font-medium">{skill.competencea}</span>
+                          <span className="font-medium flex items-center gap-2">
+                            {skill.competencea}
+                            {skill.isNew && (
+                              <span className="text-xs font-semibold text-green-700 bg-green-200 px-2 py-0.5 rounded-full">
+                                Nouveau
+                              </span>
+                            )}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-2">
-                            <Select
-                              value={skill.niveaua.toString()}
-                              onValueChange={(value) => handleSkillLevelChange(skill.id_competencea, Number.parseInt(value), 'required')}
-                            >
-                              <SelectTrigger className="w-16">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="0">0</SelectItem>
-                                <SelectItem value="1">1</SelectItem>
-                                <SelectItem value="2">2</SelectItem>
-                                <SelectItem value="3">3</SelectItem>
-                                <SelectItem value="4">4</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
+                          <Select
+                            value={skill.niveaua.toString()}
+                            onValueChange={(value) => handleSkillLevelChange(skill.id_competencea, Number.parseInt(value), 'required')}
+                          >
+                            <SelectTrigger className="w-16">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="0">0</SelectItem>
+                              <SelectItem value="1">1</SelectItem>
+                              <SelectItem value="2">2</SelectItem>
+                              <SelectItem value="3">3</SelectItem>
+                              <SelectItem value="4">4</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                     ))}
