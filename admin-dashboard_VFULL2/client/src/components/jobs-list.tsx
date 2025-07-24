@@ -197,24 +197,33 @@ export function JobsList() {
     }
   };
 
-  const handleViewFile = async (filePath: string) => {
+  const handleViewFile = async () => {
     try {
       const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:5000";
+      const response = await fetch(`${baseUrl}/api/common-files`);
+      if (!response.ok) throw new Error("Erreur lors de la récupération du fichier commun");
+
+      const data = await response.json();
+      const filePath = data[0]?.file_path; // On récupère le premier fichier de la table common_files
+      if (!filePath) throw new Error("Aucun fichier commun trouvé");
+
       const fullUrl = filePath.startsWith("http") ? filePath : `${baseUrl}${filePath}`;
       console.log("Fetching file from:", fullUrl);
-      const response = await fetch(fullUrl);
-      if (!response.ok) throw new Error("Erreur lors de la récupération du fichier");
-      const blob = await response.blob();
+
+      const fileResponse = await fetch(fullUrl);
+      if (!fileResponse.ok) throw new Error("Erreur lors du téléchargement du fichier");
+
+      const blob = await fileResponse.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = filePath.split("/").pop() || "document";
+      link.download = filePath.split("/").pop() || "document.pdf"; // Nom du fichier par défaut
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Erreur lors duダウンロード du fichier:", error);
+      console.error("Erreur lors du téléchargement du fichier:", error);
       alert("Impossible de télécharger le fichier. Vérifiez l'URL ou les permissions.");
     }
   };
@@ -477,19 +486,14 @@ export function JobsList() {
                     <Button
                       variant="outline"
                       className="flex items-center gap-2 bg-white rounded-lg border-green-600 hover:bg-gray-100 transition-all"
-                      onClick={() => {
-                        if (jobs.some((job) => job.common_file)) {
-                          const firstFile = jobs.find((job) => job.common_file)?.common_file;
-                          if (firstFile) handleViewFile(firstFile);
-                        }
-                      }}
-                      disabled={!jobs.some((job) => job.common_file)}
+                      onClick={handleViewFile}
+                      disabled={false} // Toujours activé si un fichier existe dans common_files
                     >
-                      <File className="h-4 w-4" /> Voir Rec 
+                      <File className="h-4 w-4" /> Voir Rec
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Voir le fichier commun</p>
+                    <p>Télécharger le fichier commun</p>
                   </TooltipContent>
                 </Tooltip>
                 <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
@@ -510,7 +514,7 @@ export function JobsList() {
                         type="file"
                         onChange={handleFileChange}
                         className="w-full p-2 border border-gray-300 rounded-lg"
-                        accept=".pdf,.doc,.docx"
+                        accept=".pdf"
                       />
                     </div>
                     <DialogFooter className="border-t border-gray-100 p-4 flex justify-end gap-3">
