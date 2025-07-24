@@ -594,10 +594,16 @@ async function deleteEmployee(id) {
 
 async function checkEmailExists(email) {
     const query = `
-        SELECT EXISTS (
-            SELECT 1 FROM employe WHERE LOWER(email) = LOWER($1) AND archived = false
-        ) AS exists,
-        (SELECT password IS NOT NULL FROM employe WHERE email = $1 AND archived = false) AS has_password
+        SELECT 
+            EXISTS (
+                SELECT 1 FROM employe WHERE LOWER(email) = LOWER($1) AND archived = false
+            ) AS exists,
+            (
+                SELECT password IS NOT NULL 
+                FROM employe 
+                WHERE LOWER(email) = LOWER($1) AND archived = false
+                LIMIT 1
+            ) AS has_password
     `;
     try {
         const result = await pool.query(query, [email]);
@@ -618,7 +624,9 @@ async function checkEmailExists(email) {
 
 async function checkPassword(email, password) {
     const query = `
-        SELECT id_employe, email, password, role FROM employe WHERE email = $1 AND archived = false
+        SELECT id_employe, email, password, role 
+        FROM employe 
+        WHERE LOWER(email) = LOWER($1) AND archived = false
     `;
     try {
         const result = await pool.query(query, [email]);
@@ -650,9 +658,10 @@ async function savePassword(email, password) {
     const query = `
         UPDATE employe 
         SET password = $1, updated_at = CURRENT_TIMESTAMP 
-        WHERE email = $2 AND archived = false
+        WHERE LOWER(email) = LOWER($2) AND archived = false
         RETURNING id_employe, email
     `;
+
     try {
         const result = await pool.query(query, [hashedPassword, email]);
         if (result.rows.length === 0) {
