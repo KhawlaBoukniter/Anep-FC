@@ -171,7 +171,8 @@ async function checkEmail(req, res) {
         if (!email) {
             return res.status(400).json({ message: "Email requis." });
         }
-        const { exists, hasPassword } = await employeeModel.checkEmailExists(email);
+        const emailLower = email.toLowerCase();
+        const { exists, hasPassword } = await employeeModel.checkEmailExists(emailLower);
         res.json({ exists, hasPassword });
     } catch (error) {
         console.error("Controller error in checkEmail:", error.stack);
@@ -185,7 +186,8 @@ async function login(req, res) {
         if (!email || !password) {
             return res.status(400).json({ message: "Email et mot de passe requis." });
         }
-        const user = await employeeModel.checkPassword(email, password);
+        const emailLower = email.toLowerCase();
+        const user = await employeeModel.checkPassword(emailLower, password);
         if (!user) {
             return res.status(401).json({ message: "Email ou mot de passe incorrect." });
         }
@@ -231,11 +233,12 @@ async function savePassword(req, res) {
         if (password !== confirmPassword) {
             return res.status(400).json({ message: "Les mots de passe ne correspondent pas." });
         }
-        const isSaved = await employeeModel.savePassword(email, password);
+        const emailLower = email.toLowerCase();
+        const isSaved = await employeeModel.savePassword(emailLower, password);
         if (!isSaved) {
             return res.status(400).json({ message: "Erreur lors de l'enregistrement du mot de passe." });
         }
-        const user = await employeeModel.getEmployeeByEmail(email);
+        const user = await employeeModel.getEmployeeByEmail(emailLower);
         const token = jwt.sign({ id: user.id, email: user.email }, SECRET_KEY, { expiresIn: "1h" });
         res.json({ isSaved: true, token, user: { id: user.id, email: user.email } });
     } catch (error) {
