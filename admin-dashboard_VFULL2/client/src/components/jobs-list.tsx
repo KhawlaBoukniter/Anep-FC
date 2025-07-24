@@ -485,7 +485,7 @@ export function JobsList() {
                       }}
                       disabled={!jobs.some((job) => job.common_file)}
                     >
-                      <File className="h-4 w-4" /> Voir Fichier
+                      <File className="h-4 w-4" /> Voir Rec 
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
