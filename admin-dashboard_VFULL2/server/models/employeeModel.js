@@ -606,6 +606,7 @@ async function checkEmailExists(email) {
             ) AS has_password
     `;
     try {
+        console.log("Checking email:", email);
         const result = await pool.query(query, [email]);
         return {
             exists: result.rows[0].exists,

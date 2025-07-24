@@ -28,7 +28,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
         setError("");
 
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/employees/check-email?email=${encodeURIComponent(email)}`);
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/employees/check-email?email=${encodeURIComponent(email.toLowerCase())}`);
             if (!response.ok) {
                 throw new Error("Erreur lors de la vérification de l'email");
             }
@@ -56,7 +56,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
             const response = await fetch(`${process.env.REACT_APP_API_URL}/api/employees/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ email: email.toLowerCase(), password }),
             });
             if (!response.ok) {
                 throw new Error("Mot de passe incorrect");
@@ -83,7 +83,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
             const response = await fetch(`${process.env.REACT_APP_API_URL}/api/employees/save-password`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password, confirmPassword }),
+                body: JSON.stringify({ email: email.toLowerCase(), password, confirmPassword }),
             });
             if (!response.ok) {
                 throw new Error("Erreur lors de l'enregistrement du mot de passe");
