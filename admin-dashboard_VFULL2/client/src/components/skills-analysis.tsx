@@ -24,6 +24,7 @@ interface Employee {
   role: "user" | "admin"
   poste: string
   departement: string
+  ville: string
   skills: Array<{
     name: string
     level: number
@@ -77,11 +78,11 @@ export function SkillsAnalysis() {
       selectedSkills.map((s) =>
         s.name === skillName
           ? {
-              ...s,
-              acquiredLevels: checked
-                ? [...s.acquiredLevels, level]
-                : s.acquiredLevels.filter((l) => l !== level),
-            }
+            ...s,
+            acquiredLevels: checked
+              ? [...s.acquiredLevels, level]
+              : s.acquiredLevels.filter((l) => l !== level),
+          }
           : s
       )
     )
@@ -92,11 +93,11 @@ export function SkillsAnalysis() {
       selectedSkills.map((s) =>
         s.name === skillName
           ? {
-              ...s,
-              requiredLevels: checked
-                ? [...s.requiredLevels, level]
-                : s.requiredLevels.filter((l) => l !== level),
-            }
+            ...s,
+            requiredLevels: checked
+              ? [...s.requiredLevels, level]
+              : s.requiredLevels.filter((l) => l !== level),
+          }
           : s
       )
     )
@@ -169,13 +170,15 @@ export function SkillsAnalysis() {
       const row: { [key: string]: any } = {
         'Employé': result.employee.nom_complet,
         'Email': result.employee.email,
+        'Téléphone': result.employee.telephone,
         'Poste': result.employee.poste,
         'Département': result.employee.departement,
+        'Ville': result.employee.ville
       }
 
       result.matchedSkills.forEach(skill => {
-        const skillValue = skill.currentLevel 
-          ? `Acquis: ${skill.currentLevel} (Requis: ${skill.requiredLevel || "N/A"})` 
+        const skillValue = skill.currentLevel
+          ? `Acquis: ${skill.currentLevel} (Requis: ${skill.requiredLevel || "N/A"})`
           : `Non acquise (Requis: ${skill.requiredLevel || "N/A"})`
         row[skill.name] = skillValue
       })
@@ -241,62 +244,62 @@ export function SkillsAnalysis() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex justify-center gap-2 ">
-            
-          <div className="space-y-2 w-full ">
-            <Label>Ajouter une compétence</Label>
-            <div className="flex-1 relative">
-              <Command className="rounded-lg border border-purple-800 bg-white">
-                <CommandInput
-                  ref={inputRef}
-                  placeholder="Saisissez ou recherchez une compétence..."
-                  value={searchSkill}
-                  onValueChange={(value) => {
-                    setSearchSkill(value)
-                    setOpenSkillPopover(value.length > 0)
-                  }}
-                />
-                {openSkillPopover && (
-                  <CommandList className="absolute top-10 w-full border shadow-md bg-white z-10">
-                    <CommandEmpty>Aucune compétence trouvée.</CommandEmpty>
-                    <CommandGroup>
-                      {data?.availableSkills
-                        ?.filter((skill: any) => skill.name.toLowerCase().includes(searchSkill.toLowerCase()))
-                        .map((skill: any) => (
-                          <CommandItem
-                            key={skill.id}
-                            onSelect={() => addSkill(skill.name)}
-                            disabled={selectedSkills.some((s) => s.name === skill.name)}
-                          >
-                            <span>{skill.name}</span>
-                          </CommandItem>
-                        ))}
-                    </CommandGroup>
-                  </CommandList>
-                )}
-              </Command>
+
+            <div className="space-y-2 w-full ">
+              <Label>Ajouter une compétence</Label>
+              <div className="flex-1 relative">
+                <Command className="rounded-lg border border-purple-800 bg-white">
+                  <CommandInput
+                    ref={inputRef}
+                    placeholder="Saisissez ou recherchez une compétence..."
+                    value={searchSkill}
+                    onValueChange={(value) => {
+                      setSearchSkill(value)
+                      setOpenSkillPopover(value.length > 0)
+                    }}
+                  />
+                  {openSkillPopover && (
+                    <CommandList className="absolute top-10 w-full border shadow-md bg-white z-10">
+                      <CommandEmpty>Aucune compétence trouvée.</CommandEmpty>
+                      <CommandGroup>
+                        {data?.availableSkills
+                          ?.filter((skill: any) => skill.name.toLowerCase().includes(searchSkill.toLowerCase()))
+                          .map((skill: any) => (
+                            <CommandItem
+                              key={skill.id}
+                              onSelect={() => addSkill(skill.name)}
+                              disabled={selectedSkills.some((s) => s.name === skill.name)}
+                            >
+                              <span>{skill.name}</span>
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </CommandList>
+                  )}
+                </Command>
+              </div>
+            </div>
+            <div className="space-y-2 w-full">
+              <Label>Type d'analyse</Label>
+              <div className="flex gap-4">
+                <Button
+                  variant={analysisType === "union" ? "default" : "outline"}
+                  onClick={() => setAnalysisType("union")}
+                  className={analysisType === "union" ? "bg-purple-200  w-full py-[22px] " : "w-full bg-purple-600 py-[22px] hover:bg-purple-700 text-white"}
+                >
+                  Union
+                </Button>
+                <Button
+                  variant={analysisType === "intersection" ? "default" : "outline"}
+                  onClick={() => setAnalysisType("intersection")}
+                  className={analysisType === "intersection" ? "bg-purple-200  w-full py-[22px]" : "w-full bg-purple-600 py-[22px] hover:bg-purple-700 text-white"}
+                >
+                  Intersection
+                </Button>
+              </div>
             </div>
           </div>
-           <div className="space-y-2 w-full">
-            <Label>Type d'analyse</Label>
-            <div className="flex gap-4">
-              <Button 
-                variant={analysisType === "union" ? "default" : "outline"}
-                onClick={() => setAnalysisType("union")}
-                className={analysisType === "union" ? "bg-purple-200  w-full py-[22px] " : "w-full bg-purple-600 py-[22px] hover:bg-purple-700 text-white"} 
-              >
-                Union
-              </Button>
-              <Button
-                variant={analysisType === "intersection" ? "default" : "outline"}
-                onClick={() => setAnalysisType("intersection")}
-                className={analysisType === "intersection" ? "bg-purple-200  w-full py-[22px]" : "w-full bg-purple-600 py-[22px] hover:bg-purple-700 text-white"}
-              >
-                Intersection
-              </Button>
-            </div>
-          </div>
-          </div>
-          
+
           {selectedSkills.length > 0 && (
             <div className="space-y-4 ">
               <Label>Compétences sélectionnées</Label>
@@ -329,7 +332,7 @@ export function SkillsAnalysis() {
                       <Label className="mb-2 block text-purple-800">Niveaux requis</Label>
                       {[1, 2, 3, 4].map((level) => (
                         <div key={level} className="flex items-center space-x-2 mb-2">
-                          <Checkbox 
+                          <Checkbox
                             className="border border-yellow-500"
                             id={`${skill.name}-required-${level}`}
                             checked={skill.requiredLevels.includes(level)}
@@ -355,9 +358,9 @@ export function SkillsAnalysis() {
               Analyser
             </Button>
             {hasAnalyzed && (
-              <Button 
-                variant="outline" 
-                onClick={resetAnalysis} 
+              <Button
+                variant="outline"
+                onClick={resetAnalysis}
                 disabled={!isAnalyzeDisabled}
                 className="bg-yellow-500"
               >
@@ -375,8 +378,8 @@ export function SkillsAnalysis() {
               <div>
                 <CardTitle className="text-lg text-yellow-500">Résultats de l'analyse ({analysisType === "union" ? "Union" : "Intersection"})</CardTitle>
                 <p className="text-sm text-gray-600">
-                  {analysisType === "union" 
-                    ? "Employés correspondant à au moins une compétence sélectionnée" 
+                  {analysisType === "union"
+                    ? "Employés correspondant à au moins une compétence sélectionnée"
                     : "Employés correspondant à toutes les compétences sélectionnées"}
                 </p>
               </div>

@@ -154,6 +154,7 @@ async function getSkillsAnalysis() {
       e.specialite,
       e.role,
       em.nom_emploi as poste,
+      p."LIBELLE LOC" as ville,
       em.entite as departement,
       json_agg(
         json_build_object(
@@ -166,6 +167,7 @@ async function getSkillsAnalysis() {
     LEFT JOIN emploi em ON ee.id_emploi = em.id_emploi
     LEFT JOIN employe_competencea ec ON e.id_employe = ec.id_employe
     LEFT JOIN competencesa ca ON ec.id_competencea = ca.id_competencea
+    LEFT JOIN profile p ON e.profile_id = p.id_profile
     GROUP BY e.id_employe, em.nom_emploi, em.entite
     ORDER BY e.nom_complet
   `
