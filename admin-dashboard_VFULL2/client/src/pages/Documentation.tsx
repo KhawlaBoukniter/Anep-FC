@@ -2,6 +2,8 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
+import Header from "../components/header.tsx"
+import Footer from "../components/footer.tsx"
 
 interface Section {
     id: string
@@ -39,7 +41,7 @@ const DocumentationPage: React.FC = () => {
         {
             question: "Comment m'inscrire à une formation ?",
             answer:
-                "Allez dans la section 'Formations', choisissez un cycle ou programme  qui vous intéresse, cliquez sur 'candidater' ou sur 'voir formation' pour le programme .",
+                "Allez dans la section 'Formations', choisissez un cycle ou programme qui vous intéresse, cliquez sur 'candidater' ou sur 'voir formation' pour le programme .",
             category: "Formations",
         },
         {
@@ -150,7 +152,7 @@ const DocumentationPage: React.FC = () => {
                             </div>
                             <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
                                 <span className="font-medium text-blue-800">👤profile</span>
-                                <span className="text-sm text-blue-600">Outil de gestion des indisponibilités</span>
+                                <span className="text-sm text-blue-600">Voir le détail des informations </span>
                             </div>
                         </div>
                     </div>
@@ -240,7 +242,7 @@ const DocumentationPage: React.FC = () => {
                                 <div className="flex items-center p-2 bg-green-50 rounded">
                                     <span className="w-3 h-3 bg-green-500 rounded-full mr-3"></span>
                                     <span className="text-sm">
-                                        <strong>en attente</strong> - La candidature est encore de traitement
+                                        <strong>en attente</strong> - La candidature est en cours de traitement
                                     </span>
                                 </div>
                                 <div className="flex items-center p-2 bg-gray-50 rounded">
@@ -251,8 +253,6 @@ const DocumentationPage: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-
-                        
                     </div>
                 </div>
             ),
@@ -389,7 +389,7 @@ const DocumentationPage: React.FC = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="bg-white border border-gray-200 rounded-lg p-6">
-                            <h4 className="text-lg font-bold text-[#06668C] mb-4">📊 Tableau de bord personnel</h4>
+                            <h4 className="text-lg font-bold text-[#06668C] mb-4">📊  Interface employé</h4>
                             <p className="text-gray-600 mb-4">Une fois connecté, accédez à :</p>
                             <ul className="space-y-2">
                                 <li className="flex items-center">
@@ -406,7 +406,7 @@ const DocumentationPage: React.FC = () => {
                                 </li>
                                 <li className="flex items-center">
                                     <span className="text-green-500 mr-2">✓</span>
-                                    <span>Indisponibilit</span>
+                                    <span>Indisponibilité</span>
                                 </li>
                             </ul>
                         </div>
@@ -509,7 +509,8 @@ const DocumentationPage: React.FC = () => {
     )
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen flex flex-col bg-gray-50">
+            <Header />
             {/* Hero Section */}
             <section className="relative py-16 bg-gradient-to-br from-[#06668C] via-blue-700 to-green-600 text-white overflow-hidden">
                 <div className="absolute inset-0 bg-black bg-opacity-20"></div>
@@ -524,7 +525,6 @@ const DocumentationPage: React.FC = () => {
                     >
                         <h1 className="text-4xl md:text-6xl font-bold mb-4">📖 Documentation</h1>
                         <p className="text-xl md:text-2xl mb-8 opacity-90">Guide complet d'utilisation de la plateforme</p>
-
                     </div>
                 </div>
             </section>
@@ -601,6 +601,8 @@ const DocumentationPage: React.FC = () => {
                     </div>
                 </div>
             </section>
+
+            <Footer />
         </div>
     )
 }

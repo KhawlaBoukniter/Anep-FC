@@ -102,7 +102,7 @@ const Header: React.FC = () => {
                         className="text-[#06668C] font-bold duration-200"
                         onClick={toggleMobileMenu}
                     >
-                        Gide
+                        Guide
                     </Link>
                     {isAuthenticated && user && (
                         <>
