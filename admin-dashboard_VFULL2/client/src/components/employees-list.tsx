@@ -325,7 +325,7 @@ export function EmployeesList() {
                   <MapPin className="h-5 w-5 text-green-700" />
                 </div>
                 <div>
-                  <p className="text-sm text-green-700">Emplois</p>
+                  <p className="text-sm text-green-700">Emplois occupés</p>
                   <p className="text-2xl font-bold">{stats.emplois}</p>
                 </div>
               </div>

@@ -541,7 +541,7 @@ export function ReqSkillsManagement() {
                   style={{ borderColor: '#007198' }}
                 >
                   {showArchived ? <BookOpen className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
-                  {showArchived ? "Afficher Archivées" : " Afficher Actives"}
+                  {showArchived ? "Actif/archivé" : "Actif/archivé"}
                 </Button>
                 <Button
                   onClick={() => setIsAddModalOpen(true)}

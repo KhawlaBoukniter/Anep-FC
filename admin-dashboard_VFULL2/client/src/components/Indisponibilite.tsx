@@ -215,7 +215,7 @@ const Indisponibilite: React.FC = () => {
       case 'REUNION_HEBDOMADAIRE':
         return (
           <Badge className="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">
-            Réunion Hebdomadaire
+            Réunion 
           </Badge>
         );
       case 'AUTRE':
@@ -369,7 +369,7 @@ const Indisponibilite: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="CONGE">Congé</SelectItem>
-                    <SelectItem value="REUNION_HEBDOMADAIRE">Réunion Hebdomadaire</SelectItem>
+                    <SelectItem value="REUNION_HEBDOMADAIRE">Réunion</SelectItem>
                     <SelectItem value="AUTRE">Autre</SelectItem>
                   </SelectContent>
                 </Select>
