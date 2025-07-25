@@ -459,7 +459,7 @@ const Indisponibilite: React.FC = () => {
       )}
 
       {/* Indisponibilites List */}
-      <section className="py-8">
+      <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="mb-8 text-right">
             <Button
@@ -489,32 +489,29 @@ const Indisponibilite: React.FC = () => {
               {getFilteredIndisponibilites().map((indisponibilite) => (
                 <Card
                   key={indisponibilite.id_indisponibilite}
-                  className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
+                  className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 flex items-center"
                 >
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="text-base font-bold text-gray-800 truncate">
+                  <CardContent className="p-4 flex items-center justify-between w-full">
+                    <div className="flex items-center gap-4">
+                      <div className="text-sm font-bold text-gray-800">
                         {formatDateTime(indisponibilite.date_debut)} -{' '}
                         {formatDateTime(indisponibilite.date_fin)}
-                      </h3>
-                      {getStatusBadge(indisponibilite.type_indisponibilite)}
-                    </div>
-                    <div className="grid grid-cols-1 gap-2 mb-2 text-xs">
-                      <div>
-                        <span className="text-[0.65rem] text-gray-500">Description:</span>
-                        <div className="font-medium">{indisponibilite.description || 'Aucune'}</div>
                       </div>
+                      <div className="text-sm text-gray-500">
+                        {indisponibilite.description || 'Aucune'}
+                      </div>
+                      {getStatusBadge(indisponibilite.type_indisponibilite)}
                     </div>
                     <div className="flex gap-2">
                       <Button
                         onClick={() => handleEdit(indisponibilite)}
-                        className="flex-1 bg-gray-100 text-gray-700 py-1.5 px-3 rounded-md font-semibold hover:bg-gray-200 text-sm"
+                        className="bg-gray-100 text-gray-700 py-2 px-3 rounded-lg text-sm font-semibold hover:bg-gray-200"
                       >
                         Modifier
                       </Button>
                       <Button
                         onClick={() => openDeleteModal(indisponibilite.id_indisponibilite)}
-                        className="px-3 py-1.5 border-2 border-gray-300 text-gray-700 rounded-md hover:border-red-600 hover:text-red-600 text-sm"
+                        className="px-3 py-2 border-2 border-gray-300 text-gray-700 rounded-lg text-sm hover:border-red-600 hover:text-red-600"
                       >
                         🗑️
                       </Button>
