@@ -934,7 +934,13 @@ const getModulePresence = async (req, res) => {
         const presenceData = await Promise.all(
             registrations.map(async (reg) => {
                 const [user] = await db.sequelize.query(
-                    `SELECT id_employe AS id, nom_complet AS name, email FROM employe WHERE id_employe = :userId`,
+                    `SELECT 
+                        id_employe AS id, 
+                        nom_complet AS name, 
+                        email, 
+                        telephone1 AS telephone 
+                    FROM employe 
+                    WHERE id_employe = :userId`,
                     {
                         replacements: { userId: reg.user_id },
                         type: db.sequelize.QueryTypes.SELECT,
