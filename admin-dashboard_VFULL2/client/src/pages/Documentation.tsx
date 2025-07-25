@@ -313,20 +313,12 @@ const DocumentationPage: React.FC = () => {
                             <h4 className="text-lg font-bold text-[#06668C] mb-4">🎚️ Échelle de notation</h4>
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center p-2 bg-red-50 rounded">
-                                    <span className="font-bold text-red-700">1-2</span>
-                                    <span className="text-sm text-red-600">Débutant - À développer</span>
-                                </div>
-                                <div className="flex justify-between items-center p-2 bg-yellow-50 rounded">
-                                    <span className="font-bold text-yellow-700">3</span>
-                                    <span className="text-sm text-yellow-600">Intermédiaire - Correct</span>
-                                </div>
-                                <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
-                                    <span className="font-bold text-blue-700">4</span>
-                                    <span className="text-sm text-blue-600">Avancé - Très bien</span>
+                                    <span className="font-bold text-red-700">1</span>
+                                    <span className="text-sm text-red-600">Pas du tout satisfait</span>
                                 </div>
                                 <div className="flex justify-between items-center p-2 bg-green-50 rounded">
                                     <span className="font-bold text-green-700">5</span>
-                                    <span className="text-sm text-green-600">Expert - Excellence</span>
+                                    <span className="text-sm text-green-600">tout à fait satisfait</span>
                                 </div>
                             </div>
                         </div>
