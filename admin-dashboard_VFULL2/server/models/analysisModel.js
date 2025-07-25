@@ -168,7 +168,7 @@ async function getSkillsAnalysis() {
     LEFT JOIN employe_competencea ec ON e.id_employe = ec.id_employe
     LEFT JOIN competencesa ca ON ec.id_competencea = ca.id_competencea
     LEFT JOIN profile p ON e.profile_id = p.id_profile
-    GROUP BY e.id_employe, em.nom_emploi, em.entite
+    GROUP BY e.id_employe, em.nom_emploi, em.entite, p."LIBELLE LOC"
     ORDER BY e.nom_complet
   `
   const employeesResult = await pool.query(employeesQuery)
