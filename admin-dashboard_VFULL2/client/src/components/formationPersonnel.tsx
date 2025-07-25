@@ -435,7 +435,7 @@ const FormationPersonnel: React.FC = () => {
                           <span>{formation.startDate || "Non défini"} - {formation.endDate || "Non défini"}</span>
                         </div>
                       </div>
-                      <div className="mt-3 flex gap-2">
+                      <div className="mt-3 flex gap-2 justify-end">
                         {formation.registrationStatus === "rejected" ? (
                           <button
                             onClick={() => handleReenroll(formation.id, formation.programId)}
@@ -446,7 +446,7 @@ const FormationPersonnel: React.FC = () => {
                           </button>
                         ) : formation.registrationStatus === "accepted" ? (
                           <button
-                            className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-1.5 px-3 rounded-md font-medium hover:shadow-md transition-all duration-300 text-sm"
+                            className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-1.5 px-3 rounded-md font-medium hover:shadow-md transition-all duration-300 text-sm"
                             aria-label="Continuer la formation"
                             onClick={() => openFormationDetail(formation)}
                           >
