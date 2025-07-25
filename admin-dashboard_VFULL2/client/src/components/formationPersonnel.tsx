@@ -389,7 +389,7 @@ const FormationPersonnel: React.FC = () => {
           </div>
         </section>
 
-        <section className="section section--formation-list py-12 bg-gray-100">
+        <section className="section section--formation-list py-8 bg-gray-100">
           <div className="mx-auto px-6">
             {loading ? (
               <div className="text-center text-gray-600">Chargement des modules...</div>
@@ -410,18 +410,18 @@ const FormationPersonnel: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="flex flex-col gap-4">
                 {filteredFormations.map((formation) => (
                   <div
                     key={`${formation.id}-${formation.programId}`}
-                    className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
+                    className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden"
                   >
-                    <div className="p-6">
-                      <div className="flex justify-between items-start mb-4">
-                        <h3 className="text-lg font-semibold text-gray-800">{formation.title}</h3>
-                        <div className="flex flex-col gap-2">
+                    <div className="p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-base font-semibold text-gray-800 truncate">{formation.title}</h3>
+                        <div className="flex flex-col gap-1.5">
                           <span
-                            className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full"
+                            className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-medium rounded-full"
                             aria-label={`Catégorie : ${formation.category}`}
                           >
                             {formation.category}
@@ -429,38 +429,24 @@ const FormationPersonnel: React.FC = () => {
                           {getStatusBadge(formation.registrationStatus)}
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 gap-4 text-sm mb-4 text-gray-600">
-                        <div>
-                          <span className="block text-xs text-gray-500">Instructeur</span>
-                          <span className="font-medium">{formation.instructor}</span>
-                        </div>
+                      <div className="flex flex-col gap-2 text-xs text-gray-600">
                         <div className="flex justify-between">
-                          <div>
-                            <span className="block text-xs text-gray-500">
-                              <i className="fa-regular fa-calendar mr-1"></i> Date de début
-                            </span>
-                            <span className="font-medium">{formation.startDate || "Non défini"}</span>
-                          </div>
-                          <div>
-                            <span className="block text-xs text-gray-500">
-                              <i className="fa-regular fa-calendar mr-1"></i> Date de fin
-                            </span>
-                            <span className="font-medium">{formation.endDate || "Non défini"}</span>
-                          </div>
+                          <span className="font-medium">{formation.instructor}</span>
+                          <span>{formation.startDate || "Non défini"} - {formation.endDate || "Non défini"}</span>
                         </div>
                       </div>
-                      <div className="flex gap-3">
+                      <div className="mt-3 flex gap-2">
                         {formation.registrationStatus === "rejected" ? (
                           <button
                             onClick={() => handleReenroll(formation.id, formation.programId)}
-                            className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-2 px-4 rounded-lg font-medium hover:shadow-lg transition-all duration-300"
+                            className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-1.5 px-3 rounded-md font-medium hover:shadow-md transition-all duration-300 text-sm"
                             aria-label="Réessayer l'inscription"
                           >
-                            Réessayer l'inscription
+                            Réessayer
                           </button>
                         ) : formation.registrationStatus === "accepted" ? (
                           <button
-                            className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-2 px-4 rounded-lg font-medium hover:shadow-lg transition-all duration-300"
+                            className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-1.5 px-3 rounded-md font-medium hover:shadow-md transition-all duration-300 text-sm"
                             aria-label="Continuer la formation"
                             onClick={() => openFormationDetail(formation)}
                           >
@@ -468,7 +454,7 @@ const FormationPersonnel: React.FC = () => {
                           </button>
                         ) : (
                           <button
-                            className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium cursor-not-allowed"
+                            className="flex-1 bg-gray-200 text-gray-700 py-1.5 px-3 rounded-md font-medium cursor-not-allowed text-sm"
                             disabled
                             aria-label="Inscription en attente de validation"
                             aria-disabled="true"
