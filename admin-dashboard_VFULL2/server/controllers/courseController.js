@@ -630,6 +630,7 @@ const userAssignedDownload = async (req, res) => {
                 CIN: row["CIN"] || '',
                 LIBELLE_LOC: row["LIBELLE LOC"] || '',
                 LIBELLE_REGION: row["LIBELLE REGION"] || '',
+                TELEPHONE: row.telephone || '',
                 created_at: new Date().toISOString(), // Default to current date if not available
                 DaysPresent: presence.daysPresent || 0,
                 ...statusColumns,
