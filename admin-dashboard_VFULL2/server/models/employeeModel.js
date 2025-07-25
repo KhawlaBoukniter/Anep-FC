@@ -310,7 +310,7 @@ async function createEmployee(employeeData) {
             profile.ADRESSE || null,
             profile.DATE_NAISS,
             profile.DAT_REC,
-            profile.CIN,
+            profile.CIN || null,
             profile.DETACHE || null,
             profile.SEXE,
             profile.SIT_F_AG || null,
@@ -326,15 +326,15 @@ async function createEmployee(employeeData) {
         const profileResult = await client.query(insertProfileQuery, profileValues);
         const profileId = profileResult.rows[0].id_profile;
         const insertEmployeeQuery = `
-      INSERT INTO employe (
-        nom_complet, email, telephone1, telephone2, categorie, 
-        specialite, experience_employe, role, archived, profile_id, cin
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING *
-    `;
+            INSERT INTO employe (
+                nom_complet, email, telephone1, telephone2, categorie, 
+                specialite, experience_employe, role, archived, profile_id, cin
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            RETURNING *
+            `;
         const employeeValues = [
             employeeFields.nom_complet,
-            employeeFields.email,
+            employeeFields.email || null,
             employeeFields.telephone1 || null,
             employeeFields.telephone2 || null,
             employeeFields.categorie || null,
