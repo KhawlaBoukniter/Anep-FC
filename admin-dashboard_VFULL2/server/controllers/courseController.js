@@ -603,15 +603,17 @@ const userAssignedDownload = async (req, res) => {
 
         // Fetch user data from PostgreSQL profile and employe tables
         const query = `
-      SELECT 
-        p.id_profile,
-        p."NOM PRENOM",
-        p."CIN",
-        p."LIBELLE LOC",
-        p."LIBELLE REGION"
-      FROM profile p
-      WHERE p.id_profile = ANY($1)
-    `;
+            SELECT 
+                p.id_profile,
+                p."NOM PRENOM",
+                p."CIN",
+                p."LIBELLE LOC",
+                p."LIBELLE REGION",
+                e.telephone1 AS telephone
+            FROM profile p
+            LEFT JOIN employe e ON p.id_profile = e.id_employe
+            WHERE p.id_profile = ANY($1)
+        `;
         const result = await pool.query(query, [course.assignedUsers]);
 
         // Calculate duration using the updated function
