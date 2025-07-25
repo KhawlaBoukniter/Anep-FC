@@ -215,7 +215,7 @@ const Indisponibilite: React.FC = () => {
       case 'REUNION_HEBDOMADAIRE':
         return (
           <Badge className="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">
-            Réunion 
+            Réunion
           </Badge>
         );
       case 'AUTRE':
@@ -459,7 +459,7 @@ const Indisponibilite: React.FC = () => {
       )}
 
       {/* Indisponibilites List */}
-      <section className="py-12">
+      <section className="py-8">
         <div className="container mx-auto px-4">
           <div className="mb-8 text-right">
             <Button
@@ -485,36 +485,36 @@ const Indisponibilite: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="flex flex-col gap-4">
               {getFilteredIndisponibilites().map((indisponibilite) => (
                 <Card
                   key={indisponibilite.id_indisponibilite}
-                  className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
                 >
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-xl font-bold text-gray-800">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="text-base font-bold text-gray-800 truncate">
                         {formatDateTime(indisponibilite.date_debut)} -{' '}
                         {formatDateTime(indisponibilite.date_fin)}
                       </h3>
                       {getStatusBadge(indisponibilite.type_indisponibilite)}
                     </div>
-                    <div className="grid grid-cols-1 gap-4 mb-4 text-sm">
+                    <div className="grid grid-cols-1 gap-2 mb-2 text-xs">
                       <div>
-                        <span className="text-gray-500">Description:</span>
+                        <span className="text-[0.65rem] text-gray-500">Description:</span>
                         <div className="font-medium">{indisponibilite.description || 'Aucune'}</div>
                       </div>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex gap-2">
                       <Button
                         onClick={() => handleEdit(indisponibilite)}
-                        className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200"
+                        className="flex-1 bg-gray-100 text-gray-700 py-1.5 px-3 rounded-md font-semibold hover:bg-gray-200 text-sm"
                       >
                         Modifier
                       </Button>
                       <Button
                         onClick={() => openDeleteModal(indisponibilite.id_indisponibilite)}
-                        className="px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:border-red-600 hover:text-red-600"
+                        className="px-3 py-1.5 border-2 border-gray-300 text-gray-700 rounded-md hover:border-red-600 hover:text-red-600 text-sm"
                       >
                         🗑️
                       </Button>

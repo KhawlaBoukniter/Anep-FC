@@ -429,34 +429,20 @@ const FormationPersonnel: React.FC = () => {
                           {getStatusBadge(formation.registrationStatus)}
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 gap-2 text-xs mb-2 text-gray-600">
-                        <div>
-                          <span className="block text-[0.65rem] text-gray-500">Instructeur</span>
-                          <span className="font-medium">{formation.instructor}</span>
-                        </div>
+                      <div className="flex flex-col gap-2 text-xs text-gray-600">
                         <div className="flex justify-between">
-                          <div>
-                            <span className="block text-[0.65rem] text-gray-500">
-                              <i className="fa-regular fa-calendar mr-1"></i> Date de début
-                            </span>
-                            <span className="font-medium">{formation.startDate || "Non défini"}</span>
-                          </div>
-                          <div>
-                            <span className="block text-[0.65rem] text-gray-500">
-                              <i className="fa-regular fa-calendar mr-1"></i> Date de fin
-                            </span>
-                            <span className="font-medium">{formation.endDate || "Non défini"}</span>
-                          </div>
+                          <span className="font-medium">{formation.instructor}</span>
+                          <span>{formation.startDate || "Non défini"} - {formation.endDate || "Non défini"}</span>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="mt-3 flex gap-2">
                         {formation.registrationStatus === "rejected" ? (
                           <button
                             onClick={() => handleReenroll(formation.id, formation.programId)}
                             className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-1.5 px-3 rounded-md font-medium hover:shadow-md transition-all duration-300 text-sm"
                             aria-label="Réessayer l'inscription"
                           >
-                            Réessayer l'inscription
+                            Réessayer
                           </button>
                         ) : formation.registrationStatus === "accepted" ? (
                           <button
