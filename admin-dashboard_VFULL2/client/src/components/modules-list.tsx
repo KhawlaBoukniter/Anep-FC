@@ -428,7 +428,7 @@ const PresenceDialog = ({
   presenceData: {
     message?: string
     presence: {
-      user: { id: number; name: string; email: string }
+      user: { id: number; name: string; email: string, telephone: string }
       presence: { date: string; status: string }[]
       program: string
     }[]
@@ -467,6 +467,7 @@ const PresenceDialog = ({
       const baseData = {
         Participant: record.user.name,
         Email: record.user.email,
+        "Téléphone": record.user.telephone,
         Programme: record.program,
         "Taux de présence (%)": attendanceRate,
       }
