@@ -85,15 +85,6 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
   const [openUserPopover, setOpenUserPopover] = useState(false);
   const userInputRef = useRef<HTMLInputElement>(null);
 
-  if (!module) {
-    toast({
-      variant: "destructive",
-      title: "Erreur",
-      description: "Aucun module sélectionné.",
-    });
-    return null;
-  }
-
   const [course, setCourse] = useState<Partial<Course>>({
     _id: module._id,
     title: module.title,
@@ -287,6 +278,14 @@ export function EditModuleModal({ module, onCourseUpdated }: EditModuleModalProp
     return options;
   };
 
+  if (!module) {
+    toast({
+      variant: "destructive",
+      title: "Erreur",
+      description: "Aucun module sélectionné.",
+    });
+    return null;
+  }
 
   const filteredUsers = users.filter(
     (user) =>
